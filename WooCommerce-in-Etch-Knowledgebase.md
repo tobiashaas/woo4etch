@@ -3,6 +3,8 @@
 > Notes from a research session on "rebuilding WooCommerce in Etch without using the WooCommerce blocks".
 >
 > **Ready-to-use templates are in [`/templates/`](./templates/00-README.md)** — Single Product (Simple & Variable), Archive, Cart, Mini-Cart, Checkout, My Account, Thank You, Emails, and a consolidated PHP-snippets reference.
+>
+> **License:** [MIT](LICENSE) — free to use, modify, and redistribute (including commercially). See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute.
 
 ---
 

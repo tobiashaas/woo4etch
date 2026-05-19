@@ -141,4 +141,4 @@ If you need a shortcode that isn't here, write a 3-line custom one in your theme
 
 ## License
 
-MIT
+[MIT License](../../LICENSE) — same as the parent **woo4etch** repository. Free to use, modify, and distribute; attribution required when redistributing substantial portions.

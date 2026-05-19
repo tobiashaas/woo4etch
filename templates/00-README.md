@@ -145,3 +145,7 @@ Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5
 3. Register PHP snippets in the child theme (hooks, form logic).
 4. Test with default Woo JS (DevTools: is the right script loaded?).
 5. Only then consider template overrides under `wp-content/themes/<theme>/woocommerce/`.
+
+## License
+
+These templates are part of [woo4etch](https://github.com/tobiashaas/woo4etch) and shared under the [MIT License](../LICENSE). You may copy, adapt, and use them in your own projects (including commercial shops) at no cost; keep the copyright notice when redistributing substantial portions.

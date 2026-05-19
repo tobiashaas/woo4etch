@@ -1,6 +1,10 @@
 # WooCommerce in Etch
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 A pragmatic guide and template library for building **WooCommerce** shops in **[Etch](https://etchwp.com)** — without relying on the WooCommerce blocks.
+
+**Open source:** free to use, modify, and share — including in commercial projects. See [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's needed to bridge the gap: which markup, classes, attributes and hooks WooCommerce actually requires, plus copy-ready Etch HTML templates with Dynamic Keys and a PHP layer for hooks and form logic.
 
@@ -65,7 +69,13 @@ Work in progress. Sections cover the most common areas of a WooCommerce shop; sp
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE) (add a license file before publishing).
+Released under the **[MIT License](LICENSE)**.
+
+You may use, copy, modify, merge, publish, distribute, sublicense, and sell this work — for free, for any purpose — as long as you include the copyright notice and license text in copies or substantial portions.
+
+The companion plugin [`woo4etch-bridge`](plugin/woo4etch-bridge/) is covered by the same license.
+
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
