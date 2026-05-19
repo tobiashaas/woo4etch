@@ -12,6 +12,10 @@ Built on top of [Zack Pyle's](https://community.etchwp.com/u/3f0028c4) elegant `
 
 The plugin is ready to use: all shortcodes register on `plugins_loaded` once WooCommerce is available. Drop them into Etch HTML like any other shortcode.
 
+### Updates from GitHub
+
+When installed under `wp-content/plugins/woo4etch/`, Woo4Etch checks [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) for new versions. Publish a release with the `woo4etch.zip` asset (created automatically when a maintainer pushes a `v*` tag). Updates appear under **Dashboard → Updates**.
+
 ## Shortcode reference
 
 ### Generic `[do_action]` shortcode

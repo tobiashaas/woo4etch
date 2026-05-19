@@ -24,6 +24,24 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 Keep changes focused. Prefer small, reviewable PRs over large rewrites. Match the existing tone: practical, copy-ready templates, minimal PHP unless the bridge plugin is the right place.
 
+## Releases (maintainers)
+
+After your PR is merged to `main`:
+
+1. Bump `Version` in `plugin/woo4etch/woo4etch.php` and `Stable tag` in `plugin/woo4etch/readme.txt`.
+2. Add a changelog entry in `readme.txt`.
+3. Commit, push, then tag and push the tag:
+
+   ```bash
+   git tag v1.2.2
+   git push origin v1.2.2
+   ```
+
+4. GitHub Actions builds `woo4etch.zip` and publishes the release.
+5. WordPress sites with Woo4Etch installed under **Plugins** will see the update (usually within 12 hours).
+
+Details: [`.github/RELEASE.md`](.github/RELEASE.md).
+
 ## Questions
 
 Open a [GitHub issue](https://github.com/tobiashaas/woo4etch/issues) for bugs, ideas, or questions before large refactors.

@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^[[:space:]]*\*[[:space:]]Version:' plugin/woo4etch/woo4etch.php | sed 's/.*Version:[[:space:]]*//')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build installable zip
+        run: |
+          cd plugin
+          zip -r ../woo4etch.zip woo4etch -x "*.git*"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Woo4Etch ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: woo4etch.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

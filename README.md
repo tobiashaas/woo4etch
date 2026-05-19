@@ -58,6 +58,8 @@ Copy PHP snippets from [`templates/functions-snippets.md`](./templates/functions
 
 Admin shortcode reference: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch).
 
+**Updates:** regular plugin installs receive updates from [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) via **Dashboard → Updates**. See [`.github/RELEASE.md`](.github/RELEASE.md) for the maintainer release flow.
+
 ## Status
 
 Work in progress. Sections cover the most common areas of a WooCommerce shop; specialized areas (subscriptions, bookings, memberships) are not yet covered.
