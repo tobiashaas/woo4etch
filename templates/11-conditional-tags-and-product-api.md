@@ -4,7 +4,7 @@ Quick reference for the most-used WooCommerce PHP helpers you'll reach for from 
 
 ## Conditional tags
 
-Use these in `functions.php` to scope hooks to specific contexts. They mirror WordPress's own `is_*()` family but for WooCommerce pages.
+Use these in `includes/customizations.php` (Woo4Etch plugin) to scope hooks to specific contexts. They mirror WordPress's own `is_*()` family but for WooCommerce pages.
 
 ### Page-type checks
 

@@ -1,16 +1,22 @@
-# 15 — Woo4Etch Bridge Plugin
+# 15 — Woo4Etch Plugin
 
-A small companion plugin shipped in this repo (`/plugin/woo4etch-bridge/`) that exposes WooCommerce PHP as shortcodes you can drop into Etch templates. The aim: cover everything Etch can't do natively, with the smallest possible surface.
+The **Woo4Etch** plugin in this repo (`/plugin/woo4etch/`) exposes WooCommerce PHP as shortcodes for [Etch](https://etchwp.com/?aff=06de86e5) templates, plus `includes/customizations.php` for your project's hooks and filters.
 
 > Inspired by [Zack Pyle's](https://community.etchwp.com/u/3f0028c4) `[do_action]` snippet in the Etch community, extended with a curated set of higher-level shortcodes.
 
 ## Install
 
-1. Copy `plugin/woo4etch-bridge/` into `wp-content/plugins/`.
-2. Activate.
-3. Requires WooCommerce.
+Use **one** install path — do not duplicate the package:
 
-For dev convenience you can also `git clone` the repo directly into `wp-content/plugins/` and symlink just the plugin folder.
+| Method | Path |
+|---|---|
+| **Regular plugin** | `wp-content/plugins/woo4etch/` → activate under **Plugins** |
+| **MU-plugin** | `wp-content/mu-plugins/woo4etch/` → same folder, auto-loads |
+
+1. Copy the `plugin/woo4etch/` folder from this repo to one of the paths above.
+2. WooCommerce must be active.
+3. PHP snippets from the templates → edit **`includes/customizations.php`** inside that folder.
+4. Admin shortcode list: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch).
 
 ## When to use the plugin vs. raw Etch
 
@@ -18,14 +24,14 @@ For dev convenience you can also `git clone` the repo directly into `wp-content/
 |---|---|
 | Show a product title, image, excerpt, content | **Etch Dynamic Keys** — `{this.title}` etc. |
 | Loop over products in an archive | **Etch loops** — `{#loop mainQuery as item}` |
-| Render the actual WooCommerce add-to-cart form | **Bridge** — `[woo_add_to_cart]` |
-| Fire a Woo hook so plugins can inject content | **Bridge** — `[do_action hook="..."]` |
-| Show the cart counter in the header | **Bridge** — `[woo_cart_count]` (or use Woo fragments for live update) |
-| Render product reviews | **Bridge** — `[woo_review_form]` |
-| Show formatted price with sale strikethrough | **Bridge** — `[woo_price]` (Etch's `{this.meta._price}` gives raw value only) |
-| Output a WooCommerce template part | **Bridge** — `[woo_template name="single-product/related"]` |
+| Render the actual WooCommerce add-to-cart form | **Woo4Etch** — `[woo_add_to_cart]` |
+| Fire a Woo hook so plugins can inject content | **Woo4Etch** — `[do_action hook="..."]` |
+| Show the cart counter in the header | **Woo4Etch** — `[woo_cart_count]` (or use Woo fragments for live update) |
+| Render product reviews | **Woo4Etch** — `[woo_review_form]` |
+| Show formatted price with sale strikethrough | **Woo4Etch** — `[woo_price]` (Etch's `{this.meta._price}` gives raw value only) |
+| Output a WooCommerce template part | **Woo4Etch** — `[woo_template name="single-product/related"]` |
 
-## The generic hook bridge
+## The generic `[do_action]` shortcode
 
 ```text
 [do_action hook="woocommerce_before_add_to_cart_button"]
@@ -158,7 +164,7 @@ For **live updates without reload**, also register a Woo fragment selector — s
 
 ### Trust block injected via hook
 
-Put this snippet in your mu-plugin:
+Put this snippet in `includes/customizations.php`:
 
 ```php
 add_action('woo4etch_trust_block', function () {

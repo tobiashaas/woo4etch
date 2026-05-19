@@ -83,7 +83,7 @@ grep -r "do_action('woocommerce_" wp-content/plugins/woocommerce/ | less
 
 ## Companion utility — `kr_show_hook` debug callback
 
-Drop this into your mu-plugin during development to see which hooks fire on a page:
+Drop this into `includes/customizations.php` during development to see which hooks fire on a page:
 
 ```php
 add_action('all', function ($hook) {

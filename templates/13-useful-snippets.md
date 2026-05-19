@@ -1,6 +1,6 @@
 # 13 — Useful Snippets
 
-Curated recipes for the things that come up in almost every Woo build. Each snippet is self-contained — drop it into your `wc-customizations.php` mu-plugin.
+Curated recipes for the things that come up in almost every Woo build. Each snippet is self-contained — drop it into **`includes/customizations.php`** in your Woo4Etch install (`plugin/woo4etch/`).
 
 ## Add-to-cart URLs
 

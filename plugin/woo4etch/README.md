@@ -1,18 +1,20 @@
-# Woo4Etch Bridge
+# Woo4Etch
 
-A small WordPress plugin that fills the WooCommerce gap in [Etch](https://etchwp.com). Drop shortcodes into Etch templates and pages wherever you need to invoke WooCommerce PHP — until Etch adds native Woo support.
+A small WordPress plugin that fills the WooCommerce gap in [Etch](https://etchwp.com/?aff=06de86e5). Drop shortcodes into Etch templates and pages wherever you need to invoke WooCommerce PHP — until Etch adds native Woo support.
 
 Built on top of [Zack Pyle's](https://community.etchwp.com/u/3f0028c4) elegant `[do_action]` snippet from the Etch community, with a curated set of convenience shortcodes on top.
 
 ## Install
 
-1. Copy the `woo4etch-bridge/` folder into `wp-content/plugins/` (or zip it and upload via `Plugins → Add New → Upload`).
-2. Activate it.
-3. Requires WooCommerce.
+1. Copy the `woo4etch/` folder into `wp-content/plugins/` (or zip it and upload via `Plugins → Add New → Upload`).
+2. Activate it (requires **WooCommerce** to be active).
+3. In the WordPress admin, open **Etch → Woo4Etch** for a copy-paste overview of every shortcode (falls back to **WooCommerce → Woo4Etch** if Etch is not installed).
+
+The plugin is ready to use: all shortcodes register on `plugins_loaded` once WooCommerce is available. Drop them into Etch HTML like any other shortcode.
 
 ## Shortcode reference
 
-### Generic hook bridge
+### Generic `[do_action]` shortcode
 
 #### `[do_action hook="..." args="..."]`
 
@@ -131,9 +133,9 @@ Loads any WooCommerce template part. Restricted character set, no path traversal
 
 ## How it differs from `wp_kses`-style shortcode plugins
 
-Most "shortcode for WP" plugins try to be everything. Woo4Etch Bridge is intentionally small:
+Most "shortcode for WP" plugins try to be everything. Woo4Etch is intentionally small:
 
-- One generic hook bridge (`[do_action]`).
+- One generic hook shortcode (`[do_action]`).
 - A curated set of shortcodes for things you can't do in pure HTML with Etch's Dynamic Keys.
 - No settings page. No admin UI. No bloat.
 

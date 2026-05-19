@@ -175,6 +175,7 @@ The inner `item.galleryImages` is read from the outer loop's current `item`; ins
 
 ## Sources
 
+- [Etch](https://etchwp.com/?aff=06de86e5) — visual builder for WordPress
 - Etch docs — [Dynamic Data Keys](https://docs.etchwp.com/dynamic-data/dynamic-data-keys)
 - Etch docs — [Dynamic Data Intro](https://docs.etchwp.com/dynamic-data/dynamic-data-intro)
 - Etch docs — [Intro to Templates](https://docs.etchwp.com/templates/intro-to-templates)

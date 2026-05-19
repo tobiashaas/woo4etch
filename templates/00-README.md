@@ -40,10 +40,10 @@ All templates follow the same structure:
 | `12-store-api-and-rest.md` | Store API + custom REST endpoints for AJAX UI |
 | `13-useful-snippets.md` | Buy-now button, custom add-to-cart URLs, free-shipping bar, refund request, more |
 | `14-visual-hook-guides.md` | Links to Business Bloomer's annotated hook diagrams |
-| `15-bridge-plugin.md` | Documentation for the companion **Woo4Etch Bridge** plugin (shortcodes for PHP-required bits) |
+| `15-woo4etch-plugin.md` | **Woo4Etch** plugin (shortcodes + customizations) |
 | `functions-snippets.md` | Consolidated PHP snippets from all templates |
 
-The plugin itself lives at [`../plugin/woo4etch-bridge/`](../plugin/woo4etch-bridge/).
+The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
 ---
 
@@ -51,7 +51,7 @@ The plugin itself lives at [`../plugin/woo4etch-bridge/`](../plugin/woo4etch-bri
 
 ### Declare WooCommerce support in the theme
 
-Add this once to your `functions.php` (or to a dedicated mu-plugin). Without it, WooCommerce won't enqueue certain scripts and the single-product loop won't be output everywhere.
+Add this once in `includes/customizations.php` inside your Woo4Etch install (see [`../plugin/woo4etch/`](../plugin/woo4etch/)). Without it, WooCommerce won't enqueue certain scripts and the single-product loop won't be output everywhere.
 
 ```php
 add_action('after_setup_theme', function () {

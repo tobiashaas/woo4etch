@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A pragmatic guide and template library for building **WooCommerce** shops in **[Etch](https://etchwp.com)** — without relying on the WooCommerce blocks.
+A pragmatic guide and template library for building **WooCommerce** shops in **[Etch](https://etchwp.com/?aff=06de86e5)** — without relying on the WooCommerce blocks.
 
 **Open source:** free to use, modify, and share — including in commercial projects. See [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -11,7 +11,7 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 ## Contents
 
 - [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md) — research notes covering the "do I have to use the WooCommerce blocks?" question, accessibility, hook strategy, JS globals, and the final Custom Layouts Guide.
-- [`plugin/woo4etch-bridge/`](./plugin/woo4etch-bridge/README.md) — **companion WordPress plugin**. Drop-in shortcodes for PHP-only bits (price, stock, add-to-cart form, hooks, notices, etc.) until Etch supports them natively.
+- [`plugin/woo4etch/`](./plugin/woo4etch/README.md) — **Woo4Etch plugin**. Shortcodes plus `includes/customizations.php` for hook snippets from the templates.
 - [`templates/`](./templates/00-README.md) — ready-to-use templates per WooCommerce area:
 
 | File | Area |
@@ -31,7 +31,7 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 | [`12-store-api-and-rest.md`](./templates/12-store-api-and-rest.md) | Store API + custom REST for AJAX |
 | [`13-useful-snippets.md`](./templates/13-useful-snippets.md) | Curated practical snippets |
 | [`14-visual-hook-guides.md`](./templates/14-visual-hook-guides.md) | Business Bloomer hook diagrams |
-| [`15-bridge-plugin.md`](./templates/15-bridge-plugin.md) | Woo4Etch Bridge plugin usage |
+| [`15-woo4etch-plugin.md`](./templates/15-woo4etch-plugin.md) | Woo4Etch plugin (shortcodes + install) |
 | [`functions-snippets.md`](./templates/functions-snippets.md) | Consolidated PHP snippets |
 
 ## Each template follows the same structure
@@ -47,21 +47,16 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 
 ## Recommended setup
 
-Place the PHP snippets in a dedicated mu-plugin under `wp-content/mu-plugins/wc-customizations.php` rather than in your theme's `functions.php`. MU-plugins survive theme switches, load earlier, and keep your customizations separate from theme code.
+Install **one** Woo4Etch package from [`plugin/woo4etch/`](./plugin/woo4etch/):
 
-Skeleton:
+| Install as | Path | Notes |
+|---|---|---|
+| **Regular plugin** (usual) | `wp-content/plugins/woo4etch/` | Activate under **Plugins** |
+| **MU-plugin** (optional) | `wp-content/mu-plugins/woo4etch/` | Same folder; loads automatically, no activation |
 
-```php
-<?php
-/**
- * Plugin Name: WC Customizations
- * Description: WooCommerce hooks, filters, and customizations for the Etch frontend.
- * Version: 1.0.0
- */
-if (!defined('ABSPATH')) exit;
+Copy PHP snippets from [`templates/functions-snippets.md`](./templates/functions-snippets.md) into **`includes/customizations.php`** inside that folder — not into a second plugin or loose `functions.php`, unless you prefer the theme.
 
-// Snippets from /templates/functions-snippets.md go here
-```
+Admin shortcode reference: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch).
 
 ## Status
 
@@ -73,7 +68,7 @@ Released under the **[MIT License](LICENSE)**.
 
 You may use, copy, modify, merge, publish, distribute, sublicense, and sell this work — for free, for any purpose — as long as you include the copyright notice and license text in copies or substantial portions.
 
-The companion plugin [`woo4etch-bridge`](plugin/woo4etch-bridge/) is covered by the same license.
+The [`woo4etch`](plugin/woo4etch/) plugin is covered by the same license.
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 

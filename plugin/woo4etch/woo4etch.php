@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name:       Woo4Etch Bridge
+ * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
- * Description:       Shortcodes that bridge WooCommerce PHP into Etch templates. Includes a generic [do_action] plus targeted shortcodes for prices, stock, quantity inputs, notices, breadcrumbs, cart state, and more — for everything Etch can't do natively yet.
- * Version:           1.0.0
+ * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, notices, cart state, and more.
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * Author:            Tobias Haas
- * Author URI:        https://github.com/tobiashaas
+ * Author URI:        https://etchwp.com/?aff=06de86e5
  * License:           MIT
  * License URI:       https://opensource.org/licenses/MIT
  * Text Domain:       woo4etch
@@ -20,6 +20,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/** Affiliate link for Etch (marketing URLs in this plugin). */
+if (!defined('WOO4ETCH_ETCH_AFFILIATE_URL')) {
+    define('WOO4ETCH_ETCH_AFFILIATE_URL', 'https://etchwp.com/?aff=06de86e5');
+}
+
+require_once __DIR__ . '/includes/class-woo4etch-admin.php';
+require_once __DIR__ . '/includes/customizations.php';
+
 /**
  * Bootstraps the plugin once WooCommerce is loaded.
  * Shows an admin notice and exits early if WooCommerce isn't active.
@@ -27,56 +35,162 @@ if (!defined('ABSPATH')) {
 add_action('plugins_loaded', static function () {
     if (!class_exists('WooCommerce')) {
         add_action('admin_notices', static function () {
-            echo '<div class="notice notice-error"><p><strong>Woo4Etch Bridge</strong> requires WooCommerce to be active.</p></div>';
+            echo '<div class="notice notice-error"><p><strong>Woo4Etch</strong> requires WooCommerce to be active.</p></div>';
         });
         return;
     }
 
-    Woo4Etch_Bridge::init();
+    Woo4Etch::init();
 });
 
 /**
- * All bridge shortcodes in one class to keep the global namespace clean.
+ * All shortcodes in one class to keep the global namespace clean.
  */
-final class Woo4Etch_Bridge {
+final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.0.0';
+    const VERSION = '1.2.0';
 
     /**
-     * Register all shortcodes.
+     * Register all shortcodes and the admin reference screen.
      */
     public static function init() {
-        // Generic hook bridge — Zack Pyle's snippet, hardened.
-        add_shortcode('do_action', [__CLASS__, 'shortcode_do_action']);
+        foreach (self::get_shortcode_catalog() as $tag => $entry) {
+            add_shortcode($tag, [__CLASS__, $entry['method']]);
+        }
 
-        // Product data
-        add_shortcode('woo_price',       [__CLASS__, 'shortcode_price']);
-        add_shortcode('woo_sku',         [__CLASS__, 'shortcode_sku']);
-        add_shortcode('woo_stock',       [__CLASS__, 'shortcode_stock']);
-        add_shortcode('woo_meta',        [__CLASS__, 'shortcode_meta']);
-        add_shortcode('woo_attribute',   [__CLASS__, 'shortcode_attribute']);
+        if (is_admin()) {
+            Woo4Etch_Admin::init();
+        }
+    }
 
-        // Product UI parts
-        add_shortcode('woo_add_to_cart', [__CLASS__, 'shortcode_add_to_cart']);
-        add_shortcode('woo_quantity',    [__CLASS__, 'shortcode_quantity']);
-        add_shortcode('woo_rating',      [__CLASS__, 'shortcode_rating']);
-        add_shortcode('woo_review_form', [__CLASS__, 'shortcode_review_form']);
-
-        // Page-level UI
-        add_shortcode('woo_notices',     [__CLASS__, 'shortcode_notices']);
-        add_shortcode('woo_breadcrumb',  [__CLASS__, 'shortcode_breadcrumb']);
-
-        // Cart state
-        add_shortcode('woo_cart_count',  [__CLASS__, 'shortcode_cart_count']);
-        add_shortcode('woo_cart_total',  [__CLASS__, 'shortcode_cart_total']);
-        add_shortcode('woo_cart_url',    [__CLASS__, 'shortcode_cart_url']);
-
-        // Customer
-        add_shortcode('woo_user',        [__CLASS__, 'shortcode_user']);
-
-        // WooCommerce template part loader
-        add_shortcode('woo_template',    [__CLASS__, 'shortcode_template']);
+    /**
+     * Shortcode metadata for registration and the admin overview.
+     *
+     * @return array<string, array{method: string, category: string, attributes: string, description: string, example: string}>
+     */
+    public static function get_shortcode_catalog() {
+        return apply_filters('woo4etch/shortcode_catalog', [
+            'do_action' => [
+                'method'      => 'shortcode_do_action',
+                'category'    => __('Hooks', 'woo4etch'),
+                'attributes'  => 'hook (required), args',
+                'description' => __('Fires any WordPress or WooCommerce action hook.', 'woo4etch'),
+                'example'     => '[do_action hook="woocommerce_before_add_to_cart_button"]',
+            ],
+            'woo_price' => [
+                'method'      => 'shortcode_price',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id',
+                'description' => __('Formatted price HTML (sales, variable “from” prices).', 'woo4etch'),
+                'example'     => '[woo_price]',
+            ],
+            'woo_sku' => [
+                'method'      => 'shortcode_sku',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id, default',
+                'description' => __('Product SKU as plain text.', 'woo4etch'),
+                'example'     => '[woo_sku default="N/A"]',
+            ],
+            'woo_stock' => [
+                'method'      => 'shortcode_stock',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id, format (label|status|quantity)',
+                'description' => __('Stock label HTML, status slug, or quantity.', 'woo4etch'),
+                'example'     => '[woo_stock format="label"]',
+            ],
+            'woo_meta' => [
+                'method'      => 'shortcode_meta',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id, key (required), default',
+                'description' => __('Single product meta value.', 'woo4etch'),
+                'example'     => '[woo_meta key="_sku"]',
+            ],
+            'woo_attribute' => [
+                'method'      => 'shortcode_attribute',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id, name (required), default',
+                'description' => __('Product attribute by taxonomy slug (e.g. pa_color).', 'woo4etch'),
+                'example'     => '[woo_attribute name="pa_color"]',
+            ],
+            'woo_add_to_cart' => [
+                'method'      => 'shortcode_add_to_cart',
+                'category'    => __('Product UI', 'woo4etch'),
+                'attributes'  => 'id',
+                'description' => __('Full add-to-cart form for simple, variable, grouped, or external products.', 'woo4etch'),
+                'example'     => '[woo_add_to_cart]',
+            ],
+            'woo_quantity' => [
+                'method'      => 'shortcode_quantity',
+                'category'    => __('Product UI', 'woo4etch'),
+                'attributes'  => 'id, min, max, step, value',
+                'description' => __('Quantity input only (no surrounding form).', 'woo4etch'),
+                'example'     => '[woo_quantity min="1" max="10"]',
+            ],
+            'woo_rating' => [
+                'method'      => 'shortcode_rating',
+                'category'    => __('Product UI', 'woo4etch'),
+                'attributes'  => 'id',
+                'description' => __('Star rating HTML; empty when there are no reviews.', 'woo4etch'),
+                'example'     => '[woo_rating]',
+            ],
+            'woo_review_form' => [
+                'method'      => 'shortcode_review_form',
+                'category'    => __('Product UI', 'woo4etch'),
+                'attributes'  => 'id',
+                'description' => __('Product reviews list and comment form.', 'woo4etch'),
+                'example'     => '[woo_review_form]',
+            ],
+            'woo_notices' => [
+                'method'      => 'shortcode_notices',
+                'category'    => __('Page-level', 'woo4etch'),
+                'attributes'  => '—',
+                'description' => __('Queued WooCommerce notices (cart, checkout).', 'woo4etch'),
+                'example'     => '[woo_notices]',
+            ],
+            'woo_breadcrumb' => [
+                'method'      => 'shortcode_breadcrumb',
+                'category'    => __('Page-level', 'woo4etch'),
+                'attributes'  => 'delimiter, wrap_before, wrap_after',
+                'description' => __('WooCommerce breadcrumb trail.', 'woo4etch'),
+                'example'     => '[woo_breadcrumb]',
+            ],
+            'woo_cart_count' => [
+                'method'      => 'shortcode_cart_count',
+                'category'    => __('Cart', 'woo4etch'),
+                'attributes'  => '—',
+                'description' => __('Cart item count in a span with data-count (fragment-friendly).', 'woo4etch'),
+                'example'     => '[woo_cart_count]',
+            ],
+            'woo_cart_total' => [
+                'method'      => 'shortcode_cart_total',
+                'category'    => __('Cart', 'woo4etch'),
+                'attributes'  => '—',
+                'description' => __('Formatted cart total.', 'woo4etch'),
+                'example'     => '[woo_cart_total]',
+            ],
+            'woo_cart_url' => [
+                'method'      => 'shortcode_cart_url',
+                'category'    => __('Cart', 'woo4etch'),
+                'attributes'  => '—',
+                'description' => __('Cart page URL.', 'woo4etch'),
+                'example'     => '[woo_cart_url]',
+            ],
+            'woo_user' => [
+                'method'      => 'shortcode_user',
+                'category'    => __('Customer', 'woo4etch'),
+                'attributes'  => 'field, default',
+                'description' => __('Current user field (display_name, user_email, first_name, …).', 'woo4etch'),
+                'example'     => '[woo_user field="first_name" default="Guest"]',
+            ],
+            'woo_template' => [
+                'method'      => 'shortcode_template',
+                'category'    => __('Templates', 'woo4etch'),
+                'attributes'  => 'name (required)',
+                'description' => __('Loads a WooCommerce template part by path.', 'woo4etch'),
+                'example'     => '[woo_template name="single-product/related"]',
+            ],
+        ]);
     }
 
     /* ============================================================
@@ -420,3 +534,4 @@ final class Woo4Etch_Bridge {
         return ob_get_clean();
     }
 }
+

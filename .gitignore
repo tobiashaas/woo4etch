@@ -13,6 +13,10 @@ desktop.ini
 # Local working files (Perplexity export etc.)
 *.local.md
 *.draft.md
+.firecrawl/
+
+# Local helper scripts (not part of the repo)
+_*.py
 
 # Node / build artifacts (if you later add tooling)
 node_modules/

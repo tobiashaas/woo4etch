@@ -1,18 +1,18 @@
-=== Woo4Etch Bridge ===
+=== Woo4Etch ===
 Contributors: tobiashaas
 Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-Shortcodes that bridge WooCommerce PHP into Etch templates — for everything Etch can't do natively yet.
+WooCommerce shortcodes and customizations for Etch templates — for everything Etch can't do natively yet.
 
 == Description ==
 
-Etch is a WordPress visual builder that doesn't (yet) have native WooCommerce blocks. Woo4Etch Bridge provides a small set of carefully scoped shortcodes you can drop into Etch templates to invoke WooCommerce PHP where you need it.
+Etch is a WordPress visual builder that doesn't (yet) have native WooCommerce blocks. Woo4Etch provides a small set of carefully scoped shortcodes you can drop into Etch templates to invoke WooCommerce PHP where you need it.
 
 The foundation is a generic `[do_action]` shortcode that fires any WordPress action hook from inside content. On top of that, a curated set of convenience shortcodes covers the most common needs: product price, stock, quantity input, add-to-cart form, notices, breadcrumb, cart counter, and more.
 
@@ -46,13 +46,22 @@ Restrict which hooks `[do_action]` may fire:
 
 == Installation ==
 
-1. Upload the `woo4etch-bridge` folder to `/wp-content/plugins/`.
-2. Activate from `Plugins → Installed Plugins`.
-3. Drop shortcodes into your Etch templates or any WordPress content.
+1. Upload the `woo4etch` folder to `/wp-content/plugins/` (or `/wp-content/mu-plugins/woo4etch/` as an MU-plugin).
+2. Activate from `Plugins → Installed Plugins` (regular install only).
+3. Drop shortcodes into your Etch templates. Add hooks from the templates into `includes/customizations.php`.
 
 WooCommerce must be installed and active.
 
+In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
+
 == Changelog ==
+
+= 1.2.0 =
+* Renamed from Woo4Etch Bridge to Woo4Etch; plugin folder `woo4etch/`.
+* Snippets live in `includes/customizations.php` (one package, regular or MU install).
+
+= 1.1.0 =
+* Admin shortcode reference under the Etch menu (auto-detect; WooCommerce fallback).
 
 = 1.0.0 =
 * Initial release with 17 shortcodes.

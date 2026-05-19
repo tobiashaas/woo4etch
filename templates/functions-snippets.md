@@ -1,22 +1,12 @@
-# `functions.php` Snippets — Consolidated Reference
+# Woo4Etch — PHP Snippets (Consolidated Reference)
 
-All PHP snippets from the template files in this folder, organized so you can copy what you need into one file (theme `functions.php`, child theme, or a dedicated mu-plugin).
+All PHP snippets from the template files in this folder, organized so you can copy what you need into one file (theme `functions.php`, child theme, or the **Woo4Etch** MU-plugin).
 
-> **Recommendation:** put these in `wp-content/mu-plugins/wc-customizations.php` rather than `functions.php`. MU-plugins survive theme switches, load earlier, and keep your customizations separate from theme code.
+> **Recommendation:** copy snippets into **`wp-content/plugins/woo4etch/includes/customizations.php`** (or the same path under `mu-plugins/woo4etch/` if you run Woo4Etch as an MU-plugin). Shortcodes are already provided by the main `woo4etch.php` in that package.
 
-## Skeleton
+## Where to put this code
 
-```php
-<?php
-/**
- * Plugin Name: WC Customizations
- * Description: WooCommerce hooks, filters, and customizations for the Etch frontend.
- * Version: 1.0.0
- */
-if (!defined('ABSPATH')) exit;
-
-// Snippets below…
-```
+After installing [`plugin/woo4etch/`](../plugin/woo4etch/), edit **`includes/customizations.php`** on your site. Do not create a second plugin file.
 
 ---
 

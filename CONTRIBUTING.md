@@ -17,7 +17,7 @@ By contributing, you agree that your contributions will be licensed under the sa
 ## What to contribute
 
 - Fixes or clarifications in [`templates/`](templates/) or the [knowledge base](WooCommerce-in-Etch-Knowledgebase.md)
-- New shortcodes or hardening in [`plugin/woo4etch-bridge/`](plugin/woo4etch-bridge/)
+- New shortcodes or hardening in [`plugin/woo4etch/`](plugin/woo4etch/)
 - Test checklists, accessibility notes, or Etch/WooCommerce version updates
 
 ## Scope
