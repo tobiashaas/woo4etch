@@ -80,7 +80,7 @@ Etch's recommended template types:
 | **404** | Anything that doesn't match | No `this.*` |
 | **Index (catch-all)** | Fallback when no specific template matches | Depends on the request |
 
-Inside a Single template, `{this.title}` gives the product title. Inside an Archive template, `{this.title}` gives the archive title (e.g. category name) and you loop with `{#loop mainQuery as item}`.
+Inside a Single template, `{this.title}` gives the product title. Inside an Archive template, `{this.title}` gives the archive title (category/tag term, or the shop page on `/shop`) and you loop products with `{#loop mainQuery as item}` — never `{this.title}` for cards inside that loop.
 
 ### Pages (static layout, dynamic data injected)
 

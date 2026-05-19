@@ -11,7 +11,7 @@ Loop with product cards for `/shop`, categories, and tag pages. AJAX add-to-cart
 
 ## Preparation
 
-> **Etch context:** this is an **Archive template** in the Etch Template Hub. `{this.*}` refers to the *archive term* (e.g. the category being viewed); products are iterated with `{#loop mainQuery as item}`. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** this is an **Archive template** in the Etch Template Hub. `{this.*}` refers to the archive context (category/tag term, or the shop page on `/shop`); each product card uses `{item.*}` inside `{#loop mainQuery as item}`. Do not use `{this.title}` inside the loop — that stays the archive title, not the product. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 WooCommerce must be declared in the theme (see [`00-README.md`](./00-README.md)).
 

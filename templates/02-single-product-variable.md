@@ -10,7 +10,7 @@ Product page with variations. Size, color, material, etc. — live update of pri
 
 ## Preparation
 
-> **Etch context:** Single template assigned to the `product` post type via the Template Hub. The current product is available as `{this.*}` — *not* `{this.*}`. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** Single template assigned to the `product` post type via the Template Hub. The current product is available as `{this.*}` — *not* `{item.*}` (that keyword is only inside `{#loop … as item}{/loop}` blocks). See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 In addition to the base config in [`00-README.md`](./00-README.md):
 

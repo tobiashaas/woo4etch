@@ -9,7 +9,7 @@ All templates follow the same structure:
 
 1. **When to use** — use case and context.
 2. **Preparation** — what needs to exist in your theme / `functions.php`.
-3. **Etch HTML** — copy-ready markup with `{item.*}` keys.
+3. **Etch HTML** — copy-ready markup with Dynamic Keys (`{this.*}` on Single templates, `{item.*}` inside loops).
 4. **Required classes / attributes** — what you *must not* drop.
 5. **Hooks used** — compact table.
 6. **PHP layer** — snippets for hook registration, form logic, enqueues.
@@ -122,19 +122,21 @@ add_action('woocommerce_after_quantity_input_field', function () {
 
 ### Etch Dynamic Keys — quick reference
 
-| Content | Key |
-|---|---|
-| Title | `{item.title}` |
-| Permalink (relative) | `{item.permalink.relative}` |
-| Featured image URL | `{item.image.url}` |
-| Excerpt | `{item.excerpt}` |
-| Content | `{item.content}` |
-| Price | `{item.meta._price}` |
-| SKU | `{item.meta._sku}` |
-| Stock status | `{item.meta._stock_status}` |
-| Category | `{item.product_cat.0.name}` |
-| Custom attribute | `{item.pa_hersteller.0.name}` |
-| Product ID | `{item.id}` |
+Same field names in both contexts — only the **keyword** changes. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+
+| Content | Single template (`product`) | Inside `{#loop … as item}` |
+|---|---|---|
+| Title | `{this.title}` | `{item.title}` |
+| Permalink (relative) | `{this.permalink.relative}` | `{item.permalink.relative}` |
+| Featured image URL | `{this.image.url}` | `{item.image.url}` |
+| Excerpt | `{this.excerpt}` | `{item.excerpt}` |
+| Content | `{this.content}` | `{item.content}` |
+| Price | `{this.meta._price}` | `{item.meta._price}` |
+| SKU | `{this.meta._sku}` | `{item.meta._sku}` |
+| Stock status | `{this.meta._stock_status}` | `{item.meta._stock_status}` |
+| Category | `{this.product_cat.0.name}` | `{item.product_cat.0.name}` |
+| Custom attribute | `{this.pa_hersteller.0.name}` | `{item.pa_hersteller.0.name}` |
+| Product ID | `{this.id}` | `{item.id}` |
 
 Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch-final).
 

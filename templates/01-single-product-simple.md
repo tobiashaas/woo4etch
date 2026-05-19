@@ -19,7 +19,7 @@ Optional but useful for custom markup:
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');
 ```
 
-> **Etch context:** this is a **Single template** assigned to the `product` post type via the Template Hub. The current product is available as `{this.*}` — *not* `{this.*}`. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** this is a **Single template** assigned to the `product` post type via the Template Hub. The current product is available as `{this.*}` — *not* `{item.*}` (that keyword is only inside `{#loop … as item}{/loop}` blocks). See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 ## Etch HTML
 

@@ -289,32 +289,27 @@ For custom layouts, simply rebuilding HTML/CSS usually isn't enough — WooComme
 > - **Loops** (`{#loop … as item}{/loop}`): `{item.key}` — refers to the current iteration
 > - **Taxonomies**: `{taxonomy.key}`
 >
-> The examples in this section originally used `{item.*}` for all cases. On a Single product template, the correct form is **`{this.title}`, `{this.meta._price}`** etc. The `{item.*}` form is only correct inside a `{#loop … as item}` block (e.g. in an archive loop). See [`templates/10-etch-context-and-templates.md`](./templates/10-etch-context-and-templates.md) for the full reference.
+> **Context rule:** On a **Single product template**, use **`{this.title}`, `{this.meta._price}`**, etc. Use **`{item.*}`** only inside `{#loop … as item}{/loop}` (archives, related products, nested galleries). See [`templates/10-etch-context-and-templates.md`](./templates/10-etch-context-and-templates.md).
 
-Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{taxonomy.foo}` (or deeper paths like `{this.image.url}`).
+Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{taxonomy.foo}` (or deeper paths like `{this.image.url}`). The JSON field names are the same; only the keyword changes with context.
 
-| Content | Etch Key | JSON source |
-|---|---|---|
-| Product title | `{item.title}` or `{item.post_title}` | `title`, `post_title` |
-| Permalink (relative) | `{item.permalink.relative}` | `permalink.relative` |
-| Permalink (absolute) | `{item.permalink.full}` | `permalink.full` |
-| Short description | `{item.excerpt}` / `{item.post_excerpt}` | `excerpt`, `post_excerpt` |
-| Content / description | `{item.content}` / `{item.post_content}` | `content`, `post_content` |
-| Featured image URL | `{item.featuredImage}` / `{item.image.url}` | `featuredImage`, `image.url` |
-| Featured image ID | `{item.image.id}` | `image.id` |
-| Image alt | `{item.image.alt}` | `image.alt` |
-| Image title | `{item.image.title}` | `image.title` |
-| Slug | `{item.slug}` / `{item.post_name}` | `slug`, `post_name` |
-| SKU | `{item.meta._sku}` | `meta._sku` |
-| Price | `{item.meta._price}` | `meta._price` |
-| Regular price | `{item.meta._regular_price}` | `meta._regular_price` |
-| Stock | `{item.meta._stock}` | `meta._stock` |
-| Stock status | `{item.meta._stock_status}` | `meta._stock_status` |
-| Weight | `{item.meta._weight}` | `meta._weight` |
-| Length / Width / Height | `{item.meta._length / _width / _height}` | `meta._length` etc. |
-| Manufacturer (taxonomy) | `{item.pa_hersteller.0.name}` | `pa_hersteller[0].name` |
-| Capacity (taxonomy) | `{item.pa_fuellmenge.0.name}` | `pa_fuellmenge[0].name` |
-| Product category | `{item.product_cat.0.name}` | `product_cat[0].name` |
+| Content | Single template | Loop (`{#loop … as item}`) | JSON source |
+|---|---|---|---|
+| Product title | `{this.title}` | `{item.title}` | `title`, `post_title` |
+| Permalink (relative) | `{this.permalink.relative}` | `{item.permalink.relative}` | `permalink.relative` |
+| Permalink (absolute) | `{this.permalink.full}` | `{item.permalink.full}` | `permalink.full` |
+| Short description | `{this.excerpt}` | `{item.excerpt}` | `excerpt`, `post_excerpt` |
+| Content / description | `{this.content}` | `{item.content}` | `content`, `post_content` |
+| Featured image URL | `{this.image.url}` | `{item.image.url}` | `featuredImage`, `image.url` |
+| Featured image ID | `{this.image.id}` | `{item.image.id}` | `image.id` |
+| Image alt | `{this.image.alt}` | `{item.image.alt}` | `image.alt` |
+| Slug | `{this.slug}` | `{item.slug}` | `slug`, `post_name` |
+| SKU | `{this.meta._sku}` | `{item.meta._sku}` | `meta._sku` |
+| Price | `{this.meta._price}` | `{item.meta._price}` | `meta._price` |
+| Regular price | `{this.meta._regular_price}` | `{item.meta._regular_price}` | `meta._regular_price` |
+| Stock status | `{this.meta._stock_status}` | `{item.meta._stock_status}` | `meta._stock_status` |
+| Manufacturer (taxonomy) | `{this.pa_hersteller.0.name}` | `{item.pa_hersteller.0.name}` | `pa_hersteller[0].name` |
+| Product category | `{this.product_cat.0.name}` | `{item.product_cat.0.name}` | `product_cat[0].name` |
 
 ### Required anchors by area
 
@@ -333,24 +328,25 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 | Archive add-to-cart | `button`, `product_type_simple`, `add_to_cart_button`, optionally `ajax_add_to_cart` | Behavior + styling in the loop |
 
 ### Single product base layout with Etch keys
+> Single template → `{this.*}` throughout.
 
 ```html
 <main id="main" class="site-main">
   <article class="product product--single" itemscope itemtype="https://schema.org/Product">
     <header class="product__header">
-      <h1 class="product_title entry-title" itemprop="name">{item.title}</h1>
-      <p class="price" aria-label="Price">{item.meta._price}</p>
-      <p class="woocommerce-product-details__short-description">{item.excerpt}</p>
+      <h1 class="product_title entry-title" itemprop="name">{this.title}</h1>
+      <p class="price" aria-label="Price">{this.meta._price}</p>
+      <p class="woocommerce-product-details__short-description">{this.excerpt}</p>
     </header>
 
     <div class="product__layout">
       <section class="product__gallery" aria-labelledby="gallery-title">
         <h2 id="gallery-title" class="screen-reader-text">Product images</h2>
         <figure>
-          <img src="{item.image.url}"
-               alt="{item.title}"
-               width="{item.image.width}"
-               height="{item.image.height}">
+          <img src="{this.image.url}"
+               alt="{this.title}"
+               width="{this.image.width}"
+               height="{this.image.height}">
         </figure>
       </section>
 
@@ -362,7 +358,7 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
     <section class="product__details" aria-labelledby="details-title">
       <h2 id="details-title">Product details</h2>
-      <div>{item.content}</div>
+      <div>{this.content}</div>
     </section>
   </article>
 </main>
@@ -371,10 +367,10 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 ### Simple product form (with Etch keys)
 
 ```html
-<form class="cart" action="{item.permalink.relative}" method="post" enctype="multipart/form-data">
+<form class="cart" action="{this.permalink.relative}" method="post" enctype="multipart/form-data">
   <div class="quantity">
-    <label for="quantity_{item.id}" class="screen-reader-text">{item.title} quantity</label>
-    <input id="quantity_{item.id}"
+    <label for="quantity_{this.id}" class="screen-reader-text">{this.title} quantity</label>
+    <input id="quantity_{this.id}"
            class="input-text qty text"
            type="number" name="quantity"
            value="1" min="1" step="1"
@@ -382,7 +378,7 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
            aria-label="Product quantity" />
   </div>
 
-  <button type="submit" name="add-to-cart" value="{item.id}"
+  <button type="submit" name="add-to-cart" value="{this.id}"
           class="single_add_to_cart_button button alt">
     Add to cart
   </button>
@@ -393,10 +389,10 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
 ```html
 <form class="variations_form cart"
-      action="{item.permalink.relative}"
+      action="{this.permalink.relative}"
       method="post"
       enctype="multipart/form-data"
-      data-product_id="{item.id}"
+      data-product_id="{this.id}"
       data-product_variations='[]'>
 
   <table class="variations" cellspacing="0" role="presentation">
@@ -421,14 +417,14 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
     <div class="woocommerce-variation-add-to-cart variations_button">
       <div class="quantity">
-        <label for="quantity_{item.id}" class="screen-reader-text">{item.title} quantity</label>
-        <input id="quantity_{item.id}" class="input-text qty text"
+        <label for="quantity_{this.id}" class="screen-reader-text">{this.title} quantity</label>
+        <input id="quantity_{this.id}" class="input-text qty text"
                type="number" name="quantity" value="1" min="1" step="1">
       </div>
 
       <button type="submit" class="single_add_to_cart_button button alt">Add to cart</button>
-      <input type="hidden" name="add-to-cart" value="{item.id}">
-      <input type="hidden" name="product_id" value="{item.id}">
+      <input type="hidden" name="add-to-cart" value="{this.id}">
+      <input type="hidden" name="product_id" value="{this.id}">
       <input type="hidden" name="variation_id" class="variation_id" value="0">
     </div>
   </div>
@@ -437,17 +433,20 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
 ### Product archive
 
+> Archive template → `{this.*}` for the archive header; `{item.*}` inside `{#loop mainQuery as item}`.
+
 ```html
 <main id="main" class="site-main">
   <header class="archive-header">
-    <h1>Shop</h1>
-    <p>High-quality stainless-steel products for kitchen and storage.</p>
+    <h1 class="page-title">{this.title}</h1>
+    <div class="term-description">{this.description}</div>
   </header>
 
   <section aria-labelledby="products-title">
     <h2 id="products-title" class="screen-reader-text">Product list</h2>
 
     <ul class="products columns-3" role="list">
+      {#loop mainQuery as item}
       <li class="product type-product product-type-simple instock">
         <article class="product-card">
           <a href="{item.permalink.relative}"
@@ -457,7 +456,6 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
                    alt="{item.title}"
                    width="300" height="300" loading="lazy">
             </figure>
-
             <div class="product-card__body">
               <p class="product-card__eyebrow">{item.product_cat.0.name}</p>
               <h3 class="woocommerce-loop-product__title">{item.title}</h3>
@@ -465,7 +463,6 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
               <p class="product-card__excerpt">{item.excerpt}</p>
             </div>
           </a>
-
           <div class="product-card__actions">
             <a href="?add-to-cart={item.id}"
                data-quantity="1"
@@ -473,12 +470,11 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
                data-product_id="{item.id}"
                data-product_sku="{item.meta._sku}"
                aria-label="Add {item.title} to cart"
-               rel="nofollow">
-              Add to cart
-            </a>
+               rel="nofollow">Add to cart</a>
           </div>
         </article>
       </li>
+      {/loop}
     </ul>
   </section>
 </main>
@@ -517,18 +513,19 @@ The current Etch JSON output doesn't include a gallery array. Only the main imag
   <h2 id="gallery-title" class="screen-reader-text">Product images</h2>
 
   <figure class="product-gallery__main">
-    <img src="{item.image.url}"
-         alt="{item.title}"
-         width="{item.image.width}"
-         height="{item.image.height}">
+    <img src="{this.image.url}"
+         alt="{this.title}"
+         width="{this.image.width}"
+         height="{this.image.height}">
   </figure>
 
-  <!-- Nested loop over item.galleryImages -->
+  {#loop this.galleryImages as galleryItem}
   <ul class="product-gallery__thumbs" role="list">
     <li>
       <img src="{galleryItem.url}" alt="{galleryItem.alt}">
     </li>
   </ul>
+  {/loop}
 </section>
 ```
 
@@ -585,13 +582,13 @@ Practical order:
 
 | Element | Keep |
 |---|---|
-| Product title | `{item.title}` or `{item.post_title}` |
-| Product image | `{item.image.url}` plus alt/size from `item.image.*` |
+| Product title | `{this.title}` (Single) / `{item.title}` (loop) |
+| Product image | `{this.image.url}` / `{item.image.url}` |
 | Product gallery | Custom `galleryImages` array or normalize `_product_image_gallery` server-side |
-| Short description | `{item.excerpt}` / `{item.post_excerpt}` |
-| Content | `{item.content}` / `{item.post_content}` |
-| Price | `{item.meta._price}` |
-| SKU | `{item.meta._sku}` |
+| Short description | `{this.excerpt}` / `{item.excerpt}` |
+| Content | `{this.content}` / `{item.content}` |
+| Price | `{this.meta._price}` / `{item.meta._price}` |
+| SKU | `{this.meta._sku}` / `{item.meta._sku}` |
 | Quantity field | `.quantity`, `input.qty`, `name="quantity"`, label, `aria-label` |
 | Simple add to cart | `form.cart`, submit button with `name="add-to-cart"` |
 | Variable form | `.variations_form.cart`, `data-product_id`, `data-product_variations` |
@@ -623,7 +620,7 @@ Practical order:
 >   - Array of objects with at least: `id`, `url`, `alt` (optionally `width`, `height`).
 >   - Should include: featured image as first item + all WooCommerce gallery images.
 > - Stable access pattern in Etch:
->   - `{item.galleryImages}` as loop source, `{galleryItem.url}`, `{galleryItem.alt}` inside the loop.
+>   - `{this.galleryImages}` as loop source (Single template), `{galleryItem.url}`, `{galleryItem.alt}` inside the loop.
 > - Backwards compatible: existing `image` / `featuredImage` stay as they are; `galleryImages` is additive.
 
 ---

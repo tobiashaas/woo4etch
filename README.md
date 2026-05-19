@@ -38,7 +38,7 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 
 1. **When to use**
 2. **Preparation** — what needs to exist in your theme / `functions.php`
-3. **Etch HTML** — copy-ready markup with `{item.*}` Dynamic Keys
+3. **Etch HTML** — copy-ready markup with Dynamic Keys (`{this.*}` on Single templates, `{item.*}` inside loops)
 4. **Required classes / attributes** — what you must not drop
 5. **Hooks used** — compact table
 6. **PHP layer** — snippets for hooks, form logic, enqueues
