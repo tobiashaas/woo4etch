@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local working files (Perplexity export etc.)
+*.local.md
+*.draft.md
+
+# Node / build artifacts (if you later add tooling)
+node_modules/
+dist/
+build/
+.cache/
+
+# Environment
+.env
+.env.local
