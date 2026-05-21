@@ -41,7 +41,7 @@ Plus two contexts that work everywhere:
 | `author.displayName` | string | Author display name |
 | `readingTime` | number | Estimated reading minutes |
 
-For WooCommerce-specific keys (price, SKU, stock, attributes), see `meta.*` and taxonomy keys in the [knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch-final).
+For WooCommerce-specific keys (price, SKU, stock, attributes), see `meta.*` and taxonomy keys in the [knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch).
 
 ### `user.*`
 

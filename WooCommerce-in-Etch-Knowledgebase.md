@@ -1,6 +1,6 @@
 # WooCommerce in Etch — Knowledge Base
 
-> Notes from a research session on "rebuilding WooCommerce in Etch without using the WooCommerce blocks".
+> A practical reference for rebuilding WooCommerce in Etch without the WooCommerce blocks — the markup, classes, attributes, and hooks WooCommerce actually needs.
 >
 > **Ready-to-use templates are in [`/templates/`](./templates/00-README.md)** — Single Product (Simple & Variable), Archive, Cart, Mini-Cart, Checkout, My Account, Thank You, Emails, and a consolidated PHP-snippets reference.
 >
@@ -11,23 +11,21 @@
 ## Contents
 
 1. [Do you have to use the WooCommerce blocks?](#1-do-you-have-to-use-the-woocommerce-blocks)
-2. [Status: HTML/CSS/JS available, PHP comes later](#2-status-htmlcssjs-available-php-comes-later)
+2. [What you can build before adding PHP](#2-what-you-can-build-before-adding-php)
 3. [Product page best practice — semantics & accessibility](#3-product-page-best-practice--semantics--accessibility)
 4. [Does the WooCommerce JS need to be enqueued manually?](#4-does-the-woocommerce-js-need-to-be-enqueued-manually)
-5. [WooCommerce Custom Layouts Guide for Etch (final)](#5-woocommerce-custom-layouts-guide-for-etch-final)
-6. [Linear ticket: product gallery missing in Etch JSON](#6-linear-ticket-product-gallery-missing-in-etch-json)
-7. [`added_to_cart wc-forward` — can the text be changed?](#7-added_to_cart-wc-forward--can-the-text-be-changed)
-8. [Can this be set in the WooCommerce settings?](#8-can-this-be-set-in-the-woocommerce-settings)
+5. [WooCommerce custom layouts guide for Etch](#5-woocommerce-custom-layouts-guide-for-etch)
+6. [Product gallery missing in Etch JSON output](#6-product-gallery-missing-in-etch-json-output)
+7. [Changing the `added_to_cart wc-forward` link text](#7-changing-the-added_to_cart-wc-forward-link-text)
+8. [Is there a WooCommerce setting for the 'View cart' text?](#8-is-there-a-woocommerce-setting-for-the-view-cart-text)
 9. [`window.wc`, `window.wcSettings`, `window.wp` are `undefined`](#9-windowwc-windowwcsettings-windowwp-are-undefined)
-10. [Why did the video suggest that test anyway?](#10-why-did-the-video-suggest-that-test-anyway)
+10. [When the nonce and JS globals actually matter](#10-when-the-nonce-and-js-globals-actually-matter)
 
 ---
 
 ## 1. Do you have to use the WooCommerce blocks?
 
-**Question:** Do you have to use the WooCommerce blocks in WordPress, or can you build the HTML yourself? Is it enough to set the right classes?
-
-**Answer (summary):**
+**In short:**
 
 No, the blocks are not required. For classic WooCommerce output, the markup can be controlled through hooks, template overrides, or custom CSS. WooCommerce explicitly recommends **hooks** over full template overrides because they hold up better through core updates.
 
@@ -51,11 +49,7 @@ If your page builder allows HTML access, the real question isn't "can I write my
 
 ---
 
-## 2. Status: HTML/CSS/JS available, PHP comes later
-
-**Question:** We have HTML, CSS, and JS — PHP comes later.
-
-**Answer:**
+## 2. What you can build before adding PHP
 
 Without PHP, the **frontend visuals** can be built from scratch, but you can't reliably replace **WooCommerce functionality**. Product cards, grids, tabs, wrappers, UI components — fine. Real shop functions depend on server-side logic and template structure.
 
@@ -80,9 +74,7 @@ Without PHP, the **frontend visuals** can be built from scratch, but you can't r
 
 ## 3. Product page best practice — semantics & accessibility
 
-**Question:** I know certain classes have to be set so things get triggered by JS. Could you give examples for a product page with best-practice accessibility and correct semantics?
-
-**Answer:**
+Some classes must be present so WooCommerce's JS hooks in. The goal is an accessible product page with correct semantics that keeps only the Woo-specific anchors that matter.
 
 Sensible middle ground: **don't** blindly copy the whole Woo markup; just take the few structures, classes, attributes, and live regions that Woo (and Woo-JS) actually need.
 
@@ -249,10 +241,6 @@ Two layers:
 
 ## 4. Does the WooCommerce JS need to be enqueued manually?
 
-**Question:** Is the Woo JS automatically there, or do I have to enqueue it manually?
-
-**Answer:**
-
 On **normal Woo pages** it's usually there — but only if WooCommerce recognises the page as a relevant shop page and enqueues its scripts. On a classic single-product page, this is usually automatic.
 
 For **variable products**, `wc-add-to-cart-variation` is particularly relevant. On heavily customised builder templates, loops in unusual places, or custom product forms outside the standard context, you may need to load and init it yourself:
@@ -274,7 +262,7 @@ jQuery(function($) {
 
 ---
 
-## 5. WooCommerce Custom Layouts Guide for Etch (final)
+## 5. WooCommerce custom layouts guide for Etch
 
 ### Core principle
 
@@ -601,37 +589,31 @@ Dynamic keys below use the **single-product** context (`{this.*}`). Inside a loo
 
 ---
 
-## 6. Linear ticket: product gallery missing in Etch JSON
+## 6. Product gallery missing in Etch JSON output
 
-**Final compact version:**
+**The problem**
 
-> **Title:** WooCommerce product gallery missing in Etch JSON
->
-> **Description**
-> The Etch JSON output for WooCommerce products currently only exposes the **featured image** (`image` / `featuredImage`) but not the **full product gallery**. WooCommerce already stores gallery images (e.g. via `_product_image_gallery` / `get_gallery_image_ids()`), but these are not normalized into a usable array for Etch.
->
-> **Why this is a problem**
-> - Single product pages in Woo normally show a multi-image gallery (main image + thumbnails).
-> - Etch supports loops/dynamic images but needs an **array** as source.
-> - Without a gallery array, teams must add custom PHP around the Etch output for every project.
->
-> **What we need**
-> - A new JSON field per product, e.g. `galleryImages`:
->   - Array of objects with at least: `id`, `url`, `alt` (optionally `width`, `height`).
->   - Should include: featured image as first item + all WooCommerce gallery images.
-> - Stable access pattern in Etch:
->   - `{item.galleryImages}` as loop source, `{galleryItem.url}`, `{galleryItem.alt}` inside the loop.
-> - Backwards compatible: existing `image` / `featuredImage` stay as they are; `galleryImages` is additive.
+The Etch JSON output for WooCommerce products currently only exposes the **featured image** (`image` / `featuredImage`), not the **full product gallery**. WooCommerce already stores gallery images (e.g. via `_product_image_gallery` / `get_gallery_image_ids()`), but these are not normalized into a usable array for Etch.
+
+**Why it matters**
+
+- Single product pages in Woo normally show a multi-image gallery (main image + thumbnails).
+- Etch supports loops and dynamic images but needs an **array** as its source.
+- Without a gallery array, every project has to add custom PHP around the Etch output.
+
+**Proposed shape**
+
+- A new JSON field per product, e.g. `galleryImages`:
+  - Array of objects with at least `id`, `url`, `alt` (optionally `width`, `height`).
+  - First item is the featured image, followed by all WooCommerce gallery images.
+- Stable access pattern in Etch: `{item.galleryImages}` as the loop source, with `{galleryItem.url}` / `{galleryItem.alt}` inside the loop.
+- Backwards compatible: existing `image` / `featuredImage` stay as they are; `galleryImages` is additive.
 
 ---
 
-## 7. `added_to_cart wc-forward` — can the text be changed?
+## 7. Changing the `added_to_cart wc-forward` link text
 
-**Question:** The link `<a href="..." class="added_to_cart wc-forward">View cart</a>` is JS-generated. Can the text be changed anywhere?
-
-**Answer:**
-
-Yes, the link is inserted dynamically by WooCommerce after add-to-cart — typically after AJAX-add-to-cart in the loop. The text isn't changed directly in HTML; you use a WordPress filter or `gettext`.
+The `added_to_cart wc-forward` link (`<a href="..." class="added_to_cart wc-forward">View cart</a>`) is inserted dynamically by WooCommerce after add-to-cart — typically after AJAX-add-to-cart in the loop. The text isn't changed directly in HTML; you use a WordPress filter or `gettext`.
 
 **Cleanest approach for just the text:**
 
@@ -650,9 +632,9 @@ For just that specific post-AJAX-add behavior, you'd need a more targeted Woo ho
 
 ---
 
-## 8. Can this be set in the WooCommerce settings?
+## 8. Is there a WooCommerce setting for the 'View cart' text?
 
-**Answer:** No, usually not. The standard WooCommerce settings don't expose an option for "View cart". It's customized via `gettext`, a Woo filter like `wc_add_to_cart_params`, or a string-translation plugin.
+No, usually not. The standard WooCommerce settings don't expose an option for "View cart". It's customized via `gettext`, a Woo filter like `wc_add_to_cart_params`, or a string-translation plugin.
 
 WooCommerce lets you choose or edit cart and checkout **pages**, but you can't rename the AJAX link text "View cart" through the regular settings UI.
 
@@ -665,11 +647,7 @@ WooCommerce lets you choose or edit cart and checkout **pages**, but you can't r
 
 ## 9. `window.wc`, `window.wcSettings`, `window.wp` are `undefined`
 
-**Question:** `window.wc`, `window.wcSettings`, and `window.wp` are all `undefined` even though WooCommerce is correctly installed. Why? And do we need that nonce at all?
-
-**Answer:**
-
-Not unusual to begin with. These JS globals are **not** automatically loaded on every page. WooCommerce only loads them when the matching scripts are actually enqueued on that page. `wcSettings` is admin-/blocks-related per Woo's own docs and shouldn't be relied on for the normal frontend.
+These globals are often `undefined` even when WooCommerce is correctly installed — and that raises a fair question about whether a nonce is needed at all. It's not unusual to begin with. These JS globals are **not** automatically loaded on every page. WooCommerce only loads them when the matching scripts are actually enqueued on that page. `wcSettings` is admin-/blocks-related per Woo's own docs and shouldn't be relied on for the normal frontend.
 
 **Why the globals are missing:**
 - `window.wp` is only present when WordPress / Gutenberg / Blocks scripts have loaded. On heavily customized frontends, it's expected to be `undefined`.
@@ -691,23 +669,21 @@ A nonce becomes relevant when you build your own **AJAX requests, custom endpoin
 
 ---
 
-## 10. Why did the video suggest that test anyway?
+## 10. When the nonce and JS globals actually matter
 
-**Answer:**
+Checking for `window.wcSettings.nonce` is a smoke test for one **specific setup**: a custom add-to-cart that talks to the **WooCommerce Store API**. There it makes sense to verify whether Woo already exposes a Store-API nonce before building your own request.
 
-The test in the video is a "smoke test" for a **very specific setup**: custom add-to-cart via the **WooCommerce Store API**. There you check if Woo already provides a Store-API nonce via `window.wcSettings.nonce` or similar.
+For the classic scenario (classic frontend, custom markup, no Store-API flow yet):
 
-For the current scenario (classic frontend, custom markup, no Store-API flow yet):
+- `undefined` only means *these globals aren't loaded here right now* — it's not a sign that Woo is broken.
+- These objects only become relevant with the **Store API, block checkout, or custom JS cart logic**.
+- For classic form submits plus Woo hooks, the nonce isn't needed manually in the frontend — WordPress/Woo handle it behind the scenes.
 
-- `undefined` only means: *these globals aren't loaded here right now* — it's not an indicator that Woo is broken.
-- These objects only become relevant when working with **Store API / block checkout / custom JS cart logic**.
-- For classic form submits + Woo hooks, the nonce isn't needed manually in the frontend — WordPress/Woo handle it behind the scenes.
-
-The video recommendation reads as: *"If we're building a Store-API-based custom-cart integration, we first check whether Woo gives us `wcSettings` + nonce — if not, we have to add it via PHP."*
+Rule of thumb: only when you build a Store-API-based custom cart do you first check whether Woo provides `wcSettings` + nonce — and add it via PHP if it's missing.
 
 ---
 
-## Sources (quoted from the Perplexity session)
+## Sources
 
 - [Etch](https://etchwp.com/?aff=06de86e5) — visual builder for WordPress
 - WooCommerce Theme Development — Template Structure: <https://developer.woocommerce.com/docs/theming/theme-development/template-structure/>

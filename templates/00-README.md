@@ -132,7 +132,7 @@ Same field names in both contexts — only the **keyword** changes. See [`10-etc
 | Custom attribute | `{this.pa_hersteller.0.name}` | `{item.pa_hersteller.0.name}` |
 | Product ID | `{this.id}` | `{item.id}` |
 
-Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch-final).
+Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch).
 
 ### Build order
 

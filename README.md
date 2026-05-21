@@ -76,4 +76,4 @@ Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
-Originally compiled from a research session on WooCommerce / Etch integration. Sources are listed at the end of [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md#sources-quoted-from-the-perplexity-session).
+Sources and references are listed at the end of [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md#sources).
