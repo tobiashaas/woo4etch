@@ -74,6 +74,6 @@ The [`woo4etch`](plugin/woo4etch/) plugin is covered by the same license.
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Credits
+## References
 
 Sources and references are listed at the end of [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md#sources).
