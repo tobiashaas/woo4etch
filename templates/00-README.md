@@ -16,12 +16,6 @@ All templates follow the same structure:
 7. **Common mistakes** — what tends to break in custom layouts.
 8. **Test checklist** — quick verification steps.
 
-## Read first
-
-| File | What |
-|---|---|
-| [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md) | **Required reading.** Explains `this.*` vs `item.*`, Templates vs Pages, the `mainQuery` loop syntax. Misunderstanding this is the #1 cause of "my fields are empty". |
-
 ## Templates in this folder
 
 | File | Area |
@@ -35,7 +29,7 @@ All templates follow the same structure:
 | `07-account.md` | My Account (dashboard, orders, addresses) |
 | `08-thank-you.md` | Order received / thank-you page |
 | `09-emails.md` | Transactional email templates |
-| `10-etch-context-and-templates.md` | Etch context reference (Templates vs Pages, loops, `this.*` vs `item.*`) |
+| `10-etch-context-and-templates.md` | **Read first.** `this.*` vs `item.*`, Templates vs Pages, `mainQuery` loops — #1 cause of empty fields |
 | `11-conditional-tags-and-product-api.md` | `is_product()` / `is_cart()` etc. + `$product` object methods |
 | `12-store-api-and-rest.md` | Store API + custom REST endpoints for AJAX UI |
 | `13-useful-snippets.md` | Buy-now button, custom add-to-cart URLs, free-shipping bar, refund request, more |
