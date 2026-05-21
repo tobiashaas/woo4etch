@@ -17,7 +17,6 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 | File | Area |
 |---|---|
 | [`00-README.md`](./templates/00-README.md) | Conventions and shared foundations |
-| [`10-etch-context-and-templates.md`](./templates/10-etch-context-and-templates.md) | **Read first.** `this.*` vs `item.*`, Templates vs Pages, loop syntax |
 | [`01-single-product-simple.md`](./templates/01-single-product-simple.md) | Single product without variations |
 | [`02-single-product-variable.md`](./templates/02-single-product-variable.md) | Single product with variations |
 | [`03-product-archive.md`](./templates/03-product-archive.md) | Shop / category archive |
@@ -27,6 +26,7 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 | [`07-account.md`](./templates/07-account.md) | My Account |
 | [`08-thank-you.md`](./templates/08-thank-you.md) | Order received / thank-you |
 | [`09-emails.md`](./templates/09-emails.md) | Transactional email templates |
+| [`10-etch-context-and-templates.md`](./templates/10-etch-context-and-templates.md) | **Read first.** `this.*` vs `item.*`, Templates vs Pages, loop syntax |
 | [`11-conditional-tags-and-product-api.md`](./templates/11-conditional-tags-and-product-api.md) | `is_*` tags + `$product` reference |
 | [`12-store-api-and-rest.md`](./templates/12-store-api-and-rest.md) | Store API + custom REST for AJAX |
 | [`13-useful-snippets.md`](./templates/13-useful-snippets.md) | Curated practical snippets |
