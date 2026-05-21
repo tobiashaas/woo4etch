@@ -187,9 +187,10 @@ add_action('woocommerce_thankyou', function ($order_id) {
     $order = wc_get_order($order_id);
     if (!$order) return;
 
-    // Avoid double-firing on page reload
-    if (get_post_meta($order_id, '_conversion_tracked', true)) return;
-    update_post_meta($order_id, '_conversion_tracked', '1');
+    // Avoid double-firing on page reload (HPOS-safe: flag stored on the order).
+    if ($order->get_meta('_conversion_tracked')) return;
+    $order->update_meta_data('_conversion_tracked', '1');
+    $order->save();
 
     ?>
     <!-- Google Ads conversion -->
@@ -211,8 +212,9 @@ add_action('woocommerce_thankyou', function ($order_id) {
 add_action('woocommerce_thankyou', function ($order_id) {
     $order = wc_get_order($order_id);
     if (!$order) return;
-    if (get_post_meta($order_id, '_ga4_tracked', true)) return;
-    update_post_meta($order_id, '_ga4_tracked', '1');
+    if ($order->get_meta('_ga4_tracked')) return;
+    $order->update_meta_data('_ga4_tracked', '1');
+    $order->save();
 
     $items = [];
     foreach ($order->get_items() as $item) {
@@ -278,11 +280,14 @@ add_action('woocommerce_thankyou', function ($order_id) {
 
 ### Hide the thank-you content if the order is not theirs
 
-Default WooCommerce shows the page to anyone with the order key in the URL. If you want to require login for past orders:
+For orders placed by a **logged-in customer**, WooCommerce already verifies that the current user matches the order's customer — otherwise it shows a login form instead of the order. This is controlled by `woocommerce_order_received_verify_known_shoppers`, which **defaults to `true`**, so adding `__return_true` changes nothing. You'd only touch it to *relax* the check (not recommended):
 
 ```php
-add_filter('woocommerce_order_received_verify_known_shoppers', '__return_true');
+// Stop verifying that the logged-in user owns the order.
+add_filter('woocommerce_order_received_verify_known_shoppers', '__return_false');
 ```
+
+This check does **not** cover guest orders (no customer ID) — those stay accessible to anyone holding the order key in the URL. To protect sensitive content on guest orders, gate it yourself (e.g. check `is_user_logged_in()` or match the order email) before printing it.
 
 ## Common mistakes
 

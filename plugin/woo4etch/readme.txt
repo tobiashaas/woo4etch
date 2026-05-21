@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -55,6 +55,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.2.2 =
+* Declare WooCommerce HPOS (High-Performance Order Storage) compatibility.
+* Updater: cache failed/empty GitHub API responses for an hour to avoid repeated requests when offline or rate-limited.
 
 = 1.2.1 =
 * GitHub release updates: WordPress shows new versions when a GitHub Release with woo4etch.zip is published.

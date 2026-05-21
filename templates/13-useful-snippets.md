@@ -31,7 +31,6 @@ Behind the scenes, WooCommerce's "URL add-to-cart" handler runs on `wp_loaded`. 
 add_action('woocommerce_after_add_to_cart_button', 'kr_buy_now_button');
 function kr_buy_now_button() {
     global $product;
-    $checkout_url = wc_get_checkout_url();
     printf(
         '<button type="submit" name="buy_now" value="%d" class="single_add_to_cart_button button buy-now-button">%s</button>',
         $product->get_id(),
@@ -253,29 +252,39 @@ add_action('woocommerce_checkout_create_order', function ($order, $data) {
 ## Get all orders that include a specific product
 
 ```php
-function kr_get_orders_with_product($product_id, $args = []) {
-    $args = wp_parse_args($args, [
-        'limit'  => -1,
-        'status' => ['processing', 'completed'],
-        'return' => 'ids',
-    ]);
-
-    // HPOS-safe approach: query order items by product_id
+function kr_get_orders_with_product($product_id, $statuses = ['processing', 'completed']) {
     global $wpdb;
-    $order_item_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT oi.order_id
+
+    // The order-items tables are shared by both the legacy and HPOS engines, so
+    // this returns the right order IDs regardless of storage mode. _variation_id
+    // is included so orders containing a variation of the product are matched too.
+    $order_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT oi.order_id
          FROM {$wpdb->prefix}woocommerce_order_items oi
          INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim
                  ON oi.order_item_id = oim.order_item_id
-         WHERE oim.meta_key = '_product_id'
+         WHERE oim.meta_key IN ('_product_id', '_variation_id')
            AND oim.meta_value = %d",
-        $product_id
+        absint($product_id)
     ));
 
-    if (!$order_item_ids) return [];
+    if (!$order_ids) return [];
 
-    $args['post__in'] = $order_item_ids;
-    return wc_get_orders($args);
+    // wc_get_orders() has no "include these IDs" argument and ignores post__in
+    // under HPOS, so hydrate the IDs we already have and filter by status here.
+    $statuses = array_map(static function ($s) {
+        return strpos($s, 'wc-') === 0 ? substr($s, 3) : $s; // get_status() has no wc- prefix
+    }, (array) $statuses);
+
+    $orders = [];
+    foreach ($order_ids as $order_id) {
+        $order = wc_get_order($order_id);
+        if ($order && (!$statuses || in_array($order->get_status(), $statuses, true))) {
+            $orders[] = $order;
+        }
+    }
+
+    return $orders;
 }
 ```
 

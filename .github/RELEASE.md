@@ -12,8 +12,8 @@ Woo4Etch is distributed via [GitHub Releases](https://github.com/tobiashaas/woo4
 4. **Create and push a tag** (must match the plugin version):
 
    ```bash
-   git tag v1.2.1
-   git push origin v1.2.1
+   git tag v1.2.2
+   git push origin v1.2.2
    ```
 
 5. GitHub Actions (`.github/workflows/release.yml`) builds **`woo4etch.zip`** and attaches it to the release.

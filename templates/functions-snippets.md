@@ -455,7 +455,8 @@ add_filter('woocommerce_checkout_fields', function ($fields) {
 
 ```php
 add_action('woocommerce_checkout_process', function () {
-    if (!empty($_POST['order_referrer']) && strlen($_POST['order_referrer']) > 200) {
+    if (!empty($_POST['order_referrer'])
+        && mb_strlen(sanitize_text_field(wp_unslash($_POST['order_referrer']))) > 200) {
         wc_add_notice('Please keep the "How did you hear about us?" answer under 200 characters.', 'error');
     }
 });
@@ -463,12 +464,19 @@ add_action('woocommerce_checkout_process', function () {
 
 ### Save custom field on order
 
+`woocommerce_checkout_create_order` runs while the order object is being built, so
+`update_meta_data()` persists on save under both the legacy and HPOS storage engines
+(`update_post_meta()` would not write to HPOS order tables).
+
 ```php
-add_action('woocommerce_checkout_update_order_meta', function ($order_id) {
+add_action('woocommerce_checkout_create_order', function ($order, $data) {
     if (!empty($_POST['order_referrer'])) {
-        update_post_meta($order_id, '_order_referrer', sanitize_text_field($_POST['order_referrer']));
+        $order->update_meta_data(
+            '_order_referrer',
+            sanitize_text_field(wp_unslash($_POST['order_referrer']))
+        );
     }
-});
+}, 10, 2);
 ```
 
 ### Remove default login and coupon forms
@@ -604,8 +612,9 @@ add_action('woocommerce_thankyou', function ($order_id) {
     if (!$order_id) return;
     $order = wc_get_order($order_id);
     if (!$order) return;
-    if (get_post_meta($order_id, '_conversion_tracked', true)) return;
-    update_post_meta($order_id, '_conversion_tracked', '1');
+    if ($order->get_meta('_conversion_tracked')) return; // HPOS-safe dedup
+    $order->update_meta_data('_conversion_tracked', '1');
+    $order->save();
 
     ?>
     <script>
@@ -626,8 +635,9 @@ add_action('woocommerce_thankyou', function ($order_id) {
 add_action('woocommerce_thankyou', function ($order_id) {
     $order = wc_get_order($order_id);
     if (!$order) return;
-    if (get_post_meta($order_id, '_ga4_tracked', true)) return;
-    update_post_meta($order_id, '_ga4_tracked', '1');
+    if ($order->get_meta('_ga4_tracked')) return; // HPOS-safe dedup
+    $order->update_meta_data('_ga4_tracked', '1');
+    $order->save();
 
     $items = [];
     foreach ($order->get_items() as $item) {
@@ -726,8 +736,12 @@ add_action('woocommerce_email_order_meta', function ($order, $sent_to_admin, $pl
 
 ```php
 add_action('admin_init', function () {
-    if (!current_user_can('manage_options')) return;
     if (!isset($_GET['preview_email'])) return;
+    if (!current_user_can('manage_options')) return;
+    // Admin-only is not enough — guard against CSRF with a nonce.
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'] ?? '')), 'kr_preview_email')) {
+        wp_die('Invalid or missing nonce.');
+    }
 
     $order = wc_get_order((int) ($_GET['order_id'] ?? 0));
     if (!$order) wp_die('Order not found');
@@ -743,7 +757,14 @@ add_action('admin_init', function () {
 });
 ```
 
-Visit `/wp-admin/?preview_email=customer_processing_order&order_id=123`.
+Build the preview link with a matching nonce, e.g.:
+
+```php
+$url = wp_nonce_url(
+    admin_url('?preview_email=customer_processing_order&order_id=123'),
+    'kr_preview_email'
+);
+```
 
 ---
 

@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, notices, cart state, and more.
- * Version:           1.2.1
+ * Version:           1.2.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -30,6 +30,21 @@ require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
 
 /**
+ * Declare compatibility with WooCommerce High-Performance Order Storage (HPOS).
+ * This plugin only renders product/cart shortcodes and never touches order
+ * storage directly, so it is compatible with both the legacy and HPOS engines.
+ */
+add_action('before_woocommerce_init', static function () {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'custom_order_tables',
+            __FILE__,
+            true
+        );
+    }
+});
+
+/**
  * Bootstraps the plugin once WooCommerce is loaded.
  * Shows an admin notice and exits early if WooCommerce isn't active.
  */
@@ -51,7 +66,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.2.1';
+    const VERSION = '1.2.2';
 
     /**
      * Register all shortcodes and the admin reference screen.

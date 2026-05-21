@@ -268,7 +268,6 @@ The three `do_action(...)` calls in the middle are **important** — they render
 | `woocommerce_email_customer_details` | Body slot | **Default**: customer billing/shipping address |
 | `woocommerce_email_before_order_table` | Before items table | Trust badges, banner |
 | `woocommerce_email_after_order_table` | After items table | Cross-sells |
-| `woocommerce_email_customer_details` | Before customer block | (analogous) |
 
 ### Filters
 
@@ -387,14 +386,19 @@ For a one-off preview without a plugin:
 
 ```php
 add_action('admin_init', function () {
-    if (!current_user_can('manage_options')) return;
     if (!isset($_GET['preview_email'])) return;
+    if (!current_user_can('manage_options')) return;
+    // Admin-only is not enough — guard against CSRF with a nonce.
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'] ?? '')), 'kr_preview_email')) {
+        wp_die('Invalid or missing nonce.');
+    }
 
-    $order = wc_get_order((int) $_GET['order_id']);
+    $order = wc_get_order((int) ($_GET['order_id'] ?? 0));
     if (!$order) wp_die('Order not found');
 
-    $email_class = 'WC_Email_' . str_replace(' ', '_', ucwords(str_replace('_', ' ', $_GET['preview_email'])));
-    $email = WC()->mailer()->emails[$email_class] ?? null;
+    $email_id    = sanitize_key($_GET['preview_email']);
+    $email_class = 'WC_Email_' . str_replace(' ', '_', ucwords(str_replace('_', ' ', $email_id)));
+    $email       = WC()->mailer()->emails[$email_class] ?? null;
     if (!$email) wp_die('Unknown email');
 
     $email->object = $order;
@@ -403,7 +407,8 @@ add_action('admin_init', function () {
 });
 ```
 
-Then visit `/wp-admin/?preview_email=customer_processing_order&order_id=123`.
+Build the preview link with a matching nonce, e.g.
+`wp_nonce_url(admin_url('?preview_email=customer_processing_order&order_id=123'), 'kr_preview_email')`.
 
 ## Common mistakes
 

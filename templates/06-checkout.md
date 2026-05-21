@@ -303,7 +303,8 @@ add_filter('woocommerce_checkout_fields', function ($fields) {
 
 ```php
 add_action('woocommerce_checkout_process', function () {
-    if (!empty($_POST['order_referrer']) && strlen($_POST['order_referrer']) > 200) {
+    if (!empty($_POST['order_referrer'])
+        && mb_strlen(sanitize_text_field(wp_unslash($_POST['order_referrer']))) > 200) {
         wc_add_notice('Please keep the "How did you hear about us?" answer under 200 characters.', 'error');
     }
 });
@@ -311,12 +312,19 @@ add_action('woocommerce_checkout_process', function () {
 
 ### Save a custom field on the order
 
+`woocommerce_checkout_create_order` runs while the order is being built, so `update_meta_data()`
+persists under both the legacy and HPOS storage engines (`update_post_meta()` would not write to
+HPOS order tables).
+
 ```php
-add_action('woocommerce_checkout_update_order_meta', function ($order_id) {
+add_action('woocommerce_checkout_create_order', function ($order, $data) {
     if (!empty($_POST['order_referrer'])) {
-        update_post_meta($order_id, '_order_referrer', sanitize_text_field($_POST['order_referrer']));
+        $order->update_meta_data(
+            '_order_referrer',
+            sanitize_text_field(wp_unslash($_POST['order_referrer']))
+        );
     }
-});
+}, 10, 2);
 ```
 
 ### Remove default login and coupon forms (when you render them yourself)

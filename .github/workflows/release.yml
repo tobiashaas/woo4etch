@@ -15,11 +15,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: none
+          coverage: none
+
       - name: Read plugin version
         id: version
         run: |
           VERSION=$(grep -m1 '^[[:space:]]*\*[[:space:]]Version:' plugin/woo4etch/woo4etch.php | sed 's/.*Version:[[:space:]]*//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches plugin version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PLUGIN_VERSION="${{ steps.version.outputs.version }}"
+          STABLE_TAG=$(grep -m1 '^Stable tag:' plugin/woo4etch/readme.txt | sed 's/.*Stable tag:[[:space:]]*//')
+          echo "Tag: ${TAG_VERSION} | woo4etch.php: ${PLUGIN_VERSION} | readme.txt: ${STABLE_TAG}"
+          if [ "${TAG_VERSION}" != "${PLUGIN_VERSION}" ]; then
+            echo "::error::Git tag (${TAG_VERSION}) does not match Version in woo4etch.php (${PLUGIN_VERSION})."
+            exit 1
+          fi
+          if [ "${STABLE_TAG}" != "${PLUGIN_VERSION}" ]; then
+            echo "::error::Stable tag in readme.txt (${STABLE_TAG}) does not match Version in woo4etch.php (${PLUGIN_VERSION})."
+            exit 1
+          fi
+
+      - name: Lint plugin PHP
+        run: |
+          find plugin/woo4etch -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
 
       - name: Build installable zip
         run: |

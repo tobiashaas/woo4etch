@@ -14,9 +14,10 @@ if (!defined('ABSPATH')) {
  */
 final class Woo4Etch_Updater {
 
-    private const GITHUB_REPO = 'tobiashaas/woo4etch';
-    private const CACHE_KEY   = 'woo4etch_github_release';
-    private const CACHE_TTL   = 43200; // 12 hours
+    private const GITHUB_REPO     = 'tobiashaas/woo4etch';
+    private const CACHE_KEY       = 'woo4etch_github_release';
+    private const CACHE_TTL       = 43200; // 12 hours
+    private const CACHE_TTL_FAIL  = 3600;  // 1 hour — back off after a failed/empty API call
 
     /** @var string */
     private static $plugin_file;
@@ -122,6 +123,10 @@ final class Woo4Etch_Updater {
         if (is_array($cached)) {
             return $cached;
         }
+        // A non-array sentinel means a recent call failed; back off until it expires.
+        if ($cached !== false) {
+            return null;
+        }
 
         $response = wp_remote_get(
             'https://api.github.com/repos/' . self::GITHUB_REPO . '/releases/latest',
@@ -135,16 +140,19 @@ final class Woo4Etch_Updater {
         );
 
         if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+            set_transient(self::CACHE_KEY, 'none', self::CACHE_TTL_FAIL);
             return null;
         }
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
         if (!is_array($body) || empty($body['tag_name'])) {
+            set_transient(self::CACHE_KEY, 'none', self::CACHE_TTL_FAIL);
             return null;
         }
 
         $package = self::resolve_zip_url($body);
         if ($package === '') {
+            set_transient(self::CACHE_KEY, 'none', self::CACHE_TTL_FAIL);
             return null;
         }
 

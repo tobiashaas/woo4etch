@@ -141,7 +141,7 @@ Most "shortcode for WP" plugins try to be everything. Woo4Etch is intentionally 
 
 - One generic hook shortcode (`[do_action]`).
 - A curated set of shortcodes for things you can't do in pure HTML with Etch's Dynamic Keys.
-- No settings page. No admin UI. No bloat.
+- No settings to configure. The only admin screen is a read-only shortcode reference (**Etch → Woo4Etch**, or **WooCommerce → Woo4Etch**). No bloat.
 
 If you need a shortcode that isn't here, write a 3-line custom one in your theme or extend this plugin — it's MIT-licensed.
 

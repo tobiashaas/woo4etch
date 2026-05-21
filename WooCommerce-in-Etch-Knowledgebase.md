@@ -319,7 +319,7 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 | Add-to-cart form (simple) | `form.cart`, `name="add-to-cart"`, `value="PRODUCT_ID"` | Submit needs to identify the product |
 | Quantity | `.quantity`, `input.qty`, `name="quantity"`, `min`, `step`, `aria-label` | Required structure for quantity fields |
 | Variable product form | `.variations_form.cart`, `data-product_id`, `data-product_variations` | Woo JS reads the structure |
-| Variant selects | `select` with `name="attribute_pa_*"` | Attribute names for variation resolution |
+| Variant selects | `select` with `name="attribute_*"` (`attribute_pa_<slug>` for global/taxonomy attributes, `attribute_<slug>` for custom ones) | Attribute names for variation resolution |
 | Reset link | `.reset_variations` | Standard JS & UX |
 | Variation status | `.reset_variations_alert.screen-reader-text[role="alert"]` | Screen-reader feedback |
 | Variation output | `.single_variation_wrap` | Placeholder for price, availability, add-to-cart |
@@ -333,19 +333,19 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 <main id="main" class="site-main">
   <article class="product product--single" itemscope itemtype="https://schema.org/Product">
     <header class="product__header">
-      <h1 class="product_title entry-title" itemprop="name">{item.title}</h1>
-      <p class="price" aria-label="Price">{item.meta._price}</p>
-      <p class="woocommerce-product-details__short-description">{item.excerpt}</p>
+      <h1 class="product_title entry-title" itemprop="name">{this.title}</h1>
+      <p class="price" aria-label="Price">{this.meta._price}</p>
+      <p class="woocommerce-product-details__short-description">{this.excerpt}</p>
     </header>
 
     <div class="product__layout">
       <section class="product__gallery" aria-labelledby="gallery-title">
         <h2 id="gallery-title" class="screen-reader-text">Product images</h2>
         <figure>
-          <img src="{item.image.url}"
-               alt="{item.title}"
-               width="{item.image.width}"
-               height="{item.image.height}">
+          <img src="{this.image.url}"
+               alt="{this.title}"
+               width="{this.image.width}"
+               height="{this.image.height}">
         </figure>
       </section>
 
@@ -357,7 +357,7 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
     <section class="product__details" aria-labelledby="details-title">
       <h2 id="details-title">Product details</h2>
-      <div>{item.content}</div>
+      <div>{this.content}</div>
     </section>
   </article>
 </main>
@@ -366,10 +366,10 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 ### Simple product form (with Etch keys)
 
 ```html
-<form class="cart" action="{item.permalink.relative}" method="post" enctype="multipart/form-data">
+<form class="cart" action="{this.permalink.relative}" method="post" enctype="multipart/form-data">
   <div class="quantity">
-    <label for="quantity_{item.id}" class="screen-reader-text">{item.title} quantity</label>
-    <input id="quantity_{item.id}"
+    <label for="quantity_{this.id}" class="screen-reader-text">{this.title} quantity</label>
+    <input id="quantity_{this.id}"
            class="input-text qty text"
            type="number" name="quantity"
            value="1" min="1" step="1"
@@ -377,7 +377,7 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
            aria-label="Product quantity" />
   </div>
 
-  <button type="submit" name="add-to-cart" value="{item.id}"
+  <button type="submit" name="add-to-cart" value="{this.id}"
           class="single_add_to_cart_button button alt">
     Add to cart
   </button>
@@ -388,10 +388,10 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
 ```html
 <form class="variations_form cart"
-      action="{item.permalink.relative}"
+      action="{this.permalink.relative}"
       method="post"
       enctype="multipart/form-data"
-      data-product_id="{item.id}"
+      data-product_id="{this.id}"
       data-product_variations='[]'>
 
   <table class="variations" cellspacing="0" role="presentation">
@@ -416,14 +416,14 @@ Etch uses dynamic keys with curly-brace syntax: `{this.foo}`, `{item.foo}`, `{ta
 
     <div class="woocommerce-variation-add-to-cart variations_button">
       <div class="quantity">
-        <label for="quantity_{item.id}" class="screen-reader-text">{item.title} quantity</label>
-        <input id="quantity_{item.id}" class="input-text qty text"
+        <label for="quantity_{this.id}" class="screen-reader-text">{this.title} quantity</label>
+        <input id="quantity_{this.id}" class="input-text qty text"
                type="number" name="quantity" value="1" min="1" step="1">
       </div>
 
       <button type="submit" class="single_add_to_cart_button button alt">Add to cart</button>
-      <input type="hidden" name="add-to-cart" value="{item.id}">
-      <input type="hidden" name="product_id" value="{item.id}">
+      <input type="hidden" name="add-to-cart" value="{this.id}">
+      <input type="hidden" name="product_id" value="{this.id}">
       <input type="hidden" name="variation_id" class="variation_id" value="0">
     </div>
   </div>
@@ -512,13 +512,13 @@ The current Etch JSON output doesn't include a gallery array. Only the main imag
   <h2 id="gallery-title" class="screen-reader-text">Product images</h2>
 
   <figure class="product-gallery__main">
-    <img src="{item.image.url}"
-         alt="{item.title}"
-         width="{item.image.width}"
-         height="{item.image.height}">
+    <img src="{this.image.url}"
+         alt="{this.title}"
+         width="{this.image.width}"
+         height="{this.image.height}">
   </figure>
 
-  <!-- Nested loop over item.galleryImages -->
+  <!-- Nested loop over this.galleryImages (use {galleryItem.*} inside the loop) -->
   <ul class="product-gallery__thumbs" role="list">
     <li>
       <img src="{galleryItem.url}" alt="{galleryItem.alt}">
@@ -578,15 +578,17 @@ Practical order:
 
 ### Quick reference
 
+Dynamic keys below use the **single-product** context (`{this.*}`). Inside a loop (archive, related, gallery) swap `this` → `item` (or the loop's own variable).
+
 | Element | Keep |
 |---|---|
-| Product title | `{item.title}` or `{item.post_title}` |
-| Product image | `{item.image.url}` plus alt/size from `item.image.*` |
+| Product title | `{this.title}` or `{this.post_title}` |
+| Product image | `{this.image.url}` plus alt/size from `this.image.*` |
 | Product gallery | Custom `galleryImages` array or normalize `_product_image_gallery` server-side |
-| Short description | `{item.excerpt}` / `{item.post_excerpt}` |
-| Content | `{item.content}` / `{item.post_content}` |
-| Price | `{item.meta._price}` |
-| SKU | `{item.meta._sku}` |
+| Short description | `{this.excerpt}` / `{this.post_excerpt}` |
+| Content | `{this.content}` / `{this.post_content}` |
+| Price | `{this.meta._price}` |
+| SKU | `{this.meta._sku}` |
 | Quantity field | `.quantity`, `input.qty`, `name="quantity"`, label, `aria-label` |
 | Simple add to cart | `form.cart`, submit button with `name="add-to-cart"` |
 | Variable form | `.variations_form.cart`, `data-product_id`, `data-product_variations` |
