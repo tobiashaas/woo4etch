@@ -647,7 +647,7 @@ WooCommerce lets you choose or edit cart and checkout **pages**, but you can't r
 
 ## 9. `window.wc`, `window.wcSettings`, `window.wp` are `undefined`
 
-These globals are often `undefined` even when WooCommerce is correctly installed — and that raises a fair question about whether a nonce is needed at all. It's not unusual to begin with. These JS globals are **not** automatically loaded on every page. WooCommerce only loads them when the matching scripts are actually enqueued on that page. `wcSettings` is admin-/blocks-related per Woo's own docs and shouldn't be relied on for the normal frontend.
+These globals being `undefined` even with WooCommerce correctly installed is not unusual, and it raises a fair question: is a nonce needed at all? These JS globals are **not** loaded on every page — WooCommerce only adds them when the matching scripts are enqueued. `wcSettings` is admin-/blocks-related per Woo's own docs and shouldn't be relied on for the normal frontend.
 
 **Why the globals are missing:**
 - `window.wp` is only present when WordPress / Gutenberg / Blocks scripts have loaded. On heavily customized frontends, it's expected to be `undefined`.
@@ -684,6 +684,8 @@ Rule of thumb: only when you build a Store-API-based custom cart do you first ch
 ---
 
 ## Sources
+
+External documentation referenced in this guide:
 
 - [Etch](https://etchwp.com/?aff=06de86e5) — visual builder for WordPress
 - WooCommerce Theme Development — Template Structure: <https://developer.woocommerce.com/docs/theming/theme-development/template-structure/>
