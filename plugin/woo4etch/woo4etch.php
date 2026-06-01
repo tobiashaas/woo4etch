@@ -472,6 +472,13 @@ final class Woo4Etch {
             ],
 
             /* ---- Cart (extended) ---- */
+            'woo_cart_items' => [
+                'method'      => 'shortcode_cart_items',
+                'category'    => __('Cart', 'woo4etch'),
+                'attributes'  => 'thumbnail_size',
+                'description' => __('Complete cart form with your own class-based markup: items, coupon, quantity update + remove, and every WooCommerce cart hook/filter (extension-compatible). The customisable alternative to [woocommerce_cart]. No AJAX required.', 'woo4etch'),
+                'example'     => '[woo_cart_items]',
+            ],
             'woo_cart_totals' => [
                 'method'      => 'shortcode_cart_totals',
                 'category'    => __('Cart', 'woo4etch'),
@@ -1235,7 +1242,7 @@ final class Woo4Etch {
     }
 
     public static function shortcode_mini_cart() {
-        if (!function_exists('woocommerce_mini_cart')) {
+        if (!function_exists('woocommerce_mini_cart') || is_null(WC()->cart)) {
             return '';
         }
         ob_start();
@@ -1384,11 +1391,144 @@ final class Woo4Etch {
        ============================================================ */
 
     public static function shortcode_cart_totals() {
-        if (!function_exists('woocommerce_cart_totals')) {
+        // WC()->cart is null outside a loaded frontend cart (editor/builder/REST
+        // preview) — calling the totals template there fatals, so bail safely.
+        if (!function_exists('woocommerce_cart_totals') || is_null(WC()->cart)) {
             return '';
         }
         ob_start();
         woocommerce_cart_totals();
+        return ob_get_clean();
+    }
+
+    /**
+     * Complete cart line items + form, with clean class-based markup you can
+     * style/rearrange. A faithful, extension-compatible reproduction of
+     * WooCommerce's cart.php form: it fires every cart hook (before_cart,
+     * before/after_cart_table, before/after_cart_contents, cart_contents,
+     * after_cart_item_name, cart_actions) and per-item filter (product,
+     * permalink, thumbnail, name, price, quantity, subtotal, class,
+     * remove_link), and includes the coupon field + update button + nonce — so
+     * quantity update, remove, coupons and third-party cart plugins all work.
+     *
+     * Pair with [woo_cart_totals] (totals/checkout) and [woo_cross_sells] in
+     * your own Etch layout. No AJAX required (classic submit).
+     */
+    public static function shortcode_cart_items($atts) {
+        $atts = shortcode_atts(['thumbnail_size' => 'woocommerce_thumbnail'], $atts, 'woo_cart_items');
+
+        if (is_null(WC()->cart)) {
+            return '';
+        }
+        if (WC()->cart->is_empty()) {
+            return '<p class="woo-cart-empty">' . esc_html__('Your cart is currently empty.', 'woo4etch') . '</p>';
+        }
+
+        $size = sanitize_key($atts['thumbnail_size']);
+
+        ob_start();
+        do_action('woocommerce_before_cart'); // prints notices + lets plugins inject
+        ?>
+        <form class="woocommerce-cart-form woo-cart-form" action="<?php echo esc_url(wc_get_cart_url()); ?>" method="post">
+            <?php do_action('woocommerce_before_cart_table'); ?>
+            <ul class="woo-cart-items">
+                <?php
+                do_action('woocommerce_before_cart_contents');
+
+                foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+                    $product  = apply_filters('woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key);
+                    $quantity = $cart_item['quantity'];
+
+                    if (!$product instanceof WC_Product || !$product->exists() || $quantity <= 0
+                        || !apply_filters('woocommerce_cart_item_visible', true, $cart_item, $cart_item_key)) {
+                        continue;
+                    }
+
+                    $permalink = apply_filters('woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink($cart_item) : '', $cart_item, $cart_item_key);
+                    $thumbnail = apply_filters('woocommerce_cart_item_thumbnail', $product->get_image($size), $cart_item, $cart_item_key);
+
+                    // Quantity: "1" for sold-individually, otherwise a real input.
+                    if ($product->is_sold_individually()) {
+                        $qty_html = sprintf('1 <input type="hidden" name="cart[%s][qty]" value="1" />', esc_attr($cart_item_key));
+                    } else {
+                        $qty_html = woocommerce_quantity_input([
+                            'input_name'   => "cart[{$cart_item_key}][qty]",
+                            'input_value'  => $quantity,
+                            'max_value'    => $product->get_max_purchase_quantity(),
+                            'min_value'    => '0',
+                            'product_name' => $product->get_name(),
+                        ], $product, false);
+                    }
+
+                    $item_class = apply_filters('woocommerce_cart_item_class', 'woo-cart-item', $cart_item, $cart_item_key);
+
+                    // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Woo filters return prepared HTML.
+                    ?>
+                    <li class="<?php echo esc_attr($item_class); ?>">
+                        <div class="woo-cart-item__thumb"><?php
+                            echo $permalink ? sprintf('<a href="%s">%s</a>', esc_url($permalink), $thumbnail) : $thumbnail;
+                        ?></div>
+
+                        <div class="woo-cart-item__info">
+                            <span class="woo-cart-item__name"><?php
+                                echo wp_kses_post(apply_filters('woocommerce_cart_item_name',
+                                    $permalink ? sprintf('<a href="%s">%s</a>', esc_url($permalink), $product->get_name()) : $product->get_name(),
+                                    $cart_item, $cart_item_key));
+                                do_action('woocommerce_after_cart_item_name', $cart_item, $cart_item_key);
+                            ?></span>
+                            <span class="woo-cart-item__meta"><?php echo wc_get_formatted_cart_item_data($cart_item); ?></span>
+                            <span class="woo-cart-item__price"><?php
+                                echo apply_filters('woocommerce_cart_item_price', WC()->cart->get_product_price($product), $cart_item, $cart_item_key);
+                            ?></span>
+                        </div>
+
+                        <div class="woo-cart-item__qty"><?php
+                            echo apply_filters('woocommerce_cart_item_quantity', $qty_html, $cart_item_key, $cart_item);
+                        ?></div>
+
+                        <div class="woo-cart-item__subtotal"><?php
+                            echo apply_filters('woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal($product, $quantity), $cart_item, $cart_item_key);
+                        ?></div>
+
+                        <div class="woo-cart-item__remove"><?php
+                            echo apply_filters('woocommerce_cart_item_remove_link', sprintf(
+                                '<a href="%s" class="remove" aria-label="%s" data-product_id="%s" data-product_sku="%s">&times;</a>',
+                                esc_url(wc_get_cart_remove_url($cart_item_key)),
+                                esc_attr(sprintf(__('Remove %s from cart', 'woo4etch'), wp_strip_all_tags($product->get_name()))),
+                                esc_attr($product->get_id()),
+                                esc_attr($product->get_sku())
+                            ), $cart_item_key);
+                        ?></div>
+                    </li>
+                    <?php
+                    // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+                }
+
+                do_action('woocommerce_cart_contents');
+                ?>
+            </ul>
+
+            <div class="woo-cart-form__actions">
+                <?php if (wc_coupons_enabled()) : ?>
+                    <div class="woo-cart-coupon coupon">
+                        <label for="coupon_code" class="screen-reader-text"><?php esc_html_e('Coupon:', 'woo4etch'); ?></label>
+                        <input type="text" name="coupon_code" class="input-text" id="coupon_code" value="" placeholder="<?php esc_attr_e('Coupon code', 'woo4etch'); ?>" />
+                        <button type="submit" class="button" name="apply_coupon" value="<?php esc_attr_e('Apply coupon', 'woo4etch'); ?>"><?php esc_html_e('Apply coupon', 'woo4etch'); ?></button>
+                        <?php do_action('woocommerce_cart_coupon'); ?>
+                    </div>
+                <?php endif; ?>
+
+                <button type="submit" class="button woo-cart-update" name="update_cart" value="<?php esc_attr_e('Update cart', 'woo4etch'); ?>"><?php esc_html_e('Update cart', 'woo4etch'); ?></button>
+
+                <?php do_action('woocommerce_cart_actions'); ?>
+                <?php wp_nonce_field('woocommerce-cart', 'woocommerce-cart-nonce'); ?>
+            </div>
+
+            <?php do_action('woocommerce_after_cart_contents'); ?>
+            <?php do_action('woocommerce_after_cart_table'); ?>
+        </form>
+        <?php
+        do_action('woocommerce_after_cart');
         return ob_get_clean();
     }
 
@@ -1402,7 +1542,7 @@ final class Woo4Etch {
     }
 
     public static function shortcode_shipping_calculator() {
-        if (!function_exists('woocommerce_shipping_calculator')) {
+        if (!function_exists('woocommerce_shipping_calculator') || is_null(WC()->cart)) {
             return '';
         }
         ob_start();
@@ -1411,7 +1551,7 @@ final class Woo4Etch {
     }
 
     public static function shortcode_cross_sells() {
-        if (!function_exists('woocommerce_cross_sell_display')) {
+        if (!function_exists('woocommerce_cross_sell_display') || is_null(WC()->cart)) {
             return '';
         }
         ob_start();

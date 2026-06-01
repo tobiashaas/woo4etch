@@ -58,6 +58,7 @@ Cart:
 * `[woo_cart_total]` — formatted cart total
 * `[woo_cart_url]` / `[woo_checkout_url]` — cart / checkout URL
 * `[woo_mini_cart]` — mini-cart widget markup
+* `[woo_cart_items]` — cart line items with your own class-based markup (qty update + remove, classic form); the customisable alternative to [woocommerce_cart]
 * `[woo_cart_totals]` — cart totals block
 * `[woo_coupon_form]` — apply-coupon form
 * `[woo_shipping_calculator]` — cart shipping calculator
@@ -114,6 +115,8 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = 1.3.0 =
+* New [woo_cart_items]: a complete, extension-compatible cart form with clean class-based markup — items, coupon, Update cart + nonce, remove — that fires every WooCommerce cart hook and per-item filter (so third-party cart plugins keep working). The customisable alternative to the monolithic [woocommerce_cart]; pair with [woo_cart_totals] / [woo_cross_sells] in your own Etch layout. No AJAX required.
+* Cart-dependent shortcodes (cart_items/totals/cross_sells/shipping_calculator/mini_cart) are guarded against a null WC()->cart (Etch builder / REST preview), so they render empty instead of fataling.
 * Fix: [woo_add_to_cart] rendered nothing on themes without add-to-cart template overrides (e.g. the Etch theme) because it used wc_get_template_part(), which only looks in the theme. It now fires the woocommerce_{type}_add_to_cart action like WooCommerce core, so it works everywhere.
 * Fix: [woo_template] now uses wc_get_template(), which falls back to WooCommerce's own templates directory, so paths like "single-product/related" resolve without a theme override.
 * Gap-filling shortcodes for the remaining PHP-bound areas: [woo_account_menu], [woo_account_content] (renders any My Account endpoint), [woo_login_form], [woo_order_details], [woo_cart_totals], [woo_coupon_form], [woo_shipping_calculator], [woo_cross_sells], [woo_product_search]. [woo_if] now also supports is_user_logged_in and is_type (arg="grouped|external|…").

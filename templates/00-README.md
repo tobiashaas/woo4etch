@@ -150,7 +150,7 @@ Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5
 
 ### Product image gallery — `gallery_images`
 
-Etch ships a WooCommerce integration that adds a ready-to-loop `gallery_images` property to every **product**. This requires **Etch 1.4.20 or newer** (the ETC-800 fix) — it is **not** in 1.4.19. The raw `_product_image_gallery` meta is only a comma-separated string of attachment IDs, so `{this.meta._product_image_gallery}` is **not** usable on its own — use `gallery_images` instead.
+Etch ships a WooCommerce integration that adds a ready-to-loop `gallery_images` property to every **product**, available in **Etch 1.4.20+** (the ETC-800 fix; 1.4.19 and earlier do not have it). The raw `_product_image_gallery` meta is only a comma-separated string of attachment IDs, so `{this.meta._product_image_gallery}` is **not** usable on its own — use `gallery_images` instead. Loop it with an Etch loop whose target is `this.gallery_images`:
 
 > **Important:** `gallery_images` contains the gallery **exactly as stored** — the featured image is **not** prepended (this keeps Etch's behaviour identical to WooCommerce). So render the featured image yourself first, then loop the gallery for the rest.
 
@@ -192,6 +192,20 @@ Dynamic Keys support chainable **modifiers** — formatting/transform functions 
 Common families: **string** (`toUpperCase`, `toLowerCase`, `trim`, `truncateChars`, `truncateWords`, `replace`, `stripTags`, `toSlug`), **numeric** (`numberFormat`, `round`, `ceil`, `floor`, `add`, `subtract`, `multiply`, `divide`), **date** (`format`), **comparison** (`equal(v, ifTrue, ifFalse)`, `greater(v, ifTrue, ifFalse)`, …), **collection** (`length`, `pluck`, `join`, `slice`, `reverse`, `includes`).
 
 > Inline arithmetic and ternaries (`{a + b}`, `{a ? b : c}`) are **not** supported — but the comparison modifiers (`.equal()`, `.greater()`, …) give you conditional output, and dedicated condition blocks handle show/hide logic.
+
+### Layout structure — sections & containers
+
+Build every layout band the Etch way: a full-width **section** wrapping a max-width **container**, marked with Etch's data attributes so the builder (and Automatic.css) treat them as real Sections/Containers.
+
+```html
+<section data-etch-element="section" class="product">
+  <div data-etch-element="container">
+    <!-- your content: dynamic keys, shortcodes, nested elements -->
+  </div>
+</section>
+```
+
+Use this for **content bands** (single product, archive, cart, page content). The **header and footer are their own bands** — leave them as plain wrappers, don't wrap them in section/container. And don't leave core Gutenberg blocks (e.g. `wp:post-title`) in the visible layout — use Etch elements + Dynamic Keys (`{this.title}`) so every part stays editable in the builder.
 
 ### Build order
 
