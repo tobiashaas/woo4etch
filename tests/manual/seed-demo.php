@@ -228,28 +228,55 @@ $put_template('archive-product', 'Shop Archive (Woo4Etch demo)',
    ============================================================ */
 $cart_page_id = function_exists('wc_get_page_id') ? wc_get_page_id('cart') : 0;
 if ($cart_page_id > 0) {
-    // Complete cart: Etch layout (section > container) around the Woo4Etch cart
-    // shortcodes. [woo_cart_items] is a faithful, hook-complete cart form (items,
-    // coupon, update, remove, all cart hooks/filters → extensions work);
-    // [woo_cart_totals] renders totals + checkout (+ its hooks); [woo_cross_sells]
-    // the cross-sells. ([woo_cart_items] fires woocommerce_before_cart, which
-    // prints notices.)
+    // Cart as a real Etch FORM — no shortcodes, so it renders + is editable in the
+    // builder AND works on the frontend. Items loop over {options.cart_items}
+    // (Woo4Etch bridge); qty update, coupon and the nonce are plain form fields;
+    // remove via {item.remove_url}. (For third-party cart-extension hooks, use the
+    // [woo_cart_items] shortcode instead — see templates/15.)
+    $cart_row =
+        $el('img', 'w4e-cartrow__img', '', '"src":"{item.image}","alt":"{item.name}"')
+        . $el('div', 'w4e-cartrow__info',
+            $el('a', 'w4e-cartrow__name', $txt('{item.name}'), '"href":"{item.permalink}"')
+            . $el('span', 'w4e-cartrow__price', $txt('{item.price}'))
+          )
+        . $el('input', 'w4e-cartrow__qty', '', '"type":"number","name":"cart[{item.key}][qty]","value":"{item.quantity}","min":"0"')
+        . $el('span', 'w4e-cartrow__sub', $txt('{item.subtotal}'))
+        . $el('a', 'w4e-cartrow__rm', $txt('Remove'), '"href":"{item.remove_url}"');
+
+    $cart_actions =
+        $el('input', 'w4e-coupon__input', '', '"type":"text","name":"coupon_code","placeholder":"Coupon code"')
+        . $el('button', 'button', $txt('Apply coupon'), '"type":"submit","name":"apply_coupon","value":"Apply coupon"')
+        . $el('button', 'button w4e-cart-update', $txt('Update cart'), '"type":"submit","name":"update_cart","value":"Update cart"');
+
+    $cart_main =
+        $el('ul', 'w4e-cartlist',
+            '<!-- wp:etch/loop {"target":"options.cart_items","itemId":"item"} -->'
+            . $el('li', 'w4e-cartrow', $cart_row)
+            . '<!-- /wp:etch/loop -->'
+        )
+        . $el('div', 'w4e-cart-actions', $cart_actions)
+        . $el('input', '', '', '"type":"hidden","name":"woocommerce-cart-nonce","value":"{options.cart_nonce}"');
+
+    $cart_aside =
+        $el('h2', 'w4e-cart-aside__title', $txt('Order summary'))
+        . $el('div', 'w4e-cart-aside__row', $txt('Total'))
+        . $el('div', 'w4e-cart-aside__total', $txt('{options.cart_total}'))
+        . $el('a', 'w4e-cart-checkout button', $txt('Proceed to checkout'), '"href":"{options.checkout_url}"');
+
     $cart_content =
         $section('w4e-cart')
         . $container()
           . $el('h1', 'w4e-page__title', $txt('{this.title}'))
-          . $el('div', 'w4e-cart-layout',
-              $el('div', 'w4e-cart-main', $txt('[woo_cart_items]'))
-              . $el('aside', 'w4e-cart-aside',
-                  $el('h2', 'w4e-cart-aside__title', $txt('Order summary'))
-                  . $txt('[woo_cart_totals]')
-              )
-          )
-          . $el('div', 'w4e-cart-crosssells', $txt('[woo_cross_sells]'))
+          . '<!-- wp:etch/element {"tag":"form","attributes":{"class":"woocommerce-cart-form w4e-cart-form","action":"{options.cart_url}","method":"post"}} -->'
+            . $el('div', 'w4e-cart-layout',
+                $el('div', 'w4e-cart-main', $cart_main)
+                . $el('aside', 'w4e-cart-aside', $cart_aside)
+            )
+          . '<!-- /wp:etch/element -->'
         . $E
         . $E;
     wp_update_post(['ID' => $cart_page_id, 'post_content' => $cart_content]);
-    echo "OK   cart page #{$cart_page_id} → complete cart ([woo_cart_items] + totals + cross-sells)\n";
+    echo "OK   cart page #{$cart_page_id} → Etch cart FORM ({options.cart_items} loop, no shortcodes)\n";
 }
 
 echo "\nDemo templates installed for theme '{$theme}' (section/container convention).\n";

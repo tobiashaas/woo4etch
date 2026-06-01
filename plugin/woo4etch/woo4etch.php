@@ -1741,6 +1741,9 @@ final class Woo4Etch {
 
         $data['cart_url']     = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
         $data['checkout_url'] = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '';
+        // Lets you build a working cart FORM entirely in Etch (qty update + coupon):
+        // <input type="hidden" name="woocommerce-cart-nonce" value="{options.cart_nonce}">
+        $data['cart_nonce']   = wp_create_nonce('woocommerce-cart');
 
         return apply_filters('woo4etch/cart_data', $data);
     }

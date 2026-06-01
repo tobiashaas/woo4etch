@@ -41,7 +41,7 @@ Open **http://localhost:9100** (admin / `password`). Shop, single product, cart,
 
 - **Single product** — Etch Dynamic Keys (`{this.title}`, `{this.image.url}`, `{this.excerpt}`, `{this.meta._*}`), gallery loop over `{this.gallery_images}`, sale price via an Etch **condition** + `numberFormat` **modifier**, and a **hand-built add-to-cart form** (no shortcode — works because `{this.id}` / `{this.permalink.relative}` resolve in attributes).
 - **Shop archive** — Etch **loop** over a `wp-query` product preset (`{item.*}`).
-- **Cart** — Etch layout + `[woo_cart_items]` (complete, hook-compatible cart with coupon) + `[woo_cart_totals]` + `[woo_cross_sells]`.
+- **Cart** — built as a real Etch **form** (no shortcodes, so it renders/edits in the builder): a loop over `{options.cart_items}` with quantity inputs, coupon fields and `{options.cart_nonce}`; quantity update / coupon / remove all work. (For third-party cart-extension hooks instead, swap in the `[woo_cart_items]` shortcode — see templates/15.)
 - **My Account / Checkout** — native Woo areas inside the Etch `page` chrome.
 
 Everything visible is an **Etch element** (no core `wp:post-title` etc. in the layout), structured as `section > container`, except where WooCommerce's runtime (cart/checkout/AJAX) genuinely requires a shortcode bridge.

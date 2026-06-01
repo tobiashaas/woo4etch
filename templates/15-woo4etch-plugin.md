@@ -376,9 +376,28 @@ Available keys:
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |
 | `{options.cart_is_empty}` | boolean |
 
 It renders the **real cart** on the frontend, and **sample rows in the Etch builder canvas** so the loop previews while you design. Remove works via `{item.remove_url}`.
+
+Because `{options.cart_nonce}` is exposed, you can wrap the loop in WooCommerce's cart form and get a **fully working** cart (quantity update + coupon) built entirely in Etch — no shortcode, and it still renders in the builder:
+
+```html
+<form class="woocommerce-cart-form" action="{options.cart_url}" method="post">
+  {#loop options.cart_items as item}
+    <img src="{item.image}" alt="{item.name}">
+    <a href="{item.permalink}">{item.name}</a> — {item.price}
+    <input type="number" name="cart[{item.key}][qty]" value="{item.quantity}" min="0">
+    {item.subtotal}
+    <a href="{item.remove_url}">Remove</a>
+  {/loop}
+  <input type="text" name="coupon_code" placeholder="Coupon code">
+  <button type="submit" name="apply_coupon" value="Apply coupon">Apply coupon</button>
+  <button type="submit" name="update_cart" value="Update cart">Update cart</button>
+  <input type="hidden" name="woocommerce-cart-nonce" value="{options.cart_nonce}">
+</form>
+```
 
 Toggle / reshape it:
 
@@ -388,7 +407,9 @@ add_filter('woo4etch/cart_data', fn($d) => $d);                // reshape the ex
 add_filter('woo4etch/cart_image_size', fn() => 'thumbnail');   // item image size
 ```
 
-**Trade-off:** this is a custom **display** — it does *not* fire WooCommerce's cart hooks and has no editable-quantity/coupon form. Use it when you want full HTML control over the cart's look; use `[woo_cart_items]` above when you need the complete, extension-compatible cart (coupon, update, hooks).
+**Trade-off:** the loop form handles quantity update, coupon and removal, but it does *not* fire WooCommerce's per-item cart **hooks/filters**, so third-party cart extensions that inject via those won't show. Use the loop when you want full HTML control in the builder; use `[woo_cart_items]` above when you need the complete, **extension-compatible** cart (all hooks fire) — at the cost of it appearing as a shortcode placeholder in the builder.
+
+> **Why the difference shows in the builder:** shortcodes are processed only at frontend render, so `[woo_cart_items]` (and any shortcode) appears as literal text in the Etch builder canvas. Dynamic-data loops (`{options.cart_items}`) resolve in the builder, so they preview live. That's the trade-off between the two cart approaches.
 
 ## Limitations
 

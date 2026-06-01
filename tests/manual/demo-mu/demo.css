@@ -107,10 +107,12 @@ a{color:inherit;text-decoration:none}
 .w4e-cartrow__info{display:flex;flex-direction:column;gap:4px;min-width:0}
 .w4e-cartrow__name{font-weight:600;color:var(--w4e-fg)}
 .w4e-cartrow__price{color:var(--w4e-muted);font-size:14px}
-.w4e-cartrow__qty{color:var(--w4e-muted);font-size:14px}
+.w4e-cartrow__qty{width:72px;padding:9px;border:1px solid var(--w4e-line);border-radius:8px;font-size:15px}
 .w4e-cartrow__sub{font-weight:700;white-space:nowrap}
 .w4e-cartrow__rm{font-size:13px;color:var(--w4e-muted);text-decoration:underline}
 .w4e-cartrow__rm:hover{color:var(--w4e-accent2)}
+.w4e-cart-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:16px;background:#fff;border:1px solid var(--w4e-line);border-top:0;border-radius:0 0 var(--w4e-radius) var(--w4e-radius)}
+.w4e-coupon__input{flex:1;min-width:160px;padding:11px;border:1px solid var(--w4e-line);border-radius:8px;font-size:15px}
 .w4e-cart-aside{background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);padding:22px;position:sticky;top:88px}
 .w4e-cart-aside__title{margin:0 0 14px;font-size:20px;letter-spacing:-.01em}
 .w4e-cart-aside__row{color:var(--w4e-muted);font-size:14px}
