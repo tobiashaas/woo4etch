@@ -351,22 +351,44 @@ The cart lives in `WC()->cart` (runtime state + AJAX), not in `{this.*}` Dynamic
 
 **Hooks fired by `[woo_cart_items]`** (so extensions keep working): `woocommerce_before_cart`, `woocommerce_before_cart_table`, `woocommerce_before_cart_contents`, `woocommerce_after_cart_item_name`, `woocommerce_cart_contents`, `woocommerce_cart_coupon`, `woocommerce_cart_actions`, `woocommerce_after_cart_contents`, `woocommerce_after_cart_table`, `woocommerce_after_cart`. Per-item filters: `woocommerce_cart_item_{product,permalink,thumbnail,name,price,quantity,subtotal,class,remove_link,visible}`. `[woo_cart_totals]` adds `woocommerce_before_cart_totals`, `woocommerce_proceed_to_checkout`, `woocommerce_after_cart_totals` and the shipping/order-total sub-hooks.
 
-#### Alternative: cart as pure Etch HTML (display-only)
+#### Alternative: cart as pure Etch HTML (Dynamic Keys)
 
-If you want the cart **items** as fully builder-editable HTML (a real Etch loop, not a shortcode), expose the cart as dynamic data and loop it. Hook `etch/dynamic_data/option` to add a `cart_items` array, then:
+For the cart **items** as fully builder-editable HTML (a real Etch loop, not a shortcode), Woo4Etch exposes the cart as Etch dynamic data on the **`options`** root — automatically. Just loop it:
 
 ```html
 {#loop options.cart_items as item}
   <div class="row">
     <img src="{item.image}" alt="{item.name}">
     <a href="{item.permalink}">{item.name}</a>
-    <span>{item.price}</span> · <span>Qty: {item.qty}</span> · <span>{item.subtotal}</span>
+    <span>{item.price}</span> · <span>Qty: {item.quantity}</span> · <span>{item.subtotal}</span>
     <a href="{item.remove_url}">Remove</a>
   </div>
 {/loop}
+
+<p>Total: {options.cart_total}</p>
 ```
 
-This gives full HTML control + a builder preview (return mock rows when `WC()->cart` is null), and remove works via `{item.remove_url}`. **Trade-off:** it does *not* fire WooCommerce's cart hooks and has no editable-quantity/coupon form — use it for a custom **display**, and the shortcode approach above when you need the complete, extension-compatible cart. (A working bridge example ships in the demo: `tests/manual/demo-mu/cart-bridge.php`.)
+Available keys:
+
+| Key | Contents |
+|---|---|
+| `{options.cart_items}` | array — each item: `key, id, name, sku, quantity, price, subtotal, permalink, image, remove_url, on_sale` |
+| `{options.cart_count}` | total item count |
+| `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
+| `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.cart_is_empty}` | boolean |
+
+It renders the **real cart** on the frontend, and **sample rows in the Etch builder canvas** so the loop previews while you design. Remove works via `{item.remove_url}`.
+
+Toggle / reshape it:
+
+```php
+add_filter('woo4etch/expose_cart_data', '__return_false');     // turn the bridge off
+add_filter('woo4etch/cart_data', fn($d) => $d);                // reshape the exposed data
+add_filter('woo4etch/cart_image_size', fn() => 'thumbnail');   // item image size
+```
+
+**Trade-off:** this is a custom **display** — it does *not* fire WooCommerce's cart hooks and has no editable-quantity/coupon form. Use it when you want full HTML control over the cart's look; use `[woo_cart_items]` above when you need the complete, extension-compatible cart (coupon, update, hooks).
 
 ## Limitations
 

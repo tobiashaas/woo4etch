@@ -139,6 +139,11 @@ final class Woo4Etch {
             add_shortcode($tag, [__CLASS__, $entry['method']]);
         }
 
+        // Expose the WooCommerce cart to Etch as dynamic data (options.cart_items,
+        // options.cart_total, …) so the cart can be built as a pure Etch loop with
+        // full HTML control. Disable with: add_filter('woo4etch/expose_cart_data','__return_false').
+        add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_cart_data']);
+
         if (is_admin()) {
             Woo4Etch_Admin::init();
         }
@@ -1674,6 +1679,140 @@ final class Woo4Etch {
         }
 
         return null;
+    }
+
+    /* ============================================================
+       Dynamic data bridge — expose the cart to Etch
+       ============================================================ */
+
+    /**
+     * Add the WooCommerce cart to Etch's `option` dynamic-data root, so the cart
+     * can be built as a pure Etch loop (full HTML control in the builder) instead
+     * of a shortcode. Hooked to `etch/dynamic_data/option`.
+     *
+     * Exposes:
+     *   {options.cart_items}     — array; each: key, id, name, sku, quantity,
+     *                              price, subtotal, permalink, image, remove_url, on_sale
+     *   {options.cart_count} {options.cart_subtotal} {options.cart_total}
+     *   {options.cart_url} {options.checkout_url} {options.cart_is_empty}
+     *
+     * In the Etch builder canvas (no shopping session) it returns sample rows so
+     * the loop previews. Disable: add_filter('woo4etch/expose_cart_data','__return_false').
+     * Reshape: add_filter('woo4etch/cart_data', fn($d) => $d).
+     *
+     * @param array<string,mixed> $data Existing option data.
+     * @return array<string,mixed>
+     */
+    public static function expose_cart_data($data) {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!apply_filters('woo4etch/expose_cart_data', true)) {
+            return $data;
+        }
+
+        $size = apply_filters('woo4etch/cart_image_size', 'woocommerce_thumbnail');
+        $cart = (function_exists('WC') && WC()) ? WC()->cart : null;
+
+        if ($cart instanceof WC_Cart && !$cart->is_empty()) {
+            $items = [];
+            foreach ($cart->get_cart() as $key => $cart_item) {
+                $product = $cart_item['data'] ?? null;
+                if (!$product instanceof WC_Product || !$product->exists() || $cart_item['quantity'] <= 0) {
+                    continue;
+                }
+                $items[] = self::cart_item_payload($key, $cart_item, $product, $size);
+            }
+            $data['cart_items']    = $items;
+            $data['cart_count']    = $cart->get_cart_contents_count();
+            $data['cart_subtotal'] = self::plain($cart->get_cart_subtotal());
+            $data['cart_total']    = self::plain($cart->get_total());
+            $data['cart_is_empty'] = false;
+        } elseif (self::is_etch_builder()) {
+            // Builder canvas → sample rows so the loop has something to preview.
+            $data = array_merge($data, self::sample_cart_data($size));
+        } else {
+            $data['cart_items']    = [];
+            $data['cart_count']    = 0;
+            $data['cart_subtotal'] = '';
+            $data['cart_total']    = '';
+            $data['cart_is_empty'] = true;
+        }
+
+        $data['cart_url']     = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
+        $data['checkout_url'] = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '';
+
+        return apply_filters('woo4etch/cart_data', $data);
+    }
+
+    /**
+     * Build one cart-item payload for the dynamic-data bridge.
+     *
+     * @param string     $key
+     * @param array      $cart_item
+     * @param WC_Product $product
+     * @param string     $size
+     * @return array<string,mixed>
+     */
+    private static function cart_item_payload($key, $cart_item, WC_Product $product, $size) {
+        $image_id = $product->get_image_id();
+        $image    = $image_id ? wp_get_attachment_image_url($image_id, $size) : '';
+        if (!$image && function_exists('wc_placeholder_img_src')) {
+            $image = wc_placeholder_img_src($size);
+        }
+
+        return [
+            'key'        => $key,
+            'id'         => $product->get_id(),
+            'name'       => $product->get_name(),
+            'sku'        => $product->get_sku(),
+            'quantity'   => $cart_item['quantity'],
+            'price'      => self::plain(WC()->cart->get_product_price($product)),
+            'subtotal'   => self::plain(WC()->cart->get_product_subtotal($product, $cart_item['quantity'])),
+            'permalink'  => $product->is_visible() ? get_permalink($product->get_id()) : '',
+            'image'      => (string) $image,
+            'remove_url' => wc_get_cart_remove_url($key),
+            'on_sale'    => $product->is_on_sale(),
+        ];
+    }
+
+    /**
+     * Sample cart data for the Etch builder canvas preview.
+     *
+     * @param string $size
+     * @return array<string,mixed>
+     */
+    private static function sample_cart_data($size) {
+        $ph = function_exists('wc_placeholder_img_src') ? wc_placeholder_img_src($size) : '';
+        $row = static function ($key, $name, $qty, $unit, $line) use ($ph) {
+            return [
+                'key' => $key, 'id' => 0, 'name' => $name, 'sku' => strtoupper($key),
+                'quantity' => $qty,
+                'price' => self::plain(wc_price($unit)),
+                'subtotal' => self::plain(wc_price($line)),
+                'permalink' => '#', 'image' => $ph, 'remove_url' => '#', 'on_sale' => false,
+            ];
+        };
+        return apply_filters('woo4etch/cart_sample_data', [
+            'cart_items'    => [
+                $row('sample-1', __('Sample Product', 'woo4etch'), 1, 20, 20),
+                $row('sample-2', __('Another Product', 'woo4etch'), 2, 15, 30),
+            ],
+            'cart_count'    => 3,
+            'cart_subtotal' => self::plain(wc_price(50)),
+            'cart_total'    => self::plain(wc_price(50)),
+            'cart_is_empty' => false,
+        ]);
+    }
+
+    /** True inside the Etch builder canvas (?etch=magic). */
+    private static function is_etch_builder() {
+        return isset($_GET['etch']) && 'magic' === sanitize_text_field(wp_unslash($_GET['etch'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    }
+
+    /** Strip tags + decode entities so formatted Woo prices are clean strings for Etch. */
+    private static function plain($html) {
+        return html_entity_decode(wp_strip_all_tags((string) $html), ENT_QUOTES);
     }
 }
 

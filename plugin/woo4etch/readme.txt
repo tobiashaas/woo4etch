@@ -115,6 +115,7 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = 1.3.0 =
+* Cart as Etch dynamic data: the cart is exposed on Etch's `options` root ({options.cart_items} with key/id/name/sku/quantity/price/subtotal/permalink/image/remove_url/on_sale, plus cart_count/cart_subtotal/cart_total/cart_url/checkout_url/cart_is_empty), so the cart items can be built as a pure Etch loop with full HTML control. Shows the real cart on the frontend and sample rows in the Etch builder canvas. Filters: woo4etch/expose_cart_data, woo4etch/cart_data, woo4etch/cart_image_size.
 * New [woo_cart_items]: a complete, extension-compatible cart form with clean class-based markup — items, coupon, Update cart + nonce, remove — that fires every WooCommerce cart hook and per-item filter (so third-party cart plugins keep working). The customisable alternative to the monolithic [woocommerce_cart]; pair with [woo_cart_totals] / [woo_cross_sells] in your own Etch layout. No AJAX required.
 * Cart-dependent shortcodes (cart_items/totals/cross_sells/shipping_calculator/mini_cart) are guarded against a null WC()->cart (Etch builder / REST preview), so they render empty instead of fataling.
 * Fix: [woo_add_to_cart] rendered nothing on themes without add-to-cart template overrides (e.g. the Etch theme) because it used wc_get_template_part(), which only looks in the theme. It now fires the woocommerce_{type}_add_to_cart action like WooCommerce core, so it works everywhere.
