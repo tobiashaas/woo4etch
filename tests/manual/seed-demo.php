@@ -237,6 +237,10 @@ if ($cart_page_id > 0) {
         $el('img', 'w4e-cartrow__img', '', '"src":"{item.image}","alt":"{item.name}"')
         . $el('div', 'w4e-cartrow__info',
             $el('a', 'w4e-cartrow__name', $txt('{item.name}'), '"href":"{item.permalink}"')
+            . '<!-- wp:etch/condition {"condition":{"leftHand":"item.on_sale","operator":"isTruthy","rightHand":null}} -->'
+              . $el('span', 'w4e-badge', $txt('Sale'))
+            . '<!-- /wp:etch/condition -->'
+            . $el('span', 'w4e-cartrow__meta', $txt('{item.meta}'))
             . $el('span', 'w4e-cartrow__price', $txt('{item.price}'))
           )
         . $el('input', 'w4e-cartrow__qty', '', '"type":"number","name":"cart[{item.key}][qty]","value":"{item.quantity}","min":"0"')

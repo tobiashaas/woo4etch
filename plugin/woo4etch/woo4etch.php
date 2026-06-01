@@ -1769,6 +1769,8 @@ final class Woo4Etch {
             'id'         => $product->get_id(),
             'name'       => $product->get_name(),
             'sku'        => $product->get_sku(),
+            // Variation / add-on attributes as a flat string, e.g. "Color: Blue, Size: M".
+            'meta'       => self::plain(wc_get_formatted_cart_item_data($cart_item, true)),
             'quantity'   => $cart_item['quantity'],
             'price'      => self::plain(WC()->cart->get_product_price($product)),
             'subtotal'   => self::plain(WC()->cart->get_product_subtotal($product, $cart_item['quantity'])),
@@ -1787,23 +1789,27 @@ final class Woo4Etch {
      */
     private static function sample_cart_data($size) {
         $ph = function_exists('wc_placeholder_img_src') ? wc_placeholder_img_src($size) : '';
-        $row = static function ($key, $name, $qty, $unit, $line) use ($ph) {
+        $row = static function ($key, $name, $qty, $unit, $line, $meta = '', $on_sale = false) use ($ph) {
             return [
                 'key' => $key, 'id' => 0, 'name' => $name, 'sku' => strtoupper($key),
+                'meta' => $meta,
                 'quantity' => $qty,
                 'price' => self::plain(wc_price($unit)),
                 'subtotal' => self::plain(wc_price($line)),
-                'permalink' => '#', 'image' => $ph, 'remove_url' => '#', 'on_sale' => false,
+                'permalink' => '#', 'image' => $ph, 'remove_url' => '#', 'on_sale' => $on_sale,
             ];
         };
+        // Varied rows so the builder preview reflects real carts: a variation,
+        // a multi-quantity line, and an on-sale item.
         return apply_filters('woo4etch/cart_sample_data', [
             'cart_items'    => [
-                $row('sample-1', __('Sample Product', 'woo4etch'), 1, 20, 20),
-                $row('sample-2', __('Another Product', 'woo4etch'), 2, 15, 30),
+                $row('sample-tee', __('Logo T-Shirt', 'woo4etch'), 2, 18, 36, 'Color: Blue, Size: M'),
+                $row('sample-hoodie', __('Zip Hoodie', 'woo4etch'), 1, 45, 45, 'Color: Green'),
+                $row('sample-cap', __('Baseball Cap', 'woo4etch'), 1, 18, 16, '', true),
             ],
-            'cart_count'    => 3,
-            'cart_subtotal' => self::plain(wc_price(50)),
-            'cart_total'    => self::plain(wc_price(50)),
+            'cart_count'    => 4,
+            'cart_subtotal' => self::plain(wc_price(97)),
+            'cart_total'    => self::plain(wc_price(97)),
             'cart_is_empty' => false,
         ]);
     }

@@ -107,6 +107,9 @@ a{color:inherit;text-decoration:none}
 .w4e-cartrow__info{display:flex;flex-direction:column;gap:4px;min-width:0}
 .w4e-cartrow__name{font-weight:600;color:var(--w4e-fg)}
 .w4e-cartrow__price{color:var(--w4e-muted);font-size:14px}
+.w4e-cartrow__meta{color:var(--w4e-muted);font-size:13px}
+.w4e-cartrow__meta:empty{display:none}
+.w4e-badge{display:inline-block;align-self:flex-start;background:var(--w4e-accent2);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
 .w4e-cartrow__qty{width:72px;padding:9px;border:1px solid var(--w4e-line);border-radius:8px;font-size:15px}
 .w4e-cartrow__sub{font-weight:700;white-space:nowrap}
 .w4e-cartrow__rm{font-size:13px;color:var(--w4e-muted);text-decoration:underline}
