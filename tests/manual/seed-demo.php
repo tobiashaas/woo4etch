@@ -122,9 +122,29 @@ $footer = '<!-- wp:template-part {"slug":"footer","theme":"' . $theme . '"} /-->
 /* ============================================================
    3. Header / footer parts (section > container)
    ============================================================ */
+// Mini-cart dropdown — reuses the cart bridge ({options.cart_items}); editable
+// Etch markup, previews with sample data in the builder.
+$minicart_items =
+    '<!-- wp:etch/loop {"target":"options.cart_items","itemId":"item"} -->'
+    . $el('div', 'w4e-minirow',
+        $el('img', 'w4e-minirow__img', '', '"src":"{item.image}","alt":"{item.name}"')
+        . $el('span', 'w4e-minirow__name', $txt('{item.name} × {item.quantity}'))
+        . $el('span', 'w4e-minirow__sub', $txt('{item.subtotal}'))
+      )
+    . '<!-- /wp:etch/loop -->';
+
 $nav = $el('a', '', $txt('Shop'), '"href":"/shop/"')
      . $el('a', '', $txt('Account'), '"href":"/my-account/"')
-     . $el('a', 'w4e-cartlink', $txt('Cart [woo_cart_count]'), '"href":"/cart/"');
+     . $el('div', 'w4e-cartwrap',
+         $el('a', 'w4e-cartlink', $txt('Cart ({options.cart_count})'), '"href":"/cart/"')
+         . $el('div', 'w4e-minicart',
+             $el('div', 'w4e-minicart__items', $minicart_items)
+             . $el('div', 'w4e-minicart__foot',
+                 $el('span', 'w4e-minicart__total', $txt('{options.cart_total}'))
+                 . $el('a', 'button', $txt('View cart'), '"href":"{options.cart_url}"')
+               )
+           )
+       );
 
 // Header/footer are the bands themselves — plain wrappers, NOT section/container.
 $put_part('header', 'header',
@@ -322,6 +342,125 @@ if ($cart_page_id > 0) {
         . $E;
     wp_update_post(['ID' => $cart_page_id, 'post_content' => $cart_content]);
     echo "OK   cart page #{$cart_page_id} → Etch cart FORM + cross-sells (no shortcodes)\n";
+}
+
+/* ============================================================
+   8. Minimal page templates for cart/account/checkout/thank-you
+   (so each page's content provides its own section > container)
+   ============================================================ */
+foreach (['my-account', 'checkout', 'order-received-demo'] as $pslug) {
+    $put_template(
+        'page-' . $pslug,
+        ucwords(str_replace('-', ' ', $pslug)) . ' (Woo4Etch demo)',
+        $header . '<!-- wp:post-content /-->' . $footer
+    );
+}
+
+/* ============================================================
+   9. My Account — nav loop ({options.account_menu}) + orders loop
+   ============================================================ */
+$acct_page_id = function_exists('wc_get_page_id') ? wc_get_page_id('myaccount') : 0;
+if ($acct_page_id > 0) {
+    $acct_nav =
+        '<!-- wp:etch/loop {"target":"options.account_menu","itemId":"m"} -->'
+        . $el('a', 'w4e-acctnav__item', $txt('{m.label}'), '"href":"{m.url}"')
+        . '<!-- /wp:etch/loop -->';
+
+    $order_rows =
+        '<!-- wp:etch/loop {"target":"options.account_orders","itemId":"o"} -->'
+        . $el('div', 'w4e-orderrow',
+            $el('span', 'w4e-orderrow__num', $txt('Order #{o.number}'))
+            . $el('span', 'w4e-orderrow__date', $txt('{o.date}'))
+            . $el('span', 'w4e-orderrow__status', $txt('{o.status_name}'))
+            . $el('span', 'w4e-orderrow__total', $txt('{o.total}'))
+            . $el('a', 'w4e-orderrow__view', $txt('View'), '"href":"{o.view_url}"')
+          )
+        . '<!-- /wp:etch/loop -->';
+
+    $acct_content =
+        $section('w4e-account')
+        . $container()
+          . $el('h1', 'w4e-page__title', $txt('{this.title}'))
+          . $el('div', 'w4e-account-layout',
+              $el('aside', 'w4e-acctnav', $acct_nav)
+              . $el('div', 'w4e-account-main',
+                  $el('h2', 'w4e-account-main__title', $txt('Recent orders'))
+                  . $el('div', 'w4e-orderlist', $order_rows)
+                )
+          )
+        . $E . $E;
+    wp_update_post(['ID' => $acct_page_id, 'post_content' => $acct_content]);
+    echo "OK   my-account page #{$acct_page_id} → Etch (menu + orders loops)\n";
+}
+
+/* ============================================================
+   10. Checkout — Etch chrome + order summary; native form stays a shortcode
+   ============================================================ */
+$co_page_id = function_exists('wc_get_page_id') ? wc_get_page_id('checkout') : 0;
+if ($co_page_id > 0) {
+    $co_summary =
+        '<!-- wp:etch/loop {"target":"options.cart_items","itemId":"item"} -->'
+        . $el('div', 'w4e-corow',
+            $el('img', 'w4e-corow__img', '', '"src":"{item.image}","alt":"{item.name}"')
+            . $el('span', 'w4e-corow__name', $txt('{item.name} × {item.quantity}'))
+            . $el('span', 'w4e-corow__sub', $txt('{item.subtotal}'))
+          )
+        . '<!-- /wp:etch/loop -->';
+
+    $co_content =
+        $section('w4e-checkout')
+        . $container()
+          . $el('h1', 'w4e-page__title', $txt('{this.title}'))
+          . $el('div', 'w4e-checkout-layout',
+              // The real checkout form (payment/validation = PHP) — shortcode.
+              $el('div', 'w4e-checkout-main', $txt('[woocommerce_checkout]'))
+              . $el('aside', 'w4e-checkout-aside',
+                  $el('h2', 'w4e-checkout-aside__title', $txt('Order summary'))
+                  . $el('div', 'w4e-cosummary', $co_summary)
+                  . $el('div', 'w4e-cosummary__total', $txt('Total: {options.cart_total}'))
+                )
+          )
+        . $E . $E;
+    wp_update_post(['ID' => $co_page_id, 'post_content' => $co_content]);
+    echo "OK   checkout page #{$co_page_id} → Etch chrome + order summary\n";
+}
+
+/* ============================================================
+   11. Thank-you (order-received) demo page — {options.order}
+   Note: the real thank-you is the checkout order-received endpoint; this
+   standalone page previews the layout in the builder (sample order).
+   ============================================================ */
+$ty = get_posts(['post_type' => 'page', 'name' => 'order-received-demo', 'numberposts' => 1]);
+$ty_id = $ty ? $ty[0]->ID : wp_insert_post(['post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Order received (demo)', 'post_name' => 'order-received-demo']);
+if ($ty_id && !is_wp_error($ty_id)) {
+    $ty_items =
+        '<!-- wp:etch/loop {"target":"options.order.items","itemId":"it"} -->'
+        . $el('div', 'w4e-tyrow',
+            $el('span', 'w4e-tyrow__name', $txt('{it.name} × {it.quantity}'))
+            . $el('span', 'w4e-tyrow__total', $txt('{it.total}'))
+          )
+        . '<!-- /wp:etch/loop -->';
+
+    $ty_content =
+        $section('w4e-ty')
+        . $container()
+          . $el('h1', 'w4e-page__title', $txt('Thank you. Your order is confirmed.'))
+          . $el('p', 'w4e-ty__lead', $txt('Order #{options.order.number} — {options.order.date}'))
+          . $el('div', 'w4e-ty-grid',
+              $el('div', 'w4e-ty-meta',
+                  $el('div', 'w4e-ty-meta__row', $txt('Status: {options.order.status_name}'))
+                  . $el('div', 'w4e-ty-meta__row', $txt('Total: {options.order.total}'))
+                  . $el('div', 'w4e-ty-meta__row', $txt('Payment: {options.order.payment_method}'))
+                  . $el('div', 'w4e-ty-meta__row', $txt('Email: {options.order.email}'))
+                )
+              . $el('div', 'w4e-ty-items',
+                  $el('h2', 'w4e-ty__title', $txt('Items'))
+                  . $ty_items
+                )
+          )
+        . $E . $E;
+    wp_update_post(['ID' => $ty_id, 'post_content' => $ty_content, 'page_template' => '']);
+    echo "OK   thank-you demo page #{$ty_id} → Etch ({options.order})\n";
 }
 
 echo "\nDemo templates installed for theme '{$theme}' (section/container convention).\n";

@@ -132,5 +132,49 @@ a{color:inherit;text-decoration:none}
 .w4e-crosscard__price{margin:0 14px 12px;font-weight:700}
 .w4e-crosscard__btn{margin:auto 14px 14px;text-align:center}
 
-@media(max-width:860px){.w4e-product__grid{grid-template-columns:1fr;gap:24px}.w4e-grid{grid-template-columns:repeat(2,1fr)}.w4e-cart-layout{grid-template-columns:1fr}.w4e-cart-aside{position:static}.w4e-crossgrid{grid-template-columns:repeat(2,1fr)}}
+/* Mini-cart (header dropdown) */
+.w4e-cartwrap{position:relative}
+.w4e-minicart{position:absolute;right:0;top:calc(100% + 12px);width:320px;background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);box-shadow:0 12px 30px rgba(0,0,0,.12);padding:14px;opacity:0;visibility:hidden;transform:translateY(6px);transition:.15s;z-index:30}
+.w4e-cartwrap:hover .w4e-minicart{opacity:1;visibility:visible;transform:none}
+.w4e-minirow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--w4e-line);font-size:14px;font-weight:400}
+.w4e-minirow:last-child{border-bottom:0}
+.w4e-minirow__img{width:40px;height:40px;object-fit:cover;border-radius:6px;background:#f3f4f6}
+.w4e-minirow__sub{font-weight:700}
+.w4e-minicart__foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.w4e-minicart__total{font-weight:800}
+
+/* My Account */
+.w4e-account-layout{display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:start;padding-block:8px 24px}
+.w4e-acctnav{display:flex;flex-direction:column;gap:6px}
+.w4e-acctnav__item{padding:10px 14px;border-radius:8px;background:#fff;border:1px solid var(--w4e-line);color:var(--w4e-muted);font-weight:600}
+.w4e-acctnav__item:hover{color:var(--w4e-fg);border-color:var(--w4e-fg)}
+.w4e-account-main__title{font-size:20px;margin:0 0 14px}
+.w4e-orderlist{border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);background:#fff;overflow:hidden}
+.w4e-orderrow{display:grid;grid-template-columns:1.4fr 1fr 1fr auto auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--w4e-line)}
+.w4e-orderrow:last-child{border-bottom:0}
+.w4e-orderrow__num{font-weight:600}
+.w4e-orderrow__date,.w4e-orderrow__status{color:var(--w4e-muted);font-size:14px}
+.w4e-orderrow__total{font-weight:700}
+.w4e-orderrow__view{font-size:13px;text-decoration:underline;color:var(--w4e-muted)}
+
+/* Checkout */
+.w4e-checkout-layout{display:grid;grid-template-columns:1fr 360px;gap:32px;align-items:start;padding-block:8px 32px}
+.w4e-checkout-aside{background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);padding:22px;position:sticky;top:88px}
+.w4e-checkout-aside__title{margin:0 0 14px;font-size:20px}
+.w4e-corow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--w4e-line);font-size:14px}
+.w4e-corow:last-child{border-bottom:0}
+.w4e-corow__img{width:40px;height:40px;object-fit:cover;border-radius:6px;background:#f3f4f6}
+.w4e-cosummary__total{margin-top:14px;font-weight:800;font-size:18px}
+
+/* Thank-you */
+.w4e-ty__lead{color:var(--w4e-muted);margin-top:-8px}
+.w4e-ty-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+.w4e-ty-meta,.w4e-ty-items{background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);padding:20px}
+.w4e-ty-meta__row{padding:7px 0;border-bottom:1px solid var(--w4e-line)}
+.w4e-ty-meta__row:last-child{border-bottom:0}
+.w4e-ty__title{font-size:18px;margin:0 0 12px}
+.w4e-tyrow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--w4e-line)}
+.w4e-tyrow:last-child{border-bottom:0}
+
+@media(max-width:860px){.w4e-product__grid{grid-template-columns:1fr;gap:24px}.w4e-grid{grid-template-columns:repeat(2,1fr)}.w4e-cart-layout,.w4e-account-layout,.w4e-checkout-layout,.w4e-ty-grid{grid-template-columns:1fr}.w4e-cart-aside,.w4e-checkout-aside{position:static}.w4e-crossgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.w4e-grid{grid-template-columns:1fr}.w4e-nav{gap:14px;font-size:14px}.w4e-crossgrid{grid-template-columns:repeat(2,1fr)}}

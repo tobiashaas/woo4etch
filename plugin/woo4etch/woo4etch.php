@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
- * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, cart state, and more.
- * Version:           1.3.0
+ * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
+ * Version:           1.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -122,7 +122,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.3.0';
+    const VERSION = '1.4.0';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -139,10 +139,11 @@ final class Woo4Etch {
             add_shortcode($tag, [__CLASS__, $entry['method']]);
         }
 
-        // Expose the WooCommerce cart to Etch as dynamic data (options.cart_items,
-        // options.cart_total, …) so the cart can be built as a pure Etch loop with
-        // full HTML control. Disable with: add_filter('woo4etch/expose_cart_data','__return_false').
+        // Expose WooCommerce runtime data to Etch as dynamic data so cart, account
+        // and thank-you pages can be built as pure Etch loops with full HTML control.
+        // Disable individually: woo4etch/expose_cart_data, woo4etch/expose_account_data.
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_cart_data']);
+        add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_account_order_data']);
 
         if (is_admin()) {
             Woo4Etch_Admin::init();
@@ -1869,6 +1870,168 @@ final class Woo4Etch {
         }
 
         return $out;
+    }
+
+    /**
+     * Add My Account + order data to Etch's `option` root, so the My Account and
+     * thank-you/order pages can be built as pure Etch loops. Hooked to
+     * etch/dynamic_data/option.
+     *
+     * Exposes:
+     *   {options.account_menu}   — array: key, label, url, is_active
+     *   {options.account_orders} — array: id, number, date, status, status_name,
+     *                              total, item_count, view_url
+     *   {options.order}          — current order (thank-you / view-order):
+     *                              number, date, status, status_name, total, email,
+     *                              payment_method, billing_address, items[]
+     *
+     * Real data on the frontend; sample data in the Etch builder so the loops
+     * preview. Disable: add_filter('woo4etch/expose_account_data','__return_false').
+     *
+     * @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    public static function expose_account_order_data($data) {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!apply_filters('woo4etch/expose_account_data', true)) {
+            return $data;
+        }
+
+        $builder = self::is_etch_builder();
+        $size    = apply_filters('woo4etch/cart_image_size', 'woocommerce_thumbnail');
+
+        // Account navigation (cheap, always available).
+        $data['account_menu'] = self::account_menu();
+
+        // Orders list — query only on the account area or in the builder.
+        if ($builder) {
+            $data['account_orders'] = self::sample_orders();
+        } elseif (function_exists('is_account_page') && is_account_page() && is_user_logged_in()) {
+            $data['account_orders'] = self::account_orders();
+        } else {
+            $data['account_orders'] = [];
+        }
+
+        // Current order (thank-you / view-order endpoint), or a sample in the builder.
+        $order = self::resolve_order([]);
+        if ($order instanceof WC_Order) {
+            $data['order'] = self::order_payload($order, $size);
+        } elseif ($builder) {
+            $data['order'] = self::sample_order($size);
+        } else {
+            $data['order'] = null;
+        }
+
+        return apply_filters('woo4etch/account_order_data', $data);
+    }
+
+    /** My Account navigation items. */
+    private static function account_menu() {
+        if (!function_exists('wc_get_account_menu_items')) {
+            return [];
+        }
+        $out = [];
+        foreach (wc_get_account_menu_items() as $key => $label) {
+            $classes = function_exists('wc_get_account_menu_item_classes') ? (array) wc_get_account_menu_item_classes($key) : [];
+            $out[]   = [
+                'key'       => $key,
+                'label'     => $label,
+                'url'       => ('customer-logout' === $key) ? wc_logout_url() : wc_get_account_endpoint_url($key),
+                'is_active' => in_array('is-active', $classes, true),
+            ];
+        }
+        return $out;
+    }
+
+    /** The current user's recent orders (My Account → Orders). */
+    private static function account_orders() {
+        if (!function_exists('wc_get_orders')) {
+            return [];
+        }
+        $orders = wc_get_orders([
+            'customer' => get_current_user_id(),
+            'limit'    => (int) apply_filters('woo4etch/account_orders_limit', 10),
+            'orderby'  => 'date',
+            'order'    => 'DESC',
+        ]);
+        $out = [];
+        foreach ($orders as $o) {
+            if ($o instanceof WC_Order) {
+                $out[] = self::order_row($o);
+            }
+        }
+        return $out;
+    }
+
+    /** One order summary row for the orders list. */
+    private static function order_row(WC_Order $o) {
+        return [
+            'id'          => $o->get_id(),
+            'number'      => $o->get_order_number(),
+            'date'        => wc_format_datetime($o->get_date_created()),
+            'status'      => $o->get_status(),
+            'status_name' => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($o->get_status()) : $o->get_status(),
+            'total'       => self::plain($o->get_formatted_order_total()),
+            'item_count'  => $o->get_item_count(),
+            'view_url'    => $o->get_view_order_url(),
+        ];
+    }
+
+    private static function sample_orders() {
+        return apply_filters('woo4etch/account_orders_sample', [
+            ['id' => 0, 'number' => '1042', 'date' => 'June 1, 2026',  'status' => 'completed',  'status_name' => 'Completed',  'total' => self::plain(wc_price(78)),  'item_count' => 3, 'view_url' => '#'],
+            ['id' => 0, 'number' => '1031', 'date' => 'May 24, 2026',  'status' => 'processing', 'status_name' => 'Processing', 'total' => self::plain(wc_price(45)),  'item_count' => 1, 'view_url' => '#'],
+            ['id' => 0, 'number' => '1009', 'date' => 'May 12, 2026',  'status' => 'completed',  'status_name' => 'Completed',  'total' => self::plain(wc_price(120)), 'item_count' => 2, 'view_url' => '#'],
+        ]);
+    }
+
+    /** Full order payload for the thank-you / view-order page. */
+    private static function order_payload(WC_Order $o, $size) {
+        $items = [];
+        foreach ($o->get_items() as $it) {
+            $p   = $it->get_product();
+            $img = ($p instanceof WC_Product && $p->get_image_id()) ? wp_get_attachment_image_url($p->get_image_id(), $size) : '';
+            if (!$img && function_exists('wc_placeholder_img_src')) {
+                $img = wc_placeholder_img_src($size);
+            }
+            $items[] = [
+                'name'     => $it->get_name(),
+                'quantity' => $it->get_quantity(),
+                'total'    => self::plain(wc_price($it->get_total())),
+                'image'    => (string) $img,
+            ];
+        }
+        return [
+            'number'          => $o->get_order_number(),
+            'date'            => wc_format_datetime($o->get_date_created()),
+            'status'          => $o->get_status(),
+            'status_name'     => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($o->get_status()) : $o->get_status(),
+            'total'           => self::plain($o->get_formatted_order_total()),
+            'email'           => $o->get_billing_email(),
+            'payment_method'  => $o->get_payment_method_title(),
+            'billing_address' => self::plain($o->get_formatted_billing_address()),
+            'items'           => $items,
+        ];
+    }
+
+    private static function sample_order($size) {
+        $ph = function_exists('wc_placeholder_img_src') ? wc_placeholder_img_src($size) : '';
+        return apply_filters('woo4etch/order_sample', [
+            'number'          => '1042',
+            'date'            => 'June 1, 2026',
+            'status'          => 'processing',
+            'status_name'     => 'Processing',
+            'total'           => self::plain(wc_price(81)),
+            'email'           => 'jane@example.com',
+            'payment_method'  => 'Direct bank transfer',
+            'billing_address' => "Jane Doe, 123 Demo Street, 12345 Sampletown",
+            'items'           => [
+                ['name' => 'Logo T-Shirt', 'quantity' => 2, 'total' => self::plain(wc_price(36)), 'image' => $ph],
+                ['name' => 'Zip Hoodie',   'quantity' => 1, 'total' => self::plain(wc_price(45)), 'image' => $ph],
+            ],
+        ]);
     }
 
     /**

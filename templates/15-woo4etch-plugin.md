@@ -413,6 +413,34 @@ add_filter('woo4etch/cart_image_size', fn() => 'thumbnail');   // item image siz
 
 > **Why the difference shows in the builder:** shortcodes are processed only at frontend render, so `[woo_cart_items]` (and any shortcode) appears as literal text in the Etch builder canvas. Dynamic-data loops (`{options.cart_items}`) resolve in the builder, so they preview live. That's the trade-off between the two cart approaches.
 
+### Account, orders & thank-you as Etch dynamic data
+
+The same bridge exposes My Account and order data, so those pages can be built as Etch loops too (real data on the frontend, **sample data in the builder** so the loops preview):
+
+| Key | Contents |
+|---|---|
+| `{options.account_menu}` | array — each: `key, label, url, is_active` (My Account nav) |
+| `{options.account_orders}` | array — each: `id, number, date, status, status_name, total, item_count, view_url` |
+| `{options.order}` | current order (thank-you / view-order): `number, date, status, status_name, total, email, payment_method, billing_address`, and `items` (each: `name, quantity, total, image`) |
+
+```html
+<!-- My Account: nav + recent orders, fully in Etch -->
+{#loop options.account_menu as m}<a href="{m.url}">{m.label}</a>{/loop}
+
+{#loop options.account_orders as o}
+  <div>Order #{o.number} — {o.date} — {o.status_name} — {o.total} <a href="{o.view_url}">View</a></div>
+{/loop}
+
+<!-- Thank-you / order-received -->
+<h1>Thank you. Order #{options.order.number}</h1>
+<p>{options.order.status_name} · {options.order.total} · {options.order.payment_method}</p>
+{#loop options.order.items as it}<div>{it.name} × {it.quantity} — {it.total}</div>{/loop}
+```
+
+Toggle/reshape: `woo4etch/expose_account_data` (off switch), `woo4etch/account_order_data`, `woo4etch/account_orders_limit`, `woo4etch/account_orders_sample`, `woo4etch/order_sample`.
+
+**Notes:** `{options.account_orders}` is queried only on the My Account area (or in the builder). `{options.order}` populates on the checkout **order-received / view-order** endpoint (or in the builder) — a standalone page won't have an order in context. **Checkout** itself keeps the native `[woocommerce_checkout]` shortcode for the form (payment + validation are real PHP); build the page chrome and an order-summary sidebar (loop `{options.cart_items}`) around it in Etch.
+
 ## Limitations
 
 - **Shortcodes can't return JS-reactive markup directly.** If you need live updates on cart/account state, combine the bridge shortcodes with Woo Cart Fragments (see [`05-mini-cart.md`](./05-mini-cart.md)) or your own AJAX layer (see [`12-store-api-and-rest.md`](./12-store-api-and-rest.md)).
