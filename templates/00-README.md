@@ -36,6 +36,7 @@ All templates follow the same structure:
 | `14-visual-hook-guides.md` | Links to Business Bloomer's annotated hook diagrams |
 | `15-woo4etch-plugin.md` | **Woo4Etch** plugin (shortcodes + customizations) |
 | `functions-snippets.md` | Consolidated PHP snippets from all templates |
+| `etch-copy/` | Copy/paste Etch snippets — paste a ready-made layout (e.g. the full cart) into the builder |
 
 The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
@@ -45,28 +46,41 @@ The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
 ### Declare WooCommerce support in the theme
 
-Add this once in `includes/customizations.php` inside your Woo4Etch install (see [`../plugin/woo4etch/`](../plugin/woo4etch/)). Without it, WooCommerce won't enqueue certain scripts and the single-product loop won't be output everywhere.
+**Do I need this? — Yes. But the Woo4Etch plugin already does it for you. If you use the plugin, skip this section.**
 
-```php
-add_action('after_setup_theme', function () {
-    add_theme_support('woocommerce', [
-        'thumbnail_image_width' => 600,
-        'single_image_width'    => 1200,
-        'product_grid'          => [
-            'default_rows'    => 3,
-            'min_rows'        => 1,
-            'default_columns' => 3,
-            'min_columns'     => 1,
-            'max_columns'     => 6,
-        ],
-    ]);
+**What it is, in plain terms:** WooCommerce wants the active theme to say *"I'll provide the WooCommerce markup myself"* by calling `add_theme_support('woocommerce')` once. If **no** theme says that, WooCommerce decides the theme is *"unsupported"* and silently switches on a **compatibility mode**: it wraps shop and product pages in its **own** containers and page title and pushes them through `the_content`. In a normal theme that's a helpful fallback. In an **Etch** build — where *you* design the markup — that fallback **fights your layout** (double wrappers, an extra page title you didn't add, odd spacing) and WooCommerce shows the *"Your theme does not declare WooCommerce support"* notice in `wp-admin`.
 
-    // Optional: zoom, lightbox, slider on the single-product gallery
-    add_theme_support('wc-product-gallery-zoom');
-    add_theme_support('wc-product-gallery-lightbox');
-    add_theme_support('wc-product-gallery-slider');
-});
-```
+**Why it bites Etch users specifically:** the official Etch theme does **not** declare WooCommerce support, and it tells you **not** to edit its `functions.php`. So out of the box, nobody declares it.
+
+**The fix — pick one:**
+
+1. **Recommended: install the Woo4Etch plugin.** It declares the support for you automatically (only if your theme hasn't already), with sensible image sizes. Nothing to copy, nothing to configure. See [`../plugin/woo4etch/`](../plugin/woo4etch/) and [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#woocommerce-theme-support-automatic).
+
+2. **Or do it by hand** (child theme `functions.php`, or `includes/customizations.php` in your Woo4Etch install) if you're not using the plugin:
+
+   ```php
+   add_action('after_setup_theme', function () {
+       add_theme_support('woocommerce', [
+           'thumbnail_image_width' => 600,
+           'single_image_width'    => 1200,
+           'product_grid'          => [
+               'default_rows'    => 3,
+               'min_rows'        => 1,
+               'default_columns' => 3,
+               'min_columns'     => 1,
+               'max_columns'     => 6,
+           ],
+       ]);
+
+       // Optional: only if you use Woo's built-in gallery JS (zoom/lightbox/slider).
+       // Skip these if you build your own gallery in Etch.
+       // add_theme_support('wc-product-gallery-zoom');
+       // add_theme_support('wc-product-gallery-lightbox');
+       // add_theme_support('wc-product-gallery-slider');
+   });
+   ```
+
+> The plugin runs this **late** (`after_setup_theme`, priority 99) and only when no theme has declared support, so a theme or child theme that *does* declare it always wins. To turn the automatic behaviour off: `add_filter('woo4etch/auto_theme_support', '__return_false');`
 
 ### Disable default Woo CSS (optional, recommended for custom markup)
 
@@ -131,8 +145,68 @@ Same field names in both contexts — only the **keyword** changes. See [`10-etc
 | Category | `{this.product_cat.0.name}` | `{item.product_cat.0.name}` |
 | Custom attribute | `{this.pa_hersteller.0.name}` | `{item.pa_hersteller.0.name}` |
 | Product ID | `{this.id}` | `{item.id}` |
+| Product gallery (array) | `{this.gallery_images}` — loop it | `{item.gallery_images}` — loop it |
 
 Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch).
+
+### Product image gallery — `gallery_images`
+
+Etch ships a WooCommerce integration that adds a ready-to-loop `gallery_images` property to every **product**, available in **Etch 1.4.20+** (the ETC-800 fix; 1.4.19 and earlier do not have it). The raw `_product_image_gallery` meta is only a comma-separated string of attachment IDs, so `{this.meta._product_image_gallery}` is **not** usable on its own — use `gallery_images` instead. Loop it with an Etch loop whose target is `this.gallery_images`:
+
+> **Important:** `gallery_images` contains the gallery **exactly as stored** — the featured image is **not** prepended (this keeps Etch's behaviour identical to WooCommerce). So render the featured image yourself first, then loop the gallery for the rest.
+
+Each entry exposes: `id`, `url`, `alt`, `title`, `caption`, `description`, `filename`, `sizes`, `srcset`, `width`, `height`, `filesize`, `mime_type`.
+
+```html
+<figure class="product__featured">
+  <img src="{this.image.url}" alt="{this.title}"
+       width="{this.image.width}" height="{this.image.height}">
+</figure>
+
+{#loop this.gallery_images as image}
+  <figure class="product__gallery-item">
+    <img src="{image.url}" alt="{image.alt}"
+         width="{image.width}" height="{image.height}"
+         srcset="{image.srcset}">
+  </figure>
+{/loop}
+```
+
+The Woo4Etch plugin offers an equivalent server-rendered shortcode: `[woo_gallery]` (with `include_featured="yes"` if you *do* want the featured image first). See [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md).
+
+### Modifiers — format values inline
+
+Dynamic Keys support chainable **modifiers** — formatting/transform functions written as method calls inside the braces. This is the clean way to format prices, dates, and text without extra PHP.
+
+```html
+<!-- Price formatted with 2 decimals, comma decimal, dot thousands -->
+<span class="price">€ {this.meta._price.numberFormat(2, ',', '.')}</span>
+
+<!-- Date formatted with a PHP date format string -->
+<time>{this.date.format('d.m.Y')}</time>
+
+<!-- Text transforms -->
+<p>{this.excerpt.truncateChars(120, '…')}</p>
+<span class="badge">{this.product_cat.0.name.toUpperCase()}</span>
+```
+
+Common families: **string** (`toUpperCase`, `toLowerCase`, `trim`, `truncateChars`, `truncateWords`, `replace`, `stripTags`, `toSlug`), **numeric** (`numberFormat`, `round`, `ceil`, `floor`, `add`, `subtract`, `multiply`, `divide`), **date** (`format`), **comparison** (`equal(v, ifTrue, ifFalse)`, `greater(v, ifTrue, ifFalse)`, …), **collection** (`length`, `pluck`, `join`, `slice`, `reverse`, `includes`).
+
+> Inline arithmetic and ternaries (`{a + b}`, `{a ? b : c}`) are **not** supported — but the comparison modifiers (`.equal()`, `.greater()`, …) give you conditional output, and dedicated condition blocks handle show/hide logic.
+
+### Layout structure — sections & containers
+
+Build every layout band the Etch way: a full-width **section** wrapping a max-width **container**, marked with Etch's data attributes so the builder (and Automatic.css) treat them as real Sections/Containers.
+
+```html
+<section data-etch-element="section" class="product">
+  <div data-etch-element="container">
+    <!-- your content: dynamic keys, shortcodes, nested elements -->
+  </div>
+</section>
+```
+
+Use this for **content bands** (single product, archive, cart, page content). The **header and footer are their own bands** — leave them as plain wrappers, don't wrap them in section/container. And don't leave core Gutenberg blocks (e.g. `wp:post-title`) in the visible layout — use Etch elements + Dynamic Keys (`{this.title}`) so every part stays editable in the builder.
 
 ### Build order
 

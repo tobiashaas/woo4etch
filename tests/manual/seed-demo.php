@@ -1,0 +1,327 @@
+<?php
+/**
+ * Woo4Etch demo seeder — real Etch templates (FSE wp_template posts) combining
+ * Etch Dynamic Keys ({this.*} / {item.*}) with Woo4Etch shortcodes, structured
+ * with Etch's section/container convention:
+ *   - full-width bands  → data-etch-element="section"
+ *   - constrained inner → data-etch-element="container"
+ * so every band shows up as a proper Section/Container in the Etch builder.
+ *
+ * Run: npx wp-env run cli wp eval-file wp-content/woo4etch-tests/manual/seed-demo.php
+ *
+ * @package Woo4Etch
+ */
+
+if (!defined('ABSPATH')) {
+    exit(1);
+}
+
+$theme = get_stylesheet();
+$sym   = function_exists('get_woocommerce_currency_symbol')
+    ? html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES)
+    : '$';
+
+/* ---- Etch markup helpers ---------------------------------------------------- */
+$E = '<!-- /wp:etch/element -->';
+$section = function ($class) {
+    return '<!-- wp:etch/element {"tag":"section","attributes":{"data-etch-element":"section","class":"' . $class . '"}} -->';
+};
+$container = function ($class = '') {
+    $cls = $class !== '' ? ',"class":"' . $class . '"' : '';
+    return '<!-- wp:etch/element {"tag":"div","attributes":{"data-etch-element":"container"' . $cls . '}} -->';
+};
+$el = function ($tag, $class, $inner, $extra = '') {
+    $attrs = '"class":"' . $class . '"' . ($extra !== '' ? ',' . $extra : '');
+    return '<!-- wp:etch/element {"tag":"' . $tag . '","attributes":{' . $attrs . '}} -->' . $inner . '<!-- /wp:etch/element -->';
+};
+$txt = function ($content) {
+    return '<!-- wp:etch/text {"content":"' . $content . '"} /-->';
+};
+
+/* ============================================================
+   1. Product loop preset (etch_loops) — wp-query over products
+   ============================================================ */
+$loops = (array) get_option('etch_loops', []);
+$loops['products'] = [
+    'name'   => 'Products',
+    'key'    => 'products',
+    'global' => true,
+    'config' => [
+        'type' => 'wp-query',
+        'args' => [
+            'post_type'      => 'product',
+            'post_status'    => 'publish',
+            'posts_per_page' => 12,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ],
+    ],
+];
+update_option('etch_loops', $loops);
+echo "OK   loop preset 'products' (wp-query, post_type=product)\n";
+
+/* Demo: give a cart product real cross-sells so the frontend cart shows
+   "You may also like" (sample WooCommerce data sets none). */
+$beanie = get_posts(['post_type' => 'product', 'name' => 'beanie', 'numberposts' => 1]);
+if ($beanie) {
+    $bp = wc_get_product($beanie[0]->ID);
+    $cs = [];
+    foreach (['cap', 'sunglasses', 'beanie-with-logo', 'belt'] as $slug) {
+        $pr = get_posts(['post_type' => 'product', 'name' => $slug, 'numberposts' => 1]);
+        if ($pr) {
+            $cs[] = $pr[0]->ID;
+        }
+    }
+    if ($cs) {
+        $bp->set_cross_sell_ids($cs);
+        $bp->save();
+        echo "OK   cross-sells set on 'beanie' (" . count($cs) . ")\n";
+    }
+}
+
+/* ============================================================
+   2. Helpers to create templates / parts
+   ============================================================ */
+$put_template = static function (string $slug, string $title, string $content) use ($theme) {
+    foreach (get_posts([
+        'post_type' => 'wp_template', 'name' => $slug, 'post_status' => 'any', 'numberposts' => -1,
+        'tax_query' => [['taxonomy' => 'wp_theme', 'field' => 'name', 'terms' => $theme]], 'fields' => 'ids',
+    ]) as $eid) {
+        wp_delete_post($eid, true);
+    }
+    $id = wp_insert_post([
+        'post_type' => 'wp_template', 'post_status' => 'publish',
+        'post_name' => $slug, 'post_title' => $title, 'post_content' => $content,
+    ], true);
+    if (is_wp_error($id)) { echo "FAIL {$slug}: " . $id->get_error_message() . "\n"; return; }
+    wp_set_object_terms($id, $theme, 'wp_theme');
+    echo "OK   wp_template '{$slug}'\n";
+};
+
+$put_part = static function (string $slug, string $area, string $content) use ($theme) {
+    foreach (get_posts([
+        'post_type' => 'wp_template_part', 'name' => $slug, 'post_status' => 'any', 'numberposts' => -1,
+        'tax_query' => [['taxonomy' => 'wp_theme', 'field' => 'name', 'terms' => $theme]], 'fields' => 'ids',
+    ]) as $eid) {
+        wp_delete_post($eid, true);
+    }
+    $id = wp_insert_post([
+        'post_type' => 'wp_template_part', 'post_status' => 'publish',
+        'post_name' => $slug, 'post_title' => ucfirst($slug), 'post_content' => $content,
+    ], true);
+    if (is_wp_error($id)) { echo "FAIL part {$slug}: " . $id->get_error_message() . "\n"; return; }
+    wp_set_object_terms($id, $theme, 'wp_theme');
+    wp_set_object_terms($id, $area, 'wp_template_part_area');
+    echo "OK   template_part '{$slug}'\n";
+};
+
+// template-part refs (no tagName: the part's own <section> is the band wrapper)
+$header = '<!-- wp:template-part {"slug":"header","theme":"' . $theme . '"} /-->';
+$footer = '<!-- wp:template-part {"slug":"footer","theme":"' . $theme . '"} /-->';
+
+/* ============================================================
+   3. Header / footer parts (section > container)
+   ============================================================ */
+$nav = $el('a', '', $txt('Shop'), '"href":"/shop/"')
+     . $el('a', '', $txt('Account'), '"href":"/my-account/"')
+     . $el('a', 'w4e-cartlink', $txt('Cart [woo_cart_count]'), '"href":"/cart/"');
+
+// Header/footer are the bands themselves — plain wrappers, NOT section/container.
+$put_part('header', 'header',
+    $el('div', 'w4e-header',
+        $el('div', 'w4e-header__inner w4e-wrap',
+            $el('a', 'w4e-logo', $txt('Woo4Etch'), '"href":"/"')
+            . $el('nav', 'w4e-nav', $nav)
+        )
+    )
+);
+
+$put_part('footer', 'footer',
+    $el('div', 'w4e-footer',
+        $el('div', 'w4e-footer__inner w4e-wrap',
+            $txt('Woo4Etch demo — WooCommerce in Etch, built with Etch Dynamic Keys + Woo4Etch shortcodes.')
+        )
+    )
+);
+
+/* ============================================================
+   4. Generic page template (Cart / Checkout / Account chrome)
+   ============================================================ */
+$put_template('page', 'Page (Woo4Etch demo)',
+    $header
+    . $section('w4e-page')
+    . $container()
+      . $el('h1', 'w4e-page__title', $txt('{this.title}'))
+      . '<!-- wp:post-content /-->'
+    . $E
+    . $E
+    . $footer
+);
+
+// Cart uses a minimal template (no wrapping section/h1) so the cart PAGE content
+// can provide its own section > container — fully editable as such in Etch.
+$put_template('page-cart', 'Cart (Woo4Etch demo)',
+    $header
+    . '<!-- wp:post-content /-->'
+    . $footer
+);
+
+/* ============================================================
+   5. Single product (fully editable: dynamic keys, condition, modifier,
+      gallery loop, hand-built add-to-cart form — no shortcodes)
+   ============================================================ */
+$breadcrumb = $el('a', '', $txt('Shop'), '"href":"/shop/"')
+    . $txt(' / ')
+    . $el('a', '', $txt('{this.product_cat.0.name}'), '"href":"/product-category/{this.product_cat.0.slug}/"')
+    . $txt(' / ')
+    . $txt('{this.title}');
+
+$media = $el('figure', 'w4e-product__featured', $el('img', '', '', '"src":"{this.image.url}","alt":"{this.title}","loading":"eager"'))
+    . $el('div', 'w4e-product__thumbs',
+        '<!-- wp:etch/loop {"target":"this.gallery_images","itemId":"image"} -->'
+        . $el('figure', 'w4e-thumb', $el('img', '', '', '"src":"{image.url}","alt":"{image.alt}","loading":"lazy"'))
+        . '<!-- /wp:etch/loop -->'
+      );
+
+$price = '<!-- wp:etch/condition {"condition":{"leftHand":"this.meta._sale_price","operator":"isTruthy","rightHand":null}} -->'
+    . $el('del', 'w4e-price__regular', $txt($sym . '{this.meta._regular_price.numberFormat(2, \'.\', \',\')}'))
+    . '<!-- /wp:etch/condition -->'
+    . $el('span', 'w4e-price__current', $txt($sym . '{this.meta._price.numberFormat(2, \'.\', \',\')}'));
+
+$form = '<!-- wp:etch/element {"tag":"form","attributes":{"class":"cart w4e-cart","action":"{this.permalink.relative}","method":"post"}} -->'
+    . $el('div', 'quantity', $el('input', 'input-text qty text', '', '"type":"number","name":"quantity","value":"1","min":"1","step":"1"'))
+    . '<!-- wp:etch/element {"tag":"button","attributes":{"class":"single_add_to_cart_button button","type":"submit","name":"add-to-cart","value":"{this.id}"}} -->' . $txt('Add to cart') . $E
+    . $E;
+
+$summary = $el('h1', 'w4e-product__title', $txt('{this.title}'))
+    . $el('div', 'w4e-product__price', $price)
+    . $el('div', 'w4e-product__excerpt', $txt('{this.excerpt}'))
+    . $form
+    . $el('p', 'w4e-product__meta', $txt('SKU: {this.meta._sku} · Category: {this.product_cat.0.name}'));
+
+$put_template('single-product', 'Single Product (Woo4Etch demo)',
+    $header
+    . $section('w4e-product')
+    . $container()
+      . $el('nav', 'w4e-breadcrumb', $breadcrumb)
+      . $el('div', 'w4e-product__grid', $el('div', 'w4e-product__media', $media) . $el('div', 'w4e-product__summary', $summary))
+    . $E
+    . $E
+    . $section('w4e-product__details')
+    . $container()
+      . $el('h2', '', $txt('Description'))
+      . $txt('{this.content}')
+    . $E
+    . $E
+    . $footer
+);
+
+/* ============================================================
+   6. Shop archive (Etch product loop, {item.*})
+   ============================================================ */
+$card = $el('a', 'w4e-card__link',
+        $el('img', 'w4e-card__img', '', '"src":"{item.image.url}","alt":"{item.title}","loading":"lazy"')
+        . $el('h2', 'w4e-card__title', $txt('{item.title}')),
+        '"href":"{item.permalink.relative}"'
+    )
+    . $el('div', 'w4e-card__price', $txt($sym . '{item.meta._price.numberFormat(2, \'.\', \',\')}'))
+    . $el('a', 'w4e-card__btn', $txt('Add to cart'), '"href":"?add-to-cart={item.id}","data-product_id":"{item.id}"');
+
+$put_template('archive-product', 'Shop Archive (Woo4Etch demo)',
+    $header
+    . $section('w4e-shop')
+    . $container()
+      . $el('header', 'w4e-shop__head', $el('h1', 'w4e-shop__title', $txt('Shop')) . $txt('[woo_result_count]'))
+      . $el('div', 'w4e-grid',
+          '<!-- wp:etch/loop {"loopId":"products","itemId":"item"} -->'
+          . $el('article', 'w4e-card', $card)
+          . '<!-- /wp:etch/loop -->'
+        )
+    . $E
+    . $E
+    . $footer
+);
+
+/* ============================================================
+   7. Custom Cart page content (lives inside the page template's container)
+   ============================================================ */
+$cart_page_id = function_exists('wc_get_page_id') ? wc_get_page_id('cart') : 0;
+if ($cart_page_id > 0) {
+    // Cart as a real Etch FORM — no shortcodes, so it renders + is editable in the
+    // builder AND works on the frontend. Items loop over {options.cart_items}
+    // (Woo4Etch bridge); qty update, coupon and the nonce are plain form fields;
+    // remove via {item.remove_url}. (For third-party cart-extension hooks, use the
+    // [woo_cart_items] shortcode instead — see templates/15.)
+    $cart_row =
+        $el('img', 'w4e-cartrow__img', '', '"src":"{item.image}","alt":"{item.name}"')
+        . $el('div', 'w4e-cartrow__info',
+            $el('a', 'w4e-cartrow__name', $txt('{item.name}'), '"href":"{item.permalink}"')
+            . '<!-- wp:etch/condition {"condition":{"leftHand":"item.on_sale","operator":"isTruthy","rightHand":null}} -->'
+              . $el('span', 'w4e-badge', $txt('Sale'))
+            . '<!-- /wp:etch/condition -->'
+            . $el('span', 'w4e-cartrow__meta', $txt('{item.meta}'))
+            . $el('span', 'w4e-cartrow__price', $txt('{item.price}'))
+          )
+        . $el('input', 'w4e-cartrow__qty', '', '"type":"number","name":"cart[{item.key}][qty]","value":"{item.quantity}","min":"0"')
+        . $el('span', 'w4e-cartrow__sub', $txt('{item.subtotal}'))
+        . $el('a', 'w4e-cartrow__rm', $txt('Remove'), '"href":"{item.remove_url}"');
+
+    $cart_actions =
+        $el('input', 'w4e-coupon__input', '', '"type":"text","name":"coupon_code","placeholder":"Coupon code"')
+        . $el('button', 'button', $txt('Apply coupon'), '"type":"submit","name":"apply_coupon","value":"Apply coupon"')
+        . $el('button', 'button w4e-cart-update', $txt('Update cart'), '"type":"submit","name":"update_cart","value":"Update cart"');
+
+    $cart_main =
+        $el('ul', 'w4e-cartlist',
+            '<!-- wp:etch/loop {"target":"options.cart_items","itemId":"item"} -->'
+            . $el('li', 'w4e-cartrow', $cart_row)
+            . '<!-- /wp:etch/loop -->'
+        )
+        . $el('div', 'w4e-cart-actions', $cart_actions)
+        . $el('input', '', '', '"type":"hidden","name":"woocommerce-cart-nonce","value":"{options.cart_nonce}"');
+
+    $cart_aside =
+        $el('h2', 'w4e-cart-aside__title', $txt('Order summary'))
+        . $el('div', 'w4e-cart-aside__line',
+            $el('span', '', $txt('Subtotal')) . $el('span', '', $txt('{options.cart_subtotal}')))
+        . $el('div', 'w4e-cart-aside__line w4e-cart-aside__line--total',
+            $el('span', '', $txt('Total')) . $el('span', '', $txt('{options.cart_total}')))
+        . $el('a', 'w4e-cart-checkout button', $txt('Proceed to checkout'), '"href":"{options.checkout_url}"');
+
+    // Cross-sells ("You may also like") — looped from {options.cross_sells}.
+    $cross_card =
+        $el('a', 'w4e-crosscard__link',
+            $el('img', 'w4e-crosscard__img', '', '"src":"{cs.image}","alt":"{cs.name}"')
+            . $el('h3', 'w4e-crosscard__name', $txt('{cs.name}'))
+            , '"href":"{cs.permalink}"')
+        . $el('div', 'w4e-crosscard__price', $txt('{cs.price}'))
+        . $el('a', 'w4e-crosscard__btn button', $txt('Add to cart'), '"href":"{cs.add_to_cart_url}"');
+
+    $cross_sells =
+        $el('section', 'w4e-crosssells',
+            $el('h2', 'w4e-crosssells__title', $txt('You may also like'))
+            . $el('div', 'w4e-crossgrid',
+                '<!-- wp:etch/loop {"target":"options.cross_sells","itemId":"cs"} -->'
+                . $el('article', 'w4e-crosscard', $cross_card)
+                . '<!-- /wp:etch/loop -->'
+            )
+        );
+
+    $cart_content =
+        $section('w4e-cart')
+        . $container()
+          . $el('h1', 'w4e-page__title', $txt('{this.title}'))
+          . '<!-- wp:etch/element {"tag":"form","attributes":{"class":"woocommerce-cart-form w4e-cart-form","action":"{options.cart_url}","method":"post"}} -->'
+            . $el('div', 'w4e-cart-layout',
+                $el('div', 'w4e-cart-main', $cart_main)
+                . $el('aside', 'w4e-cart-aside', $cart_aside)
+            )
+          . '<!-- /wp:etch/element -->'
+          . $cross_sells
+        . $E
+        . $E;
+    wp_update_post(['ID' => $cart_page_id, 'post_content' => $cart_content]);
+    echo "OK   cart page #{$cart_page_id} → Etch cart FORM + cross-sells (no shortcodes)\n";
+}
+
+echo "\nDemo templates installed for theme '{$theme}' (section/container convention).\n";

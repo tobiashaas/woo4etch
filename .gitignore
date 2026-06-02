@@ -27,3 +27,12 @@ build/
 # Environment
 .env
 .env.local
+
+# wp-env local test environment (machine-specific absolute paths)
+.wp-env.json
+.wp-env.override.json
+.wp-env/
+
+# Test artifacts (screenshots / generated output; the .php + .sh tooling stays tracked)
+tests/manual/*.png
+tests/manual/*.log

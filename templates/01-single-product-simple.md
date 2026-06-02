@@ -53,13 +53,27 @@ add_filter('woocommerce_enqueue_styles', '__return_empty_array');
     <div class="product__layout">
       <section class="product__gallery" aria-labelledby="gallery-title">
         <h2 id="gallery-title" class="screen-reader-text">Product images</h2>
-        <figure>
+
+        <!-- Featured image first (gallery_images does NOT include it) -->
+        <figure class="product__gallery-featured">
           <img src="{this.image.url}"
                alt="{this.title}"
                width="{this.image.width}"
                height="{this.image.height}"
                itemprop="image">
         </figure>
+
+        <!-- Then the gallery images via the gallery_images Dynamic Key -->
+        {#loop this.gallery_images as image}
+          <figure class="product__gallery-item">
+            <img src="{image.url}"
+                 alt="{image.alt}"
+                 width="{image.width}"
+                 height="{image.height}"
+                 srcset="{image.srcset}"
+                 loading="lazy">
+          </figure>
+        {/loop}
       </section>
 
       <section class="product__summary entry-summary"
