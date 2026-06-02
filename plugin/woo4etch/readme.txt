@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -113,6 +113,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.4.0 =
+* Account & order data as Etch dynamic data, so the My Account and thank-you/order pages can be built as pure Etch loops too: {options.account_menu} (key, label, url, is_active), {options.account_orders} (id, number, date, status, status_name, total, item_count, view_url) and {options.order} (number, date, status, status_name, total, email, payment_method, billing_address, items[]). Real data on the frontend, sample data in the Etch builder. Filters: woo4etch/expose_account_data, woo4etch/account_order_data, woo4etch/account_orders_limit, woo4etch/account_orders_sample, woo4etch/order_sample.
+* With the cart bridge from 1.3.0 this means the whole shop — single product, shop archive, cart, mini-cart, My Account, checkout summary and thank-you — can be built as editable Etch layouts that preview in the builder.
 
 = 1.3.0 =
 * Cart as Etch dynamic data: the cart is exposed on Etch's `options` root ({options.cart_items} with key/id/name/sku/quantity/price/subtotal/permalink/image/remove_url/on_sale, plus cart_count/cart_subtotal/cart_total/cart_url/checkout_url/cart_nonce/cart_is_empty), so the whole cart — items, quantity update, coupon — can be built as a pure Etch loop/form with full HTML control that also renders in the Etch builder (shortcodes only render on the frontend). Real cart on the frontend, sample rows in the builder canvas. Filters: woo4etch/expose_cart_data, woo4etch/cart_data, woo4etch/cart_image_size, woo4etch/cart_sample_data.
