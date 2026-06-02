@@ -1814,9 +1814,24 @@ final class Woo4Etch {
         ]);
     }
 
-    /** True inside the Etch builder canvas (?etch=magic). */
+    /**
+     * True inside the Etch builder — either the canvas (?etch=magic) or an
+     * Etch REST request (the builder fetches dynamic data via /etch-api/*, e.g.
+     * GET /etch-api/options, which is where the loop preview gets its data).
+     */
     private static function is_etch_builder() {
-        return isset($_GET['etch']) && 'magic' === sanitize_text_field(wp_unslash($_GET['etch'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['etch']) && 'magic' === sanitize_text_field(wp_unslash($_GET['etch']))) {
+            return true;
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            $uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+            if (false !== strpos($uri, 'etch-api')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Strip tags + decode entities so formatted Woo prices are clean strings for Etch. */
