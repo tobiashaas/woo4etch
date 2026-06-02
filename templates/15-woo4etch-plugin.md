@@ -327,6 +327,8 @@ You now have a clean, reusable "hook island" in Etch without touching WooCommerc
 
 ### Custom cart page (your layout, complete & hook-compatible)
 
+> **Shortcut:** the whole cart below is available as a ready-to-paste Etch snippet — copy [`etch-copy/cart.json`](./etch-copy/cart.json) and paste it into the Etch builder (styled, with all the dynamic-data bindings). See [`etch-copy/README.md`](./etch-copy/README.md).
+
 The cart lives in `WC()->cart` (runtime state + AJAX), not in `{this.*}` Dynamic Keys — so the cart contents come from shortcodes. But you build the **layout** in Etch (section/container, columns), and `[woo_cart_items]` renders a **complete, extension-compatible** cart form with your own class-based markup instead of the monolithic `[woocommerce_cart]`.
 
 ```html

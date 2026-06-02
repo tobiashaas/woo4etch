@@ -36,6 +36,7 @@ All templates follow the same structure:
 | `14-visual-hook-guides.md` | Links to Business Bloomer's annotated hook diagrams |
 | `15-woo4etch-plugin.md` | **Woo4Etch** plugin (shortcodes + customizations) |
 | `functions-snippets.md` | Consolidated PHP snippets from all templates |
+| `etch-copy/` | Copy/paste Etch snippets — paste a ready-made layout (e.g. the full cart) into the builder |
 
 The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
