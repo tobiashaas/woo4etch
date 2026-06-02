@@ -118,8 +118,19 @@ a{color:inherit;text-decoration:none}
 .w4e-coupon__input{flex:1;min-width:160px;padding:11px;border:1px solid var(--w4e-line);border-radius:8px;font-size:15px}
 .w4e-cart-aside{background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);padding:22px;position:sticky;top:88px}
 .w4e-cart-aside__title{margin:0 0 14px;font-size:20px;letter-spacing:-.01em}
-.w4e-cart-aside__row{color:var(--w4e-muted);font-size:14px}
-.w4e-cart-aside__total{font-size:26px;font-weight:800;margin-bottom:14px}
+.w4e-cart-aside__line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;color:var(--w4e-muted)}
+.w4e-cart-aside__line--total{color:var(--w4e-fg);font-weight:800;font-size:18px;border-top:1px solid var(--w4e-line);margin-top:6px;padding-top:14px;margin-bottom:14px}
 
-@media(max-width:860px){.w4e-product__grid{grid-template-columns:1fr;gap:24px}.w4e-grid{grid-template-columns:repeat(2,1fr)}.w4e-cart-layout{grid-template-columns:1fr}.w4e-cart-aside{position:static}}
-@media(max-width:520px){.w4e-grid{grid-template-columns:1fr}.w4e-nav{gap:14px;font-size:14px}}
+/* Cross-sells ("You may also like") — {options.cross_sells} loop */
+.w4e-crosssells{margin-top:40px}
+.w4e-crosssells__title{font-size:22px;letter-spacing:-.01em;margin:0 0 16px}
+.w4e-crossgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.w4e-crosscard{background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);overflow:hidden;display:flex;flex-direction:column}
+.w4e-crosscard__link{display:block;color:inherit}
+.w4e-crosscard__img{aspect-ratio:1;width:100%;object-fit:cover;background:#f3f4f6}
+.w4e-crosscard__name{font-size:15px;font-weight:600;margin:12px 14px 4px}
+.w4e-crosscard__price{margin:0 14px 12px;font-weight:700}
+.w4e-crosscard__btn{margin:auto 14px 14px;text-align:center}
+
+@media(max-width:860px){.w4e-product__grid{grid-template-columns:1fr;gap:24px}.w4e-grid{grid-template-columns:repeat(2,1fr)}.w4e-cart-layout{grid-template-columns:1fr}.w4e-cart-aside{position:static}.w4e-crossgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.w4e-grid{grid-template-columns:1fr}.w4e-nav{gap:14px;font-size:14px}.w4e-crossgrid{grid-template-columns:repeat(2,1fr)}}

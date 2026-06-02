@@ -1745,6 +1745,9 @@ final class Woo4Etch {
         // <input type="hidden" name="woocommerce-cart-nonce" value="{options.cart_nonce}">
         $data['cart_nonce']   = wp_create_nonce('woocommerce-cart');
 
+        // Cross-sells ("You may also like") — loop {options.cross_sells} in Etch.
+        $data['cross_sells']  = self::cart_cross_sells($cart, $size, self::is_etch_builder());
+
         return apply_filters('woo4etch/cart_data', $data);
     }
 
@@ -1812,6 +1815,60 @@ final class Woo4Etch {
             'cart_total'    => self::plain(wc_price(97)),
             'cart_is_empty' => false,
         ]);
+    }
+
+    /**
+     * Cross-sell products ("You may also like") for {options.cross_sells}.
+     * Real products from the cart; sample products in the Etch builder.
+     *
+     * @param WC_Cart|null $cart
+     * @param string       $size
+     * @param bool         $builder
+     * @return array<int,array<string,mixed>>
+     */
+    private static function cart_cross_sells($cart, $size, $builder) {
+        $out = [];
+
+        if ($cart instanceof WC_Cart) {
+            $ids = (array) apply_filters('woocommerce_cross_sells_total', $cart->get_cross_sells());
+            foreach (array_slice($ids, 0, (int) apply_filters('woo4etch/cross_sells_limit', 4)) as $pid) {
+                $p = wc_get_product($pid);
+                if (!$p instanceof WC_Product || !$p->is_visible()) {
+                    continue;
+                }
+                $img_id = $p->get_image_id();
+                $img    = $img_id ? wp_get_attachment_image_url($img_id, $size) : '';
+                if (!$img && function_exists('wc_placeholder_img_src')) {
+                    $img = wc_placeholder_img_src($size);
+                }
+                $out[] = [
+                    'id'              => $p->get_id(),
+                    'name'            => $p->get_name(),
+                    'price'           => self::plain(wc_price(wc_get_price_to_display($p))),
+                    'image'           => (string) $img,
+                    'permalink'       => get_permalink($p->get_id()),
+                    'add_to_cart_url' => $p->add_to_cart_url(),
+                    'on_sale'         => $p->is_on_sale(),
+                ];
+            }
+        }
+
+        if (empty($out) && $builder) {
+            $ph  = function_exists('wc_placeholder_img_src') ? wc_placeholder_img_src($size) : '';
+            $s   = static function ($name, $price, $sale = false) use ($ph) {
+                return [
+                    'id' => 0, 'name' => $name, 'price' => self::plain(wc_price($price)),
+                    'image' => $ph, 'permalink' => '#', 'add_to_cart_url' => '#', 'on_sale' => $sale,
+                ];
+            };
+            $out = apply_filters('woo4etch/cross_sells_sample', [
+                $s(__('Matching Socks', 'woo4etch'), 9),
+                $s(__('Care Kit', 'woo4etch'), 12, true),
+                $s(__('Gift Wrap', 'woo4etch'), 5),
+            ]);
+        }
+
+        return $out;
     }
 
     /**

@@ -60,6 +60,25 @@ $loops['products'] = [
 update_option('etch_loops', $loops);
 echo "OK   loop preset 'products' (wp-query, post_type=product)\n";
 
+/* Demo: give a cart product real cross-sells so the frontend cart shows
+   "You may also like" (sample WooCommerce data sets none). */
+$beanie = get_posts(['post_type' => 'product', 'name' => 'beanie', 'numberposts' => 1]);
+if ($beanie) {
+    $bp = wc_get_product($beanie[0]->ID);
+    $cs = [];
+    foreach (['cap', 'sunglasses', 'beanie-with-logo', 'belt'] as $slug) {
+        $pr = get_posts(['post_type' => 'product', 'name' => $slug, 'numberposts' => 1]);
+        if ($pr) {
+            $cs[] = $pr[0]->ID;
+        }
+    }
+    if ($cs) {
+        $bp->set_cross_sell_ids($cs);
+        $bp->save();
+        echo "OK   cross-sells set on 'beanie' (" . count($cs) . ")\n";
+    }
+}
+
 /* ============================================================
    2. Helpers to create templates / parts
    ============================================================ */
@@ -263,9 +282,30 @@ if ($cart_page_id > 0) {
 
     $cart_aside =
         $el('h2', 'w4e-cart-aside__title', $txt('Order summary'))
-        . $el('div', 'w4e-cart-aside__row', $txt('Total'))
-        . $el('div', 'w4e-cart-aside__total', $txt('{options.cart_total}'))
+        . $el('div', 'w4e-cart-aside__line',
+            $el('span', '', $txt('Subtotal')) . $el('span', '', $txt('{options.cart_subtotal}')))
+        . $el('div', 'w4e-cart-aside__line w4e-cart-aside__line--total',
+            $el('span', '', $txt('Total')) . $el('span', '', $txt('{options.cart_total}')))
         . $el('a', 'w4e-cart-checkout button', $txt('Proceed to checkout'), '"href":"{options.checkout_url}"');
+
+    // Cross-sells ("You may also like") — looped from {options.cross_sells}.
+    $cross_card =
+        $el('a', 'w4e-crosscard__link',
+            $el('img', 'w4e-crosscard__img', '', '"src":"{cs.image}","alt":"{cs.name}"')
+            . $el('h3', 'w4e-crosscard__name', $txt('{cs.name}'))
+            , '"href":"{cs.permalink}"')
+        . $el('div', 'w4e-crosscard__price', $txt('{cs.price}'))
+        . $el('a', 'w4e-crosscard__btn button', $txt('Add to cart'), '"href":"{cs.add_to_cart_url}"');
+
+    $cross_sells =
+        $el('section', 'w4e-crosssells',
+            $el('h2', 'w4e-crosssells__title', $txt('You may also like'))
+            . $el('div', 'w4e-crossgrid',
+                '<!-- wp:etch/loop {"target":"options.cross_sells","itemId":"cs"} -->'
+                . $el('article', 'w4e-crosscard', $cross_card)
+                . '<!-- /wp:etch/loop -->'
+            )
+        );
 
     $cart_content =
         $section('w4e-cart')
@@ -277,10 +317,11 @@ if ($cart_page_id > 0) {
                 . $el('aside', 'w4e-cart-aside', $cart_aside)
             )
           . '<!-- /wp:etch/element -->'
+          . $cross_sells
         . $E
         . $E;
     wp_update_post(['ID' => $cart_page_id, 'post_content' => $cart_content]);
-    echo "OK   cart page #{$cart_page_id} → Etch cart FORM ({options.cart_items} loop, no shortcodes)\n";
+    echo "OK   cart page #{$cart_page_id} → Etch cart FORM + cross-sells (no shortcodes)\n";
 }
 
 echo "\nDemo templates installed for theme '{$theme}' (section/container convention).\n";
