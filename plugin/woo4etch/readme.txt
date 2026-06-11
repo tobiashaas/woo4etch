@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -113,6 +113,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.4.1 =
+* Hardening: HTML-capable shortcode attributes are now filtered through wp_kses_post() — delimiter/wrap_before/wrap_after on [woo_breadcrumb], sep/before/after on [woo_categories] and [woo_tags]. Wrapper HTML keeps working; scripts and event handlers are stripped, so authors without the unfiltered_html capability cannot inject them via shortcode attributes.
+* Updater: release packages are only accepted from this repository's GitHub Releases download URL (defense in depth against a tampered API response).
 
 = 1.4.0 =
 * Account & order data as Etch dynamic data, so the My Account and thank-you/order pages can be built as pure Etch loops too: {options.account_menu} (key, label, url, is_active), {options.account_orders} (id, number, date, status, status_name, total, item_count, view_url) and {options.order} (number, date, status, status_name, total, email, payment_method, billing_address, items[]). Real data on the frontend, sample data in the Etch builder. Filters: woo4etch/expose_account_data, woo4etch/account_order_data, woo4etch/account_orders_limit, woo4etch/account_orders_sample, woo4etch/order_sample.

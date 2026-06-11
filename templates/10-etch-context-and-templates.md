@@ -150,14 +150,14 @@ Custom queries are configured on the Loop element in the Etch UI and given a nam
 {#loop mainQuery as item}
   <article>
     <h2>{item.title}</h2>
-    {#loop item.galleryImages as galleryItem}
+    {#loop item.gallery_images as galleryItem}
       <img src="{galleryItem.url}" alt="{galleryItem.alt}">
     {/loop}
   </article>
 {/loop}
 ```
 
-The inner `item.galleryImages` is read from the outer loop's current `item`; inside the nested loop, `{galleryItem.*}` is its own scope.
+The inner `item.gallery_images` is read from the outer loop's current `item`; inside the nested loop, `{galleryItem.*}` is its own scope.
 
 ## Quick mental model
 

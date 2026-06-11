@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -122,7 +122,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.4.0';
+    const VERSION = '1.4.1';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -901,6 +901,11 @@ final class Woo4Etch {
             'wrap_after'  => '</nav>',
         ], $atts, 'woo_breadcrumb');
 
+        // Shortcodes also run in content from authors without unfiltered_html.
+        $atts['delimiter']   = wp_kses_post($atts['delimiter']);
+        $atts['wrap_before'] = wp_kses_post($atts['wrap_before']);
+        $atts['wrap_after']  = wp_kses_post($atts['wrap_after']);
+
         ob_start();
         woocommerce_breadcrumb($atts);
         return ob_get_clean();
@@ -1094,7 +1099,7 @@ final class Woo4Etch {
         if (!$product) {
             return '';
         }
-        return wc_get_product_category_list($product->get_id(), $atts['sep'], $atts['before'], $atts['after']);
+        return wc_get_product_category_list($product->get_id(), wp_kses_post($atts['sep']), wp_kses_post($atts['before']), wp_kses_post($atts['after']));
     }
 
     public static function shortcode_tags($atts) {
@@ -1109,7 +1114,7 @@ final class Woo4Etch {
         if (!$product) {
             return '';
         }
-        return wc_get_product_tag_list($product->get_id(), $atts['sep'], $atts['before'], $atts['after']);
+        return wc_get_product_tag_list($product->get_id(), wp_kses_post($atts['sep']), wp_kses_post($atts['before']), wp_kses_post($atts['after']));
     }
 
     public static function shortcode_short_description($atts) {

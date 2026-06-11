@@ -179,12 +179,18 @@ final class Woo4Etch_Updater {
         }
 
         $fallback = '';
+        $base     = 'https://github.com/' . self::GITHUB_REPO . '/releases/download/';
         foreach ($body['assets'] as $asset) {
             if (!is_array($asset) || empty($asset['browser_download_url'])) {
                 continue;
             }
             $name = isset($asset['name']) ? (string) $asset['name'] : '';
             $url  = (string) $asset['browser_download_url'];
+
+            // Only accept packages hosted on this repo's GitHub releases.
+            if (strpos($url, $base) !== 0) {
+                continue;
+            }
 
             if ($name === 'woo4etch.zip') {
                 return $url;

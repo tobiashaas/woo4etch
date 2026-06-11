@@ -7,7 +7,7 @@ Woo4Etch is distributed via [GitHub Releases](https://github.com/tobiashaas/woo4
 1. **Bump the version** in both files (same semver, no `v` prefix in files):
    - `plugin/woo4etch/woo4etch.php` → `Version:`
    - `plugin/woo4etch/readme.txt` → `Stable tag:`
-2. Update `readme.txt` changelog section.
+2. Update the changelog in **both** places: `plugin/woo4etch/readme.txt` (`== Changelog ==`) and the root `CHANGELOG.md` (including the release-link at the bottom).
 3. Commit and push to `main`.
 4. **Create and push a tag** (must match the plugin version):
 
