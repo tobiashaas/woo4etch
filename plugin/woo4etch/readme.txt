@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.5.0-beta.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -113,6 +113,9 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.1 =
+* Product fields as Etch dynamic data: on product posts the plugin enriches Etch's post data (via etch/dynamic_data/post, the same seam Etch uses for gallery_images) with formatted/derived keys — {this.price}, {this.regular_price}, {this.sale_price}, {this.price_html}, {this.price_amount}, {this.currency_symbol}, {this.is_on_sale}, {this.sale_percentage}, {this.sku}, {this.product_type}, {this.stock_status}, {this.stock_label}, {this.stock_quantity}, {this.is_in_stock}, {this.is_purchasable}, {this.is_featured}, {this.rating}, {this.rating_count}, {this.review_count}, {this.add_to_cart_url}, {this.add_to_cart_text}, {this.weight}, {this.dimensions}, {this.upsell_ids}. Also available as {item.*} inside loops; renders live in the Etch builder canvas. Keys Etch sets itself are never overwritten. Filters: woo4etch/expose_product_data, woo4etch/product_data.
 
 = 1.4.1 =
 * Hardening: HTML-capable shortcode attributes are now filtered through wp_kses_post() — delimiter/wrap_before/wrap_after on [woo_breadcrumb], sep/before/after on [woo_categories] and [woo_tags]. Wrapper HTML keeps working; scripts and event handlers are stripped, so authors without the unfiltered_html capability cannot inject them via shortcode attributes.

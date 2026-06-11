@@ -5,7 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
-## [Unreleased]
+## [1.5.0-beta.1] — 2026-06-12
+
+Pre-release — published on GitHub as a pre-release, so it is **not** offered to installed sites via the auto-updater; install manually to test.
 
 ### Added
 
@@ -77,6 +79,7 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 - Initial release with 17 shortcodes.
 
+[1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
 [1.4.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.1
 [1.4.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.0
 [1.3.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.3.0
