@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.0-beta.1
+Stable tag: 1.5.0-beta.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -113,6 +113,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.2 =
+* Ready-made layouts with one-click install: Etch → Woo4Etch → Ready-made layouts ships complete, editable Etch layouts for cart, single product, shop archive, header mini-cart, My Account and thank-you. "Install as pattern" adds them to Etch's pattern library (category Woo4Etch, unsynced) and merges their classes into Etch's style system — existing styles with the same selector are reused, never overwritten. "Copy JSON" exports Etch's native paste format. All layouts are built on the dynamic-data bridges, so they preview live in the builder.
+* New {options.account_endpoint} — the current My Account endpoint as a scalar (dashboard on the account root, the endpoint key on sub-pages, empty outside the account area), so one Etch layout can switch its content per endpoint: {#if options.account_endpoint === "orders"}. Builder sample filter: woo4etch/account_endpoint_sample.
 
 = 1.5.0-beta.1 =
 * Product fields as Etch dynamic data: on product posts the plugin enriches Etch's post data (via etch/dynamic_data/post, the same seam Etch uses for gallery_images) with formatted/derived keys — {this.price}, {this.regular_price}, {this.sale_price}, {this.price_html}, {this.price_amount}, {this.currency_symbol}, {this.is_on_sale}, {this.sale_percentage}, {this.sku}, {this.product_type}, {this.stock_status}, {this.stock_label}, {this.stock_quantity}, {this.is_in_stock}, {this.is_purchasable}, {this.is_featured}, {this.rating}, {this.rating_count}, {this.review_count}, {this.add_to_cart_url}, {this.add_to_cart_text}, {this.weight}, {this.dimensions}, {this.upsell_ids}. Also available as {item.*} inside loops; renders live in the Etch builder canvas. Keys Etch sets itself are never overwritten. Filters: woo4etch/expose_product_data, woo4etch/product_data.

@@ -62,6 +62,17 @@ See the plain-language explanation in [`00-README.md`](./00-README.md#declare-wo
 | Product loop pagination on an archive | **Woo4Etch** — `[woo_pagination]` |
 | Output a WooCommerce template part | **Woo4Etch** — `[woo_template name="single-product/related"]` |
 
+## Ready-made layouts (install as Etch patterns)
+
+Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive, header mini-cart, My Account and thank-you. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
+
+Two ways to use them:
+
+- **Install as pattern** — creates the layout in Etch's **pattern library** (category "Woo4Etch", unsynced: inserting gives you a detached copy you can restyle freely). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system. Reinstalling refreshes the pattern in place.
+- **Copy JSON** — puts the layout on your clipboard in Etch's native copy/paste format; paste straight onto the canvas. The same files live in [`templates/etch-copy/`](./etch-copy/README.md) for use without wp-admin access.
+
+The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens.
+
 ## Product fields as Etch dynamic data
 
 On `product` posts, Woo4Etch enriches Etch's post data (the same seam Etch's own integration uses for `gallery_images`), so the most-needed product fields are **real Dynamic Keys** — they render live in the builder canvas and need no shortcode. In a Single template use `{this.*}`; inside a loop use `{item.*}`.

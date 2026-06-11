@@ -3,7 +3,14 @@
 Ready-made layouts in **Etch's native copy/paste format**. Build a whole area in
 seconds: copy a file's contents, then paste it straight into the Etch builder.
 
-## How to use
+> **Easier route:** the Woo4Etch plugin can install all of these for you. Open
+> **Etch → Woo4Etch → Ready-made layouts** and click **Install as pattern** — the
+> layout appears in Etch's pattern library (category "Woo4Etch") and its classes
+> land in Etch's style system. The **Copy JSON** button there does the same as
+> copying a file from this folder. These files are generated from the plugin's
+> layout definitions via `tools/generate-etch-copy.php` — edit there, not here.
+
+## How to use (manual paste)
 
 1. Open the JSON file (e.g. [`cart.json`](./cart.json)) and copy its **entire contents**.
 2. In the Etch builder, select where you want it (or the canvas root) and **Paste**
@@ -15,15 +22,22 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 ## Requirements
 
 - **Etch 1.4.20+** (for the product/cart dynamic data).
-- The **Woo4Etch plugin** active — it exposes the cart on Etch's `options` root
-  (`{options.cart_items}`, `{options.cart_total}`, `{options.cart_nonce}`,
-  `{options.cross_sells}`, …). Without it those keys are empty.
+- The **Woo4Etch plugin** active — it provides the dynamic-data bridges these
+  layouts bind to: product keys (`{this.price}`, `{this.is_on_sale}`, …), cart
+  (`{options.cart_items}`, `{options.cart_nonce}`, …), account
+  (`{options.account_menu}`, `{options.account_endpoint}`, …) and the current
+  order (`{options.order}`). Without it those keys are empty.
 
 ## Snippets
 
 | File | Area | Built from |
 |---|---|---|
 | [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, and "You may also like" cross-sells. | Etch Dynamic Keys + the Woo4Etch cart bridge. 100% Etch elements (no shortcodes) so it renders and is editable in the builder. |
+| [`product-single.json`](./product-single.json) | **Single product** — featured image + gallery loop, title, `{this.price}` with `-{this.sale_percentage}%` badge, stock label, working add-to-cart form (simple products), SKU. | Product bridge (`{this.*}`) + `{this.gallery_images}`. |
+| [`product-grid.json`](./product-grid.json) | **Shop archive** — product cards over `mainQuery`: image, sale badge, title, price, AJAX add-to-cart button. | Product bridge (`{item.*}`) on the main archive query. |
+| [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with `{options.cart_count}`; the count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
+| [`account.json`](./account.json) | **My Account** — nav from `{options.account_menu}`, dashboard + orders views switched via `{options.account_endpoint}`, all other endpoints via `[woo_account_content]`. | Account bridge + endpoint conditions ([`07-account.md`](../07-account.md#how-endpoints-work-read-this-first)). |
+| [`thank-you.json`](./thank-you.json) | **Thank-you / order received** — notice, order overview (number, date, total, payment), line-items loop; renders only when `{options.order}` is populated. | Order bridge ([`08-thank-you.md`](../08-thank-you.md)). |
 
 ### About the cart snippet
 

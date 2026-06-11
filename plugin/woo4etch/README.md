@@ -12,6 +12,10 @@ Built on top of [Zack Pyle's](https://community.etchwp.com/u/3f0028c4) elegant `
 
 The plugin is ready to use: all shortcodes register on `plugins_loaded` once WooCommerce is available. Drop them into Etch HTML like any other shortcode.
 
+## Ready-made layouts
+
+**Etch → Woo4Etch → Ready-made layouts**: complete, editable Etch layouts (cart, single product, shop archive, mini-cart, My Account, thank-you) — install them into Etch's pattern library with one click, or copy them as Etch paste-JSON. Built on the dynamic-data bridges below, so they preview live in the builder.
+
 ## Dynamic data bridges (no shortcode needed)
 
 Beyond shortcodes, the plugin exposes WooCommerce data as **Etch Dynamic Keys**, so it renders live in the builder canvas:
