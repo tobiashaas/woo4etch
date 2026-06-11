@@ -10,7 +10,24 @@ Order confirmation page shown after a successful checkout. Order summary, custom
 
 ## Preparation
 
-> **Etch context:** the thank-you page is the `order-received` endpoint on the **Checkout Page** — so technically it's still a Page. The `{order.*}` keys in the markup below are **placeholders** that need to be filled either by letting WooCommerce render the order summary via `woocommerce_thankyou` hook callbacks, or by exposing the order to Etch via a custom data source. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** the thank-you page is the `order-received` **endpoint** on the **Checkout Page** — it is *not* a separate page or template, and there is nothing to register or activate for it. The same Etch layout that renders `/checkout/` also renders `/checkout/order-received/{id}/`; you build both states into that one layout and switch (endpoint concept explained in [`07-account.md`](./07-account.md#how-endpoints-work-read-this-first)). Three ways:
+>
+> 1. **Do nothing:** `[woocommerce_checkout]` detects the endpoint itself and renders WooCommerce's default thank-you (order overview + payment instructions) in place of the form.
+> 2. **Etch-native (recommended):** Woo4Etch fills `{options.order}` only on the `order-received`/`view-order` endpoint (sample order in the builder), so the endpoint check is a plain condition — full HTML control, previews in the builder:
+>
+>    ```html
+>    {#if options.order.number}
+>      <h1>Thank you!</h1>
+>      <p>Order #{options.order.number} — {options.order.total}</p>
+>      {#loop options.order.items as item}<p>{item.name} × {item.quantity}</p>{/loop}
+>    {:else}
+>      [woocommerce_checkout]
+>    {/if}
+>    ```
+>
+> 3. **Shortcode conditional:** `[woo_if cond="is_wc_endpoint_url" arg="order-received"]…[/woo_if]` — server-rendered, placeholder in the builder canvas.
+>
+> The `{order.*}` keys in the markup below are the **dynamic-data variant** (option 2); alternatively let WooCommerce render the summary via `woocommerce_thankyou` hook callbacks. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 The thank-you page is the `order-received` endpoint on the checkout page. It needs:
 

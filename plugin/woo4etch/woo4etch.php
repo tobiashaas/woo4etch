@@ -1993,9 +1993,11 @@ final class Woo4Etch {
      * etch/dynamic_data/option.
      *
      * Exposes:
-     *   {options.account_menu}   — array: key, label, url, is_active
-     *   {options.account_orders} — array: id, number, date, status, status_name,
-     *                              total, item_count, view_url
+     *   {options.account_menu}     — array: key, label, url, is_active
+     *   {options.account_endpoint} — current endpoint key ('dashboard', 'orders', …;
+     *                                '' outside the account area)
+     *   {options.account_orders}   — array: id, number, date, status, status_name,
+     *                                total, item_count, view_url
      *   {options.order}          — current order (thank-you / view-order):
      *                              number, date, status, status_name, total, email,
      *                              payment_method, billing_address, items[]
@@ -2019,6 +2021,20 @@ final class Woo4Etch {
 
         // Account navigation (cheap, always available).
         $data['account_menu'] = self::account_menu();
+
+        // Current My Account endpoint as a scalar, so one Etch layout can switch
+        // its content area per endpoint: {#if options.account_endpoint === "orders"}.
+        // 'dashboard' on the account root, the endpoint key on sub-pages
+        // ('orders', 'downloads', 'edit-address', …), '' outside the account area.
+        // In the builder it defaults to 'dashboard' so endpoint sections preview.
+        $endpoint = '';
+        if (function_exists('is_account_page') && is_account_page()) {
+            $current  = (function_exists('WC') && WC() && WC()->query) ? (string) WC()->query->get_current_endpoint() : '';
+            $endpoint = ('' !== $current) ? $current : 'dashboard';
+        } elseif ($builder) {
+            $endpoint = apply_filters('woo4etch/account_endpoint_sample', 'dashboard');
+        }
+        $data['account_endpoint'] = $endpoint;
 
         // Orders list — query only on the account area or in the builder.
         if ($builder) {

@@ -66,6 +66,37 @@ add_filter('etch/dynamic_data/roots', function (array $roots) {
 
 Lazy resolution matters: shop data should only be computed when a layout actually references the root.
 
+## 4. Endpoint-aware template conditions (WooCommerce thank-you, My Account sub-pages)
+
+**Current state:** Etch resolves templates strictly via WordPress's FSE hierarchy (`classes/Traits/DynamicData.php:536-596` — `page-{slug}` → `page-{id}` → `page` → `index`, matched against `wp_template` posts). WooCommerce **endpoints** are invisible to that hierarchy: `/checkout/order-received/{id}/` and `/my-account/orders/` are rewrite endpoints on the checkout / My Account *page*, not separate posts — so the page's template renders for every endpoint URL, with no way to vary it.
+
+**Gap:** the thank-you page and each My Account sub-view (dashboard, orders, downloads, addresses, edit-account, view-order) cannot get their own template or template variation. Woo4Etch works around it inside one layout (conditionals on `is_wc_endpoint_url()` / dynamic data that only populates on an endpoint), which works — but users coming from other builders look for "the thank-you template" in the template list and conclude Etch can't do it.
+
+**A lesson from Bricks worth taking seriously:** Bricks modeled these as extra Woo-specific *template types* — a separate "Thank you" template, separate account templates. It technically works but produced persistent user confusion, because the model hides the underlying reality (one page, many endpoint views): people built a thank-you template and wondered why their checkout template styling/wrappers didn't apply, or vice versa; the two templates competed for one URL space, and conditions behaved differently between the Woo template types and normal ones. **Recommendation: don't introduce new template *types*.** Keep the one-page model visible and add *conditions* to it — that matches how WordPress itself thinks, and it's the model Etch users already learned from page/single/archive templates.
+
+**Proposal (minimal, architecture-conform):** a single filter where Etch builds the hierarchy slug list in `get_template_data()`:
+
+```php
+$hierarchy = apply_filters('etch/template_hierarchy', $hierarchy, $post);
+```
+
+That one line keeps Etch 100% Woo-agnostic and lets a companion plugin prepend endpoint-specific slugs, e.g.:
+
+```php
+// In Woo4Etch — prepend more specific template slugs when an endpoint is active:
+add_filter('etch/template_hierarchy', function (array $hierarchy, $post) {
+    if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url()) {
+        $endpoint = WC()->query->get_current_endpoint();             // 'order-received', 'orders', …
+        array_unshift($hierarchy, "page-{$post->post_name}-endpoint-{$endpoint}", "endpoint-{$endpoint}");
+    }
+    return $hierarchy;
+}, 10, 2);
+```
+
+A user (or Woo4Etch programmatically, via the existing `POST /etch-api/templates` route) then creates a template with slug `endpoint-order-received`, and it wins over `page-checkout` only on that endpoint — standard hierarchy semantics, no new UI concepts required. Etch's template UI could later surface this as a friendly condition ("only on endpoint …"), but the filter alone unblocks the whole use case.
+
+**Division of labor offer:** with this filter merged, Woo4Etch would ship and maintain the entire WooCommerce endpoint mapping (incl. docs and preset template slugs) — Etch core stays free of Woo-specific code. We'd prototype against a fork to keep the patch minimal and aligned with Etch's code style.
+
 ## Nice-to-have (lower priority)
 
 - **Component install API:** components are `wp_block` posts plus `etch_component_*` meta and there are CRUD REST routes (`classes/RestApi/Routes/ComponentsRoutes.php`) — but no import/install mechanism for a packaged set. A documented "install component package" entry point would let companion plugins ship one-click demo layouts instead of copy-paste JSON.

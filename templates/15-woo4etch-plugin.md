@@ -461,6 +461,7 @@ The same bridge exposes My Account and order data, so those pages can be built a
 | Key | Contents |
 |---|---|
 | `{options.account_menu}` | array — each: `key, label, url, is_active` (My Account nav) |
+| `{options.account_endpoint}` | current My Account endpoint key — `dashboard` on the account root, `orders` / `downloads` / `edit-address` / … on sub-pages, empty outside the account area. Lets one layout switch its content per endpoint: `{#if options.account_endpoint === "orders"}…{/if}` (see [`07-account.md`](./07-account.md#how-endpoints-work-read-this-first)) |
 | `{options.account_orders}` | array — each: `id, number, date, status, status_name, total, item_count, view_url` |
 | `{options.order}` | current order (thank-you / view-order): `number, date, status, status_name, total, email, payment_method, billing_address`, and `items` (each: `name, quantity, total, image`) |
 

@@ -10,11 +10,38 @@ Customer account area: dashboard, orders, downloads, addresses, account details,
 
 ## Preparation
 
-> **Etch context:** the My Account view is a **Page** (not a Template), with the shortcode `[woocommerce_my_account]` doing the heavy lifting. The current user is available via `{user.*}` (e.g. `{user.displayName}`, `{user.loggedIn}`). Order data inside endpoints is rendered by WooCommerce PHP — Etch only wraps it. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** the My Account view is a **Page** (not a Template), with the shortcode `[woocommerce_my_account]` doing the heavy lifting. The current user is available via `{user.*}` (e.g. `{user.displayName}`, `{user.loggedIn}`). See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
-The My Account page must contain `[woocommerce_my_account]`. Check at `WooCommerce → Settings → Advanced → Pages → My account`.
+The My Account page must contain `[woocommerce_my_account]` (or a custom layout, see below). Check at `WooCommerce → Settings → Advanced → Pages → My account`.
 
-WooCommerce routes the sub-pages through **endpoints** (rewrite rules), not separate pages. If your URLs look wrong (`?orders=` instead of `/orders/`), flush permalinks once: `Settings → Permalinks → Save`.
+### How endpoints work (read this first)
+
+Dashboard, Orders, Downloads, Addresses, Account details, `view-order` — these are **not separate pages or templates**. WooCommerce routes them all through **endpoints** (rewrite rules) on the *one* My Account page: `/my-account/orders/` is still the My Account page, with the `orders` endpoint active. The same applies to the thank-you page (`order-received` endpoint on the Checkout page, see [`08-thank-you.md`](./08-thank-you.md)).
+
+Consequence for Etch: **there is nothing to register or activate per endpoint.** One Etch layout (assigned to the My Account page) renders for *all* endpoint URLs. You build the endpoint views inside that one layout and switch between them. Don't look for per-endpoint templates — some builders (e.g. Bricks) modeled these as separate template types, which is exactly the model that confuses users, because it hides that it's one page. Three ways to switch:
+
+1. **Let WooCommerce switch (simplest):** keep `[woocommerce_my_account]` (or Woo4Etch's `[woo_account_content]`, which renders only the content area of the current endpoint, so you can build the navigation yourself). WooCommerce picks the right content per endpoint. Custom markup is limited to what hooks allow.
+
+2. **Etch-native conditionals (full HTML control, previews in the builder):** Woo4Etch exposes the current endpoint as `{options.account_endpoint}` — `dashboard` on the account root, the endpoint key (`orders`, `downloads`, `edit-address`, …) on sub-pages:
+
+   ```html
+   {#if options.account_endpoint === "dashboard"}
+     <p>Hello <strong>{user.displayName}</strong>!</p>
+   {/if}
+   {#if options.account_endpoint === "orders"}
+     {#loop options.account_orders as order}
+       <a href="{order.view_url}">#{order.number}</a> — {order.status_name} — {order.total}
+     {/loop}
+   {/if}
+   ```
+
+   Build the navigation from `{options.account_menu}` (each item: `key`, `label`, `url`, `is_active`). Forms (edit address, edit account) stay with `[woo_account_content]` — they are real Woo PHP with validation.
+
+3. **Shortcode conditionals (server-rendered, frontend only):** `[woo_if cond="is_wc_endpoint_url" arg="orders"]…[/woo_if]` — works, but appears as a placeholder in the builder canvas.
+
+In practice, mix 1 and 2: Etch-native navigation + dashboard + orders list (all loopable, all previewing in the builder), and `[woo_account_content]` for the form endpoints.
+
+If your URLs look wrong (`?orders=` instead of `/orders/`), flush permalinks once: `Settings → Permalinks → Save`.
 
 ## Etch HTML — Account wrapper (logged-in view)
 
