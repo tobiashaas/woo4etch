@@ -145,6 +145,11 @@ final class Woo4Etch {
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_cart_data']);
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_account_order_data']);
 
+        // Product fields ({this.price}, {this.is_on_sale}, …) on the post root —
+        // the same seam Etch's own integration uses for gallery_images.
+        // Disable: woo4etch/expose_product_data.
+        add_filter('etch/dynamic_data/post', [__CLASS__, 'expose_product_data'], 10, 2);
+
         if (is_admin()) {
             Woo4Etch_Admin::init();
         }
@@ -1688,8 +1693,113 @@ final class Woo4Etch {
     }
 
     /* ============================================================
-       Dynamic data bridge — expose the cart to Etch
+       Dynamic data bridge — expose Woo data (products, cart) to Etch
        ============================================================ */
+
+    /**
+     * Enrich Etch's post dynamic data for WooCommerce products, so price, stock,
+     * rating and sale state are real Dynamic Keys ({this.price}, {this.is_on_sale}, …)
+     * instead of shortcodes — visible and previewable in the Etch builder canvas.
+     * Hooked to `etch/dynamic_data/post`, the same seam Etch's own WooCommerce
+     * integration uses for gallery_images. Inside loops the keys read {item.price} etc.
+     *
+     * Exposed keys (plain text unless noted — Etch text blocks HTML-escape values):
+     *   price                      — formatted price (sale range / variable "from")
+     *   regular_price, sale_price  — formatted; empty for variable products
+     *   price_html                 — Woo's price markup incl. <del>/<ins>; renders
+     *                                only in Raw-HTML blocks (text blocks escape it)
+     *   price_amount               — raw decimal for itemprop/schema
+     *   currency_symbol
+     *   is_on_sale (bool), sale_percentage (int; cheapest variation for variables)
+     *   sku, product_type          — `type` is already taken by Etch (post type)
+     *   stock_status               — instock | outofstock | onbackorder
+     *   stock_label                — localized availability text (may be empty for
+     *                                in-stock products, per Woo inventory settings)
+     *   stock_quantity (int|''), is_in_stock (bool)
+     *   is_purchasable, is_featured (bool)
+     *   rating (float), rating_count, review_count (int)
+     *   add_to_cart_url, add_to_cart_text
+     *   weight, dimensions         — formatted; empty when not set
+     *   upsell_ids                 — array of product IDs
+     *
+     * Keys Etch already set are never overwritten. Disable:
+     * add_filter('woo4etch/expose_product_data','__return_false').
+     * Reshape/extend: add_filter('woo4etch/product_data', fn($d, $product) => $d, 10, 2).
+     *
+     * @param array<string,mixed> $data    Etch post data.
+     * @param int                 $post_id Post being resolved.
+     * @return array<string,mixed>
+     */
+    public static function expose_product_data($data, $post_id) {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!apply_filters('woo4etch/expose_product_data', true)) {
+            return $data;
+        }
+        if (!function_exists('wc_get_product') || 'product' !== get_post_type($post_id)) {
+            return $data;
+        }
+        $product = wc_get_product($post_id);
+        if (!$product instanceof WC_Product) {
+            return $data;
+        }
+
+        $regular = $product->get_regular_price();
+        $sale    = $product->get_sale_price();
+        if ($product->is_type('variable')) {
+            // Variable products have no own prices — use the cheapest variation
+            // for the discount percentage (regular/sale stay empty below).
+            $regular = $product->get_variation_regular_price('min');
+            $sale    = $product->get_variation_sale_price('min');
+        }
+        $percentage = 0;
+        if ($product->is_on_sale() && is_numeric($regular) && (float) $regular > 0
+            && is_numeric($sale) && (float) $sale < (float) $regular) {
+            $percentage = (int) round(100 - ((float) $sale / (float) $regular) * 100);
+        }
+
+        $price_html    = $product->get_price_html();
+        $display_price = wc_get_price_to_display($product);
+        $availability  = $product->get_availability();
+        $is_variable   = $product->is_type('variable');
+
+        $payload = [
+            'price'            => self::plain($price_html),
+            'regular_price'    => (!$is_variable && $regular !== '' && $regular !== null) ? self::plain(wc_price($regular)) : '',
+            'sale_price'       => (!$is_variable && $product->is_on_sale() && $sale !== '' && $sale !== null) ? self::plain(wc_price($sale)) : '',
+            'price_html'       => $price_html,
+            'price_amount'     => ($display_price === '' || $display_price === null) ? '' : wc_format_decimal($display_price, wc_get_price_decimals()),
+            'currency_symbol'  => self::plain(get_woocommerce_currency_symbol()),
+            'is_on_sale'       => $product->is_on_sale(),
+            'sale_percentage'  => $percentage,
+            'sku'              => (string) $product->get_sku(),
+            'product_type'     => $product->get_type(),
+            'stock_status'     => $product->get_stock_status(),
+            'stock_label'      => isset($availability['availability']) ? self::plain($availability['availability']) : '',
+            'stock_quantity'   => $product->get_stock_quantity() ?? '',
+            'is_in_stock'      => $product->is_in_stock(),
+            'is_purchasable'   => $product->is_purchasable(),
+            'is_featured'      => $product->is_featured(),
+            'rating'           => (float) $product->get_average_rating(),
+            'rating_count'     => (int) $product->get_rating_count(),
+            'review_count'     => (int) $product->get_review_count(),
+            'add_to_cart_url'  => $product->add_to_cart_url(),
+            'add_to_cart_text' => $product->add_to_cart_text(),
+            'weight'           => $product->has_weight() ? self::plain(wc_format_weight($product->get_weight())) : '',
+            'dimensions'       => $product->has_dimensions() ? self::plain(wc_format_dimensions($product->get_dimensions(false))) : '',
+            'upsell_ids'       => array_map('intval', (array) $product->get_upsell_ids()),
+        ];
+        $payload = apply_filters('woo4etch/product_data', $payload, $product);
+
+        // Etch's own keys (and future ones) always win.
+        foreach ($payload as $key => $value) {
+            if (!array_key_exists($key, $data)) {
+                $data[$key] = $value;
+            }
+        }
+        return $data;
+    }
 
     /**
      * Add the WooCommerce cart to Etch's `option` dynamic-data root, so the cart

@@ -139,15 +139,17 @@ Same field names in both contexts — only the **keyword** changes. See [`10-etc
 | Featured image URL | `{this.image.url}` | `{item.image.url}` |
 | Excerpt | `{this.excerpt}` | `{item.excerpt}` |
 | Content | `{this.content}` | `{item.content}` |
-| Price | `{this.meta._price}` | `{item.meta._price}` |
-| SKU | `{this.meta._sku}` | `{item.meta._sku}` |
-| Stock status | `{this.meta._stock_status}` | `{item.meta._stock_status}` |
+| Price (formatted) * | `{this.price}` | `{item.price}` |
+| Price (raw meta) | `{this.meta._price}` | `{item.meta._price}` |
+| SKU * | `{this.sku}` (or `{this.meta._sku}`) | `{item.sku}` |
+| Stock status * | `{this.stock_status}` / `{this.stock_label}` | `{item.stock_status}` / `{item.stock_label}` |
+| On sale (boolean) * | `{this.is_on_sale}` | `{item.is_on_sale}` |
 | Category | `{this.product_cat.0.name}` | `{item.product_cat.0.name}` |
 | Custom attribute | `{this.pa_hersteller.0.name}` | `{item.pa_hersteller.0.name}` |
 | Product ID | `{this.id}` | `{item.id}` |
 | Product gallery (array) | `{this.gallery_images}` — loop it | `{item.gallery_images}` — loop it |
 
-Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch).
+Keys marked __*__ are added by the **Woo4Etch plugin** (product-data bridge; full list in [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#product-fields-as-etch-dynamic-data)). The raw `meta._*` keys come from Etch itself and always work. Full list in the [main knowledge base](../WooCommerce-in-Etch-Knowledgebase.md#5-woocommerce-custom-layouts-guide-for-etch).
 
 ### Product image gallery — `gallery_images`
 
@@ -179,7 +181,8 @@ The Woo4Etch plugin offers an equivalent server-rendered shortcode: `[woo_galler
 Dynamic Keys support chainable **modifiers** — formatting/transform functions written as method calls inside the braces. This is the clean way to format prices, dates, and text without extra PHP.
 
 ```html
-<!-- Price formatted with 2 decimals, comma decimal, dot thousands -->
+<!-- Raw meta price formatted with 2 decimals, comma decimal, dot thousands.
+     (With the Woo4Etch plugin, {this.price} is already store-formatted.) -->
 <span class="price">€ {this.meta._price.numberFormat(2, ',', '.')}</span>
 
 <!-- Date formatted with a PHP date format string -->

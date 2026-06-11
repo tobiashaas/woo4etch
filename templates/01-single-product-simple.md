@@ -41,7 +41,7 @@ add_filter('woocommerce_enqueue_styles', '__return_empty_array');
       <h1 class="product_title entry-title" itemprop="name">{this.title}</h1>
 
       <p class="price" aria-label="Price">
-        <span itemprop="price">{this.meta._price}</span>
+        <span itemprop="price" content="{this.price_amount}">{this.price}</span>
         <meta itemprop="priceCurrency" content="EUR">
       </p>
 
@@ -128,7 +128,7 @@ add_filter('woocommerce_enqueue_styles', '__return_empty_array');
         <ul class="product_meta">
           <li class="sku_wrapper">
             SKU:
-            <span class="sku" itemprop="sku">{this.meta._sku}</span>
+            <span class="sku" itemprop="sku">{this.sku}</span>
           </li>
           <li class="posted_in">
             Category:

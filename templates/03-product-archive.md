@@ -71,8 +71,10 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
              height="600"
              loading="lazy">
 
-        <!-- Optional: sale badge -->
-        <span class="onsale" aria-hidden="true" hidden>Sale</span>
+        <!-- Optional: sale badge (is_on_sale / sale_percentage need the Woo4Etch plugin) -->
+        {#if item.is_on_sale}
+          <span class="onsale">-{item.sale_percentage}%</span>
+        {/if}
       </figure>
 
       <div class="product-card__body">
@@ -82,7 +84,7 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
         <h2 class="woocommerce-loop-product__title">{item.title}</h2>
 
         <!-- Hook: woocommerce_after_shop_loop_item_title -->
-        <p class="price">{item.meta._price}</p>
+        <p class="price">{item.price}</p>
 
         <p class="product-card__excerpt">{item.excerpt}</p>
       </div>
@@ -93,7 +95,7 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
       <a href="?add-to-cart={item.id}"
          data-quantity="1"
          data-product_id="{item.id}"
-         data-product_sku="{item.meta._sku}"
+         data-product_sku="{item.sku}"
          class="button product_type_simple add_to_cart_button ajax_add_to_cart"
          aria-label="Add {item.title} to cart"
          rel="nofollow">
@@ -197,6 +199,8 @@ add_action('init', function () {
 ```
 
 ### Custom sale badge in the loop
+
+With the Woo4Etch plugin this needs no PHP — use a condition in the Etch markup (`{#if item.is_on_sale}…{/if}`, see the card above). The hook variant is only needed if the badge must come from PHP (e.g. injected by a third-party plugin):
 
 ```php
 add_action('woocommerce_after_shop_loop_item_title', function () {

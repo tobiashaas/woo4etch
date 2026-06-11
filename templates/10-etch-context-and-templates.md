@@ -171,7 +171,7 @@ The inner `item.gallery_images` is read from the outer loop's current `item`; in
 - Writing `{this.title}` inside a `{#loop … as item}` block. `this` still points to the template's main item (the archive), not the loop's current product → wrong title.
 - Forgetting to wrap card markup in `{#loop mainQuery as item}` on an archive template → only the first row renders or nothing at all.
 - Using `{currentUser.*}` or `{loggedInUser.*}` — those don't exist. The correct keyword is `{user.*}`.
-- Expecting WooCommerce keys like `{this.meta._price}` on a non-product page — only available where the current item is a product.
+- Expecting WooCommerce keys like `{this.meta._price}` on a non-product page — only available where the current item is a product. The same goes for the formatted product keys the Woo4Etch plugin adds (`{this.price}`, `{this.is_on_sale}`, `{this.stock_label}`, … — see [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#product-fields-as-etch-dynamic-data)).
 
 ## Sources
 

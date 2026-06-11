@@ -56,11 +56,52 @@ See the plain-language explanation in [`00-README.md`](./00-README.md#declare-wo
 | Fire a Woo hook so plugins can inject content | **Woo4Etch** — `[do_action hook="..."]` |
 | Show the cart counter in the header | **Woo4Etch** — `[woo_cart_count]` (or use Woo fragments for live update) |
 | Render product reviews | **Woo4Etch** — `[woo_review_form]` |
-| Show formatted price with sale strikethrough | **Woo4Etch** — `[woo_price]` (Etch's `{this.meta._price}` gives raw value only) |
+| Show the formatted price, stock label, rating, sale state | **Etch Dynamic Keys via Woo4Etch** — `{this.price}`, `{this.stock_label}`, `{this.is_on_sale}` … (see [Product fields](#product-fields-as-etch-dynamic-data)); `[woo_price]` if you want Woo's `<del>/<ins>` strikethrough markup in place |
 | Loop the product image gallery | **Etch loop** — `{#loop this.gallery_images as image}` (or **Woo4Etch** `[woo_gallery]`) |
 | Show/hide by Woo context (is_cart, on_sale, …) | **Woo4Etch** — `[woo_if cond="..."]…[/woo_if]` |
 | Product loop pagination on an archive | **Woo4Etch** — `[woo_pagination]` |
 | Output a WooCommerce template part | **Woo4Etch** — `[woo_template name="single-product/related"]` |
+
+## Product fields as Etch dynamic data
+
+On `product` posts, Woo4Etch enriches Etch's post data (the same seam Etch's own integration uses for `gallery_images`), so the most-needed product fields are **real Dynamic Keys** — they render live in the builder canvas and need no shortcode. In a Single template use `{this.*}`; inside a loop use `{item.*}`.
+
+```html
+<p class="price">
+  <span itemprop="price" content="{this.price_amount}">{this.price}</span>
+</p>
+{#if this.is_on_sale}
+  <span class="badge badge--sale">-{this.sale_percentage}%</span>
+{/if}
+<p class="stock stock--{this.stock_status}">{this.stock_label}</p>
+```
+
+| Key | Value |
+|---|---|
+| `{this.price}` | formatted price, plain text (sale range, variable "from") |
+| `{this.regular_price}` / `{this.sale_price}` | formatted; empty for variable products |
+| `{this.price_html}` | Woo's price markup incl. `<del>/<ins>` — **Raw-HTML blocks only** (text blocks escape HTML) |
+| `{this.price_amount}` | raw decimal for `itemprop`/schema |
+| `{this.currency_symbol}` | active currency symbol |
+| `{this.is_on_sale}` | boolean — for Etch condition blocks |
+| `{this.sale_percentage}` | integer discount (cheapest variation for variables); `0` when not on sale |
+| `{this.sku}` | product SKU |
+| `{this.product_type}` | `simple` \| `variable` \| `grouped` \| `external` (`type` is Etch's post type) |
+| `{this.stock_status}` | `instock` \| `outofstock` \| `onbackorder` — handy as a CSS-class suffix |
+| `{this.stock_label}` | localized availability text (can be empty for in-stock products, per Woo inventory settings) |
+| `{this.stock_quantity}` | number, or empty when stock management is off |
+| `{this.is_in_stock}` / `{this.is_purchasable}` / `{this.is_featured}` | booleans |
+| `{this.rating}` / `{this.rating_count}` / `{this.review_count}` | average rating + counts |
+| `{this.add_to_cart_url}` / `{this.add_to_cart_text}` | direct add-to-cart URL + localized button label |
+| `{this.weight}` / `{this.dimensions}` | formatted, empty when not set |
+| `{this.upsell_ids}` | array of product IDs (e.g. `{this.upsell_ids|join(',')}`) |
+
+**Notes:**
+
+- The raw meta keys (`{this.meta._price}`, `{this.meta._sku}`, …) still work — the new keys are formatted/derived conveniences on top. There is no `is_on_sale` meta in WooCommerce; before this bridge, sale state required comparing `_sale_price` manually.
+- Keys Etch sets itself are never overwritten; if Etch ships a same-named key later, Etch wins.
+- Disable: `add_filter('woo4etch/expose_product_data', '__return_false');` — extend/reshape: `woo4etch/product_data` filter (receives the payload and the `WC_Product`).
+- The add-to-cart **form** stays hand-written markup or `[woo_add_to_cart]` — these keys are display data, not the form.
 
 ## The generic `[do_action]` shortcode
 

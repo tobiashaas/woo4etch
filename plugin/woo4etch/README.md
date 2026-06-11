@@ -12,6 +12,16 @@ Built on top of [Zack Pyle's](https://community.etchwp.com/u/3f0028c4) elegant `
 
 The plugin is ready to use: all shortcodes register on `plugins_loaded` once WooCommerce is available. Drop them into Etch HTML like any other shortcode.
 
+## Dynamic data bridges (no shortcode needed)
+
+Beyond shortcodes, the plugin exposes WooCommerce data as **Etch Dynamic Keys**, so it renders live in the builder canvas:
+
+- **Products** — `{this.price}`, `{this.is_on_sale}`, `{this.sale_percentage}`, `{this.stock_status}`, `{this.rating}`, … on every `product` post (also as `{item.*}` in loops).
+- **Cart** — `{options.cart_items}` (loopable), `{options.cart_count}`, `{options.cart_total}`, `{options.cart_nonce}`, …
+- **Account & orders** — `{options.account_menu}`, `{options.account_orders}`, `{options.order}`.
+
+Full key reference: [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4etch-plugin.md).
+
 ### Updates from GitHub
 
 When installed under `wp-content/plugins/woo4etch/`, Woo4Etch checks [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) for new versions. Publish a release with the `woo4etch.zip` asset (created automatically when a maintainer pushes a `v*` tag). Updates appear under **Dashboard → Updates**.
