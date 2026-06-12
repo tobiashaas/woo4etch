@@ -55,6 +55,8 @@ Option (c) is the nicest for data providers since the answer arrives exactly whe
 
 **Gap:** no way to register `{woo.cart.items}` / `{woo.order.total}` — a root that makes ownership obvious, avoids collisions and groups an integration's keys in the builder's key-picker.
 
+**Field evidence that the seam already works:** source research into existing third-party Etch integrations shows that `DynamicContentRegistry::enqueue()` is already being used in production today to register custom loopable roots (live cart items, payment methods, shipping rates), typically guarded by a bare `class_exists()` check on the registry class. So the mechanism is proven viable end-to-end — what's missing is only that it's public, documented and stable: integrations currently depend on an internal class name and undocumented timing, which can silently break on any Etch refactor.
+
 **Proposal:** either open up `DynamicContentRegistry` (`classes/Blocks/Global/DynamicContent/DynamicContentRegistry.php` — `enqueue()` already exists but is undocumented and its timing relative to `build_global_context()` is unclear), or a registration filter:
 
 ```php
