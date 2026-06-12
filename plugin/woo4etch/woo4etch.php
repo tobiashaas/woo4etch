@@ -693,15 +693,28 @@ final class Woo4Etch {
     /**
      * Optionally start buy-now with an empty cart (true one-click checkout).
      * Off by default — opt in: add_filter('woo4etch/buy_now_empty_cart', '__return_true');
-     * Runs before WooCommerce's add-to-cart handler (wp_loaded, 20).
+     *
+     * Hooks into woocommerce_add_to_cart (fires only after a *successful* add),
+     * so the existing cart is only cleared when the product was actually added —
+     * not when WooCommerce rejects the request (e.g. variable product without a
+     * chosen variation). The just-added item is kept; all other items are removed.
      */
     public static function buy_now_maybe_empty_cart() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Woo's own add-to-cart flow has no nonce.
         if (empty($_REQUEST['buy_now']) || empty($_REQUEST['add-to-cart'])) {
             return;
         }
-        if (apply_filters('woo4etch/buy_now_empty_cart', false) && WC()->cart) {
-            WC()->cart->empty_cart();
+        if (apply_filters('woo4etch/buy_now_empty_cart', false)) {
+            add_action('woocommerce_add_to_cart', static function ($cart_item_key) {
+                if (!WC()->cart) {
+                    return;
+                }
+                foreach (array_keys(WC()->cart->get_cart()) as $key) {
+                    if ($key !== $cart_item_key) {
+                        WC()->cart->remove_cart_item($key);
+                    }
+                }
+            }, 10, 1);
         }
     }
 

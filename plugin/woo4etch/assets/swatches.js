@@ -13,17 +13,19 @@
  *           data-value="blue">…</button>
  *
  * The selected swatch gets the class `is-selected` (style it in Etch) and
- * aria-pressed="true". Woo's "Clear" link resets all swatches.
+ * aria-pressed="true". Woo's "Clear" link resets all swatches in the same form.
+ * All lookups are scoped to the owning form so multiple variation forms on one
+ * page (quick views, related products) never bleed into each other.
  */
 (function () {
 	'use strict';
 
-	function swatchesFor(attribute) {
-		return document.querySelectorAll('[data-w4e-swatch][data-attribute="' + attribute + '"]');
+	function swatchesFor(form, attribute) {
+		return form.querySelectorAll('[data-w4e-swatch][data-attribute="' + attribute + '"]');
 	}
 
-	function markSelected(attribute, active) {
-		swatchesFor(attribute).forEach(function (el) {
+	function markSelected(form, attribute, active) {
+		swatchesFor(form, attribute).forEach(function (el) {
 			var selected = el === active;
 			el.classList.toggle('is-selected', selected);
 			el.setAttribute('aria-pressed', selected ? 'true' : 'false');
@@ -56,7 +58,7 @@
 			select.dispatchEvent(new Event('change', { bubbles: true }));
 		}
 
-		markSelected(attribute, value === '' ? null : swatch);
+		markSelected(form, attribute, value === '' ? null : swatch);
 	}
 
 	document.addEventListener('click', function (event) {
@@ -68,10 +70,12 @@
 		syncSelect(swatch);
 	});
 
-	// Woo's "Clear" link fires reset_data on the form — unselect all swatches.
+	// Woo's "Clear" link fires reset_data on the form — unselect swatches in
+	// that specific form only (scoped to avoid cross-form bleed).
 	if (window.jQuery) {
 		window.jQuery(document).on('reset_data', 'form.variations_form', function () {
-			document.querySelectorAll('[data-w4e-swatch].is-selected').forEach(function (el) {
+			var form = this;
+			form.querySelectorAll('[data-w4e-swatch].is-selected').forEach(function (el) {
 				el.classList.remove('is-selected');
 				el.setAttribute('aria-pressed', 'false');
 			});
