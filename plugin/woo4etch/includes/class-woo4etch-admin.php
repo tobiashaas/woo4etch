@@ -23,6 +23,27 @@ final class Woo4Etch_Admin {
         add_action('admin_menu', [__CLASS__, 'register_menu'], 99);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
         add_action('admin_post_woo4etch_install_layout', [__CLASS__, 'handle_install_layout']);
+        add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
+    }
+
+    /**
+     * admin-post handler: persist the plugin settings (currently the
+     * "disable WooCommerce styles" checkbox).
+     */
+    public static function handle_save_settings() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_die(esc_html__('You do not have permission to do this.', 'woo4etch'));
+        }
+        check_admin_referer('woo4etch_save_settings');
+
+        $settings = (array) get_option('woo4etch_settings', []);
+        $settings['disable_woo_styles'] = !empty($_POST['disable_woo_styles']);
+        update_option('woo4etch_settings', $settings);
+
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = add_query_arg('w4e_settings_saved', '1', remove_query_arg('w4e_settings_saved', $redirect));
+        wp_safe_redirect($redirect);
+        exit;
     }
 
     /**
@@ -144,6 +165,44 @@ final class Woo4Etch_Admin {
             . '.woo4etch-shortcodes .woo4etch-intro{max-width:72em;}'
             . '.woo4etch-shortcodes .woo4etch-installed{color:#00a32a;font-weight:700;margin-left:4px;}'
         );
+    }
+
+    /**
+     * Settings: toggles that would otherwise need a PHP snippet.
+     */
+    private static function render_settings_section() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flag.
+        $saved = isset($_GET['w4e_settings_saved']);
+        // phpcs:enable
+        $settings = (array) get_option('woo4etch_settings', []);
+        $disabled_styles = !empty($settings['disable_woo_styles']);
+        ?>
+        <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
+
+        <?php if ($saved) : ?>
+            <div class="notice notice-success inline"><p><?php esc_html_e('Settings saved.', 'woo4etch'); ?></p></div>
+        <?php endif; ?>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="woo4etch_save_settings">
+            <?php wp_nonce_field('woo4etch_save_settings'); ?>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row"><?php esc_html_e('WooCommerce styles', 'woo4etch'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="disable_woo_styles" value="1" <?php checked($disabled_styles); ?>>
+                            <?php esc_html_e('Disable WooCommerce default styles', 'woo4etch'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Removes all three WooCommerce stylesheets (layout, smallscreen, general) so your Etch styles start from a blank slate — no specificity fights, no !important. Uncheck to bring the Woo default styling back at any time. Note: payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override this via the woo4etch/disable_woo_styles filter.', 'woo4etch'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(__('Save settings', 'woo4etch')); ?>
+        </form>
+        <?php
     }
 
     /**
@@ -273,6 +332,8 @@ final class Woo4Etch_Admin {
                     </a>
                 </p>
             </div>
+
+            <?php self::render_settings_section(); ?>
 
             <?php self::render_layouts_section(); ?>
 

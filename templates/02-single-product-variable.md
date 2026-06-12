@@ -247,6 +247,43 @@ add_action('init', function () {
 
 Keep the price-area callback (priority 10) active — it writes into the `.single_variation` div.
 
+### Variation swatches (color blobs / image previews)
+
+WooCommerce default offers only the bare `<select>` dropdowns. With Woo4Etch **1.5.0-beta.3+** you can render swatches as your own Etch markup — fully visible and styleable in the builder — and the plugin's bundled script bridges clicks to the hidden native select, so Woo's variation logic (price, stock, `variation_id`) keeps working untouched.
+
+**1. Keep the native `<select>` in the form** (hide it with CSS, don't remove it):
+
+```css
+.variations_form select[name^="attribute_"] { position: absolute; left: -9999px; }
+```
+
+**2. Render the swatches in Etch** — loop the attribute terms (`wp-terms` loop on the taxonomy, e.g. `pa_color`) and give each clickable element three data attributes:
+
+```html
+{#loop colorTerms as term}
+  <button type="button"
+          class="swatch swatch--color"
+          data-w4e-swatch
+          data-attribute="attribute_pa_color"
+          data-value="{term.slug}"
+          aria-pressed="false"
+          aria-label="{term.name}"
+          style="background-color: {term.meta.color}">
+  </button>
+{/loop}
+```
+
+Store the color value (or an image) as term meta on the attribute term (Etch CMS field or ACF) and use it freely in the markup — circles, pills, image thumbs, whatever you style.
+
+**3. Done.** The plugin script (`assets/swatches.js`, enqueued on product pages) sets the matching select value on click, triggers Woo's `change` handling, toggles `.is-selected` + `aria-pressed` on the active swatch, and clears all swatches when Woo's "Clear" link fires `reset_data`.
+
+```php
+// Scope or disable the script:
+add_filter('woo4etch/enqueue_swatches', '__return_false');
+```
+
+Style the selected state in Etch via `.swatch.is-selected`.
+
 ### Swap variation image (optional)
 
 By default Woo swaps the gallery image on variant change. If you have a custom gallery, listen to the event:

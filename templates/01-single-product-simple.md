@@ -45,9 +45,12 @@ add_filter('woocommerce_enqueue_styles', '__return_empty_array');
         <meta itemprop="priceCurrency" content="EUR">
       </p>
 
-      <p class="woocommerce-product-details__short-description" itemprop="description">
+      <!-- Use a RAW HTML element for the excerpt, not a Paragraph/Text element:
+           Woo short descriptions may contain HTML (<strong>, <br>, lists), and
+           Etch text blocks escape it — the tags would show as literal text. -->
+      <div class="woocommerce-product-details__short-description" itemprop="description">
         {this.excerpt}
-      </p>
+      </div>
     </header>
 
     <div class="product__layout">
@@ -245,6 +248,7 @@ If you want real AJAX, intercept the submit via JS and post to `wc-ajax=add_to_c
 
 ## Common mistakes
 
+- Excerpt rendered in a Paragraph/Text element → HTML in the short description (`<strong>`, `<br>`, lists) shows as literal text. Use a **Raw HTML** element for `{this.excerpt}`.
 - Quantity input without `name="quantity"` → quantity doesn't end up in the cart.
 - Forgot `value` on the submit button → server doesn't know *which* product.
 - `form.cart` replaced by `<div>` → Woo doesn't recognise the form.

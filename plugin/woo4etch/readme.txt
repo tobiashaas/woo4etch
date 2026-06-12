@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.0-beta.2
+Stable tag: 1.5.0-beta.3
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -113,6 +113,11 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.3 =
+* Buy-now flow built in: a submit button name="buy_now" inside form.cart sends the customer straight to checkout after the normal add-to-cart — no snippet needed. Filters: woo4etch/enable_buy_now (default on), woo4etch/buy_now_empty_cart (default off; opt in for true one-click checkout where the cart is emptied first).
+* Variation swatches, Etch-native: new bundled script (assets/swatches.js, enqueued on product pages) bridges clicks on your own Etch-built swatch markup (data-w4e-swatch / data-attribute / data-value) to the hidden native attribute select, so WooCommerce's variation logic (price, stock, variation_id) keeps working untouched. Selected state via .is-selected + aria-pressed; Woo's "Clear" link resets the swatches. Filter: woo4etch/enqueue_swatches.
+* New Settings section (Etch → Woo4Etch): checkbox "Disable WooCommerce default styles" removes all three Woo stylesheets so Etch styles start from a blank slate — and brings them back when unchecked. Filter override: woo4etch/disable_woo_styles.
 
 = 1.5.0-beta.2 =
 * Ready-made layouts with one-click install: Etch → Woo4Etch → Ready-made layouts ships complete, editable Etch layouts for cart, single product, shop archive, header mini-cart, My Account and thank-you. "Install as pattern" adds them to Etch's pattern library (category Woo4Etch, unsynced) and merges their classes into Etch's style system — existing styles with the same selector are reused, never overwritten. "Copy JSON" exports Etch's native paste format. All layouts are built on the dynamic-data bridges, so they preview live in the builder.

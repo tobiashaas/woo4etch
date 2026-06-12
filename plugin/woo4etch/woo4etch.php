@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.5.0-beta.2
+ * Version:           1.5.0-beta.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -123,7 +123,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.5.0-beta.2';
+    const VERSION = '1.5.0-beta.3';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -150,6 +150,8 @@ final class Woo4Etch {
         // the same seam Etch's own integration uses for gallery_images.
         // Disable: woo4etch/expose_product_data.
         add_filter('etch/dynamic_data/post', [__CLASS__, 'expose_product_data'], 10, 2);
+
+        self::register_frontend_features();
 
         if (is_admin()) {
             Woo4Etch_Admin::init();
@@ -641,6 +643,87 @@ final class Woo4Etch {
                 'example'     => '[shop_messages]',
             ],
         ]);
+    }
+
+    /* ============================================================
+       Frontend behaviours (no markup — they only support your Etch layout)
+       ============================================================ */
+
+    /**
+     * Register the frontend behaviours: optional Woo-CSS removal (admin
+     * checkbox), the buy-now → checkout redirect, and the variation-swatch
+     * sync script. None of these output markup; the layout stays yours.
+     */
+    private static function register_frontend_features() {
+        // Drop WooCommerce's three stylesheets so Etch styles start from a
+        // blank slate. Driven by the admin checkbox (Woo4Etch → Settings);
+        // the filter wins over the option either way:
+        //   add_filter('woo4etch/disable_woo_styles', '__return_true');
+        $settings = (array) get_option('woo4etch_settings', []);
+        if (apply_filters('woo4etch/disable_woo_styles', !empty($settings['disable_woo_styles']))) {
+            add_filter('woocommerce_enqueue_styles', '__return_empty_array', 20);
+        }
+
+        // Buy-now flow: a second submit button inside form.cart —
+        //   <button type="submit" name="buy_now" value="1" class="single_add_to_cart_button">Buy now</button>
+        // WooCommerce adds the product as usual; we only redirect to checkout.
+        // Disable: add_filter('woo4etch/enable_buy_now', '__return_false');
+        if (apply_filters('woo4etch/enable_buy_now', true)) {
+            add_filter('woocommerce_add_to_cart_redirect', [__CLASS__, 'buy_now_redirect'], 20);
+            add_action('wp_loaded', [__CLASS__, 'buy_now_maybe_empty_cart'], 15);
+        }
+
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_swatches_script']);
+    }
+
+    /**
+     * Send buy-now submissions straight to checkout after the add-to-cart.
+     *
+     * @param string|false $url Redirect URL WooCommerce decided on.
+     * @return string|false
+     */
+    public static function buy_now_redirect($url) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Woo's own add-to-cart flow has no nonce.
+        if (!empty($_REQUEST['buy_now']) && function_exists('wc_get_checkout_url')) {
+            return wc_get_checkout_url();
+        }
+        return $url;
+    }
+
+    /**
+     * Optionally start buy-now with an empty cart (true one-click checkout).
+     * Off by default — opt in: add_filter('woo4etch/buy_now_empty_cart', '__return_true');
+     * Runs before WooCommerce's add-to-cart handler (wp_loaded, 20).
+     */
+    public static function buy_now_maybe_empty_cart() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Woo's own add-to-cart flow has no nonce.
+        if (empty($_REQUEST['buy_now']) || empty($_REQUEST['add-to-cart'])) {
+            return;
+        }
+        if (apply_filters('woo4etch/buy_now_empty_cart', false) && WC()->cart) {
+            WC()->cart->empty_cart();
+        }
+    }
+
+    /**
+     * Variation-swatch sync script: clicks on [data-w4e-swatch] elements set
+     * the matching attribute <select> inside form.variations_form and trigger
+     * Woo's variation JS. The swatch markup itself is built in Etch (loop over
+     * the attribute terms) — the script only bridges clicks to the hidden select.
+     * Scope/disable: add_filter('woo4etch/enqueue_swatches', '__return_false');
+     */
+    public static function enqueue_swatches_script() {
+        $enqueue = function_exists('is_product') && is_product();
+        if (!apply_filters('woo4etch/enqueue_swatches', $enqueue)) {
+            return;
+        }
+        wp_enqueue_script(
+            'woo4etch-swatches',
+            plugins_url('assets/swatches.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
     }
 
     /* ============================================================

@@ -62,6 +62,21 @@ See the plain-language explanation in [`00-README.md`](./00-README.md#declare-wo
 | Product loop pagination on an archive | **Woo4Etch** — `[woo_pagination]` |
 | Output a WooCommerce template part | **Woo4Etch** — `[woo_template name="single-product/related"]` |
 
+## Settings (admin checkbox)
+
+Under **Etch → Woo4Etch → Settings**:
+
+- **Disable WooCommerce default styles** — removes all three Woo stylesheets (`woocommerce-layout`, `woocommerce-smallscreen`, `woocommerce-general`) so your Etch styles start from a blank slate: no specificity fights, no `!important`. Uncheck to bring the Woo styling back at any time. Payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override programmatically: `add_filter('woo4etch/disable_woo_styles', '__return_true');` (the filter wins over the checkbox).
+
+## Built-in frontend behaviours (no markup)
+
+These ship with the plugin and never output HTML — they only support your own Etch markup:
+
+| Behaviour | Trigger in your markup | Filters |
+|---|---|---|
+| **Buy-now → checkout redirect** | a submit button `name="buy_now"` inside `form.cart` (see [`16-one-click-checkout.md`](./16-one-click-checkout.md)) | `woo4etch/enable_buy_now` (default on), `woo4etch/buy_now_empty_cart` (default off) |
+| **Variation swatch sync** | clickable elements with `data-w4e-swatch`, `data-attribute`, `data-value` (see [`02-single-product-variable.md`](./02-single-product-variable.md#variation-swatches-color-blobs--image-previews)) | `woo4etch/enqueue_swatches` (default: product pages) |
+
 ## Ready-made layouts (install as Etch patterns)
 
 Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive, header mini-cart, My Account and thank-you. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.

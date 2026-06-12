@@ -245,6 +245,23 @@ In WooCommerce settings, switch the cart page to the **classic shortcode**:
 
 ## PHP layer
 
+### Remove the duplicate Gutenberg page title
+
+On the page WooCommerce assigns as Cart, the block templates (`woocommerce/page-content-wrapper`) auto-render a `<h1 class="wp-block-post-title">` above your content. With your own `<h1>` in the Etch layout the heading appears twice — and the Gutenberg one is not visible/editable in Etch. Suppress it in `customizations.php`:
+
+```php
+// Drop the auto-rendered post title on Woo pages (cart/checkout/account) —
+// the Etch layout brings its own <h1>.
+add_filter('render_block', function ($content, $block) {
+    if (($block['blockName'] ?? '') === 'core/post-title'
+        && function_exists('is_cart')
+        && (is_cart() || is_checkout() || is_account_page())) {
+        return '';
+    }
+    return $content;
+}, 10, 2);
+```
+
 ### Pass cart data to Etch
 
 Etch normally gets standard items from the WP loop. The cart contents you need to inject yourself via a render hook or load via AJAX/REST. Minimal REST endpoint:
@@ -336,6 +353,7 @@ jQuery(function ($) {
 
 ## Common mistakes
 
+- Duplicate `<h1>` on the cart page — Gutenberg's `wp-block-post-title` renders above your Etch layout. Remove it with the `render_block` snippet in the PHP layer above.
 - `name="cart[<key>][qty]"` replaced by custom names → update doesn't process quantities.
 - Cart nonce missing or stale → update rejected with "security check failed".
 - Coupon button not named `apply_coupon` → code isn't applied.
