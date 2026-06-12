@@ -34,6 +34,8 @@ add_action('after_setup_theme', function () {
 });
 ```
 
+> **Block-theme caveat:** the three `wc-product-gallery-*` supports alone do nothing on a block theme (like Etch's) — WooCommerce only enqueues the gallery scripts for classic themes (`is_product() && ! wp_is_block_theme()`). Use the Woo4Etch checkbox (**Woo4Etch → Settings → Enable WooCommerce gallery scripts**), which declares the supports *and* loads the scripts on product pages. The markup must use Woo's gallery classes — see [`01-single-product-simple.md`](./01-single-product-simple.md#gallery-variant--woocommerce-zoom-lightbox--thumbnail-slider).
+
 ### Disable WooCommerce default styles
 
 > Since Woo4Etch 1.5.0-beta.3 this is a checkbox in the plugin admin (**Woo4Etch → Settings → Disable WooCommerce default styles**) — no snippet needed, and you can bring the Woo styling back at any time. The snippet remains as an alternative:

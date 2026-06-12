@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.0-beta.3
+Stable tag: 1.5.0-beta.4
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -41,6 +41,7 @@ Product media:
 
 * `[woo_image size="woocommerce_single"]` — featured image
 * `[woo_gallery size="..." include_featured="no" link="no"]` — gallery images (matches the `gallery_images` Dynamic Key; featured image excluded unless include_featured="yes")
+* `[woo_gallery mode="woo" columns="4"]` — WooCommerce-native gallery markup (featured image first) that Woo's zoom/lightbox/slider scripts initialise on; enable those under Woo4Etch → Settings
 
 Product UI:
 
@@ -113,6 +114,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.4 =
+* Native Woo gallery effects (hover zoom, PhotoSwipe lightbox, FlexSlider thumbnail slider) for Etch layouts: new settings checkbox "Enable WooCommerce gallery scripts" declares the wc-product-gallery-* theme supports AND enqueues Woo's registered gallery scripts on single product pages — necessary because WooCommerce only auto-loads them for classic themes, never on block themes like Etch's. Filter: woo4etch/gallery_features (receives the checkbox result; return a subset to enable only some effects).
+* [woo_gallery mode="woo" columns="4"]: outputs WooCommerce-native gallery markup (wrapper + data-thumb/data-large_image attributes via wc_get_gallery_image_html, featured image first) that Woo's gallery scripts initialise on, and auto-enqueues them where it renders. The existing custom-markup output is unchanged (mode="custom", default).
 
 = 1.5.0-beta.3 =
 * Buy-now flow built in: a submit button name="buy_now" inside form.cart sends the customer straight to checkout after the normal add-to-cart — no snippet needed. Filters: woo4etch/enable_buy_now (default on), woo4etch/buy_now_empty_cart (default off; opt in for true one-click checkout where the cart is emptied first).

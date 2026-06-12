@@ -27,8 +27,8 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * admin-post handler: persist the plugin settings (currently the
-     * "disable WooCommerce styles" checkbox).
+     * admin-post handler: persist the plugin settings ("disable WooCommerce
+     * styles" and "enable gallery scripts" checkboxes).
      */
     public static function handle_save_settings() {
         if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
@@ -37,7 +37,8 @@ final class Woo4Etch_Admin {
         check_admin_referer('woo4etch_save_settings');
 
         $settings = (array) get_option('woo4etch_settings', []);
-        $settings['disable_woo_styles'] = !empty($_POST['disable_woo_styles']);
+        $settings['disable_woo_styles']     = !empty($_POST['disable_woo_styles']);
+        $settings['enable_gallery_scripts'] = !empty($_POST['enable_gallery_scripts']);
         update_option('woo4etch_settings', $settings);
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
@@ -176,6 +177,7 @@ final class Woo4Etch_Admin {
         // phpcs:enable
         $settings = (array) get_option('woo4etch_settings', []);
         $disabled_styles = !empty($settings['disable_woo_styles']);
+        $gallery_scripts = !empty($settings['enable_gallery_scripts']);
         ?>
         <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
 
@@ -196,6 +198,18 @@ final class Woo4Etch_Admin {
                         </label>
                         <p class="description">
                             <?php esc_html_e('Removes all three WooCommerce stylesheets (layout, smallscreen, general) so your Etch styles start from a blank slate — no specificity fights, no !important. Uncheck to bring the Woo default styling back at any time. Note: payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override this via the woo4etch/disable_woo_styles filter.', 'woo4etch'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Product gallery scripts', 'woo4etch'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="enable_gallery_scripts" value="1" <?php checked($gallery_scripts); ?>>
+                            <?php esc_html_e('Enable WooCommerce gallery scripts (hover zoom, lightbox, thumbnail slider)', 'woo4etch'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Loads WooCommerce\'s own zoom, PhotoSwipe lightbox and FlexSlider scripts on single product pages — including on block themes like Etch\'s, where WooCommerce itself never loads them. Your gallery markup must use the Woo gallery classes for the scripts to pick it up: the easiest way is the [woo_gallery mode="woo"] shortcode; the single-product template docs show a hand-written Etch variant. Developers can fine-tune via the woo4etch/gallery_features filter.', 'woo4etch'); ?>
                         </p>
                     </td>
                 </tr>

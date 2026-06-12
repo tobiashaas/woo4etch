@@ -19,6 +19,8 @@ Optional but useful for custom markup:
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');
 ```
 
+Optional — for the native Woo gallery effects (hover zoom, lightbox, thumbnail slider): check **Etch → Woo4Etch → Settings → Enable WooCommerce gallery scripts** and use the [Woo gallery markup variant](#gallery-variant--woocommerce-zoom-lightbox--thumbnail-slider) below instead of the plain gallery.
+
 > **Etch context:** this is a **Single template** assigned to the `product` post type via the Template Hub. The current product is available as `{this.*}` — *not* `{item.*}` (that keyword is only inside `{#loop … as item}{/loop}` blocks). See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 ## Etch HTML
@@ -152,6 +154,94 @@ add_filter('woocommerce_enqueue_styles', '__return_empty_array');
 </main>
 ```
 
+### Gallery variant — WooCommerce zoom, lightbox & thumbnail slider
+
+The plain gallery above only renders images — nothing is clickable. WooCommerce ships its own gallery scripts (hover zoom, PhotoSwipe lightbox, FlexSlider thumbnail slider), and they work on hand-written Etch markup too: they initialise on the Woo gallery classes and data attributes, not on Woo-generated templates.
+
+**Step 1 — enable the scripts:** check **Etch → Woo4Etch → Settings → Enable WooCommerce gallery scripts** (or use the `woo4etch/gallery_features` filter). The checkbox declares the three `wc-product-gallery-*` theme supports **and** enqueues the scripts on product pages. The theme supports alone are not enough: WooCommerce only auto-loads the gallery bundle for classic themes (`is_product() && ! wp_is_block_theme()` in `WC_Frontend_Scripts`), so on a block theme like Etch's nothing would load without the plugin closing that gap.
+
+**Step 2 — use Woo's gallery markup.** Easiest: replace the gallery section with the shortcode (Raw HTML element):
+
+```html
+[woo_gallery mode="woo" columns="4"]
+```
+
+It outputs Woo's native wrapper with the featured image first and proper thumbnail sizes for the slider strip. Or hand-write it for full markup control:
+
+```html
+<div class="woocommerce-product-gallery woocommerce-product-gallery--with-images woocommerce-product-gallery--columns-4 images"
+     data-columns="4"
+     style="opacity: 0; transition: opacity .25s ease-in-out;">
+  <figure class="woocommerce-product-gallery__wrapper">
+
+    <!-- Featured image first = the main slide -->
+    <div data-thumb="{this.image.url}" data-thumb-alt="{this.title}"
+         class="woocommerce-product-gallery__image">
+      <a href="{this.image.url}">
+        <img src="{this.image.url}" alt="{this.title}"
+             width="{this.image.width}" height="{this.image.height}"
+             data-src="{this.image.url}"
+             data-large_image="{this.image.url}"
+             data-large_image_width="{this.image.width}"
+             data-large_image_height="{this.image.height}"
+             class="wp-post-image">
+      </a>
+    </div>
+
+    {#loop this.gallery_images as image}
+      <div data-thumb="{image.url}" data-thumb-alt="{image.alt}"
+           class="woocommerce-product-gallery__image">
+        <a href="{image.url}">
+          <img src="{image.url}" alt="{image.alt}"
+               width="{image.width}" height="{image.height}"
+               data-caption="{image.caption}"
+               data-src="{image.url}"
+               data-large_image="{image.url}"
+               data-large_image_width="{image.width}"
+               data-large_image_height="{image.height}">
+        </a>
+      </div>
+    {/loop}
+  </figure>
+</div>
+```
+
+What the scripts key off — don't drop these:
+
+| Piece | Why |
+|---|---|
+| `.woocommerce-product-gallery` wrapper | `single-product.js` initialises here |
+| `.woocommerce-product-gallery__wrapper` | FlexSlider viewport |
+| `.woocommerce-product-gallery__image` per image | zoom target + lightbox slide list |
+| `<a href="full-size-url">` around the `<img>` | click opens the lightbox |
+| `data-large_image` + `data-large_image_width/height` | PhotoSwipe needs the full-size source and its dimensions |
+| `data-thumb` | FlexSlider builds the thumbnail nav from it |
+| `data-columns` + `--columns-4` class | thumbnail column layout |
+| inline `opacity: 0` style | Woo's JS fades the gallery in after init — only keep it while the scripts are enabled, otherwise the gallery stays invisible |
+
+Caveats:
+
+- In the hand-written variant `data-thumb="{image.url}"` points at the full-size file — fine for small galleries, but the thumbnail strip then downloads full images. `[woo_gallery mode="woo"]` uses the registered `woocommerce_gallery_thumbnail` size instead; prefer it for image-heavy products.
+- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. If you checked **Disable WooCommerce default styles**, add a minimal replacement yourself:
+
+  ```css
+  .woocommerce-product-gallery { position: relative; }
+  .woocommerce-product-gallery__trigger { position: absolute; top: .5em; right: .5em; z-index: 9; }
+  .flex-control-thumbs { display: flex; gap: .5rem; margin: .5rem 0 0; padding: 0; list-style: none; }
+  .flex-control-thumbs li { flex: 1; cursor: pointer; }
+  .flex-control-thumbs img { opacity: .5; }
+  .flex-control-thumbs img.flex-active,
+  .flex-control-thumbs img:hover { opacity: 1; }
+  ```
+
+  PhotoSwipe brings its own stylesheet either way (separate handle, unaffected by the checkbox).
+- Want only some effects? Pick features individually via the filter instead of the checkbox:
+
+  ```php
+  // e.g. zoom + lightbox, no slider
+  add_filter('woo4etch/gallery_features', fn() => ['wc-product-gallery-zoom', 'wc-product-gallery-lightbox']);
+  ```
+
 ## Required classes / attributes
 
 | Element | Required | Why |
@@ -255,6 +345,8 @@ If you want real AJAX, intercept the submit via JS and post to `wc-ajax=add_to_c
 - Existing `do_action()` calls removed from the template → plugins (e.g. confirmation popups, volume discounts) no longer see your product.
 - `enctype="multipart/form-data"` missing → breaks with some add-ons (e.g. Product Add-ons with file upload).
 - `aria-label` on the submit button only "Add to cart" → valid, but not ideal in the loop without product reference; include the product title.
+- Woo gallery markup with inline `opacity: 0` but the gallery scripts disabled → the gallery never becomes visible (only Woo's JS fades it in). Remove the inline style or enable the scripts.
+- Gallery scripts enabled but the plain (non-Woo-classes) gallery markup kept → nothing happens; the scripts only initialise on `.woocommerce-product-gallery`.
 
 ## Test checklist
 
@@ -263,3 +355,4 @@ If you want real AJAX, intercept the submit via JS and post to `wc-ajax=add_to_c
 - DevTools → Network → submit shows a request with `add-to-cart={this.id}` and `quantity=3`.
 - Keyboard: tab through the form, Enter submits.
 - Screen reader announces price, SKU, and button text.
+- With gallery scripts enabled: hovering the main image zooms, clicking it (or the 🔍 trigger) opens the PhotoSwipe lightbox, and the thumbnail strip switches slides.

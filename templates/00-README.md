@@ -82,6 +82,8 @@ The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
    });
    ```
 
+   > **Block-theme caveat:** on a block theme (like Etch's) the three `wc-product-gallery-*` supports do nothing by themselves — WooCommerce only enqueues the gallery scripts for classic themes. The Woo4Etch plugin closes that gap: check **Woo4Etch → Settings → Enable WooCommerce gallery scripts**, which declares the supports *and* loads the scripts on product pages. Markup requirements: see the gallery variant in [`01-single-product-simple.md`](./01-single-product-simple.md#gallery-variant--woocommerce-zoom-lightbox--thumbnail-slider).
+
 > The plugin runs this **late** (`after_setup_theme`, priority 99) and only when no theme has declared support, so a theme or child theme that *does* declare it always wins. To turn the automatic behaviour off: `add_filter('woo4etch/auto_theme_support', '__return_false');`
 
 ### Disable default Woo CSS (optional, recommended for custom markup)

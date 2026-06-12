@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.5.0-beta.3
+ * Version:           1.5.0-beta.4
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -90,9 +90,16 @@ add_action('after_setup_theme', static function () {
         add_theme_support('woocommerce', $args);
     }
 
-    // Off by default: Etch layouts usually build their own gallery, so we don't
-    // enqueue Woo's gallery JS unless explicitly opted in.
-    $gallery_features = (array) apply_filters('woo4etch/gallery_features', []);
+    // Off by default: Etch layouts usually build their own gallery. Opt in via
+    // the admin checkbox (Woo4Etch → Settings) or this filter; the filter
+    // receives the checkbox result and wins either way.
+    $settings = (array) get_option('woo4etch_settings', []);
+    $default_features = empty($settings['enable_gallery_scripts']) ? [] : [
+        'wc-product-gallery-zoom',
+        'wc-product-gallery-lightbox',
+        'wc-product-gallery-slider',
+    ];
+    $gallery_features = (array) apply_filters('woo4etch/gallery_features', $default_features);
     foreach ($gallery_features as $feature) {
         add_theme_support(sanitize_key($feature));
     }
@@ -123,7 +130,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.5.0-beta.3';
+    const VERSION = '1.5.0-beta.4';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -300,9 +307,9 @@ final class Woo4Etch {
             'woo_gallery' => [
                 'method'      => 'shortcode_gallery',
                 'category'    => __('Product media', 'woo4etch'),
-                'attributes'  => 'id, size, include_featured (yes|no), link (yes|no)',
-                'description' => __('Product gallery images (matches the gallery_images Dynamic Key; featured image excluded unless include_featured="yes").', 'woo4etch'),
-                'example'     => '[woo_gallery size="woocommerce_thumbnail"]',
+                'attributes'  => 'id, size, include_featured (yes|no), link (yes|no), mode (custom|woo), columns',
+                'description' => __('Product gallery images (matches the gallery_images Dynamic Key; featured image excluded unless include_featured="yes"). mode="woo" outputs WooCommerce-native markup (featured first) that Woo\'s zoom/lightbox/slider scripts initialise on — enable those under Woo4Etch → Settings.', 'woo4etch'),
+                'example'     => '[woo_gallery mode="woo" columns="4"]',
             ],
 
             /* ---- Product UI ---- */
@@ -674,6 +681,11 @@ final class Woo4Etch {
         }
 
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_swatches_script']);
+
+        // Woo's gallery JS (zoom/lightbox/slider) never loads on block themes,
+        // even with the wc-product-gallery-* supports declared — WooCommerce
+        // only enqueues the bundle for classic themes. Close that gap.
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_gallery_scripts'], 20);
     }
 
     /**
@@ -737,6 +749,59 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Enqueue WooCommerce's own gallery scripts (hover zoom, PhotoSwipe
+     * lightbox, FlexSlider thumbnail slider) on single product pages.
+     *
+     * The wc-product-gallery-* theme supports alone do nothing with a block
+     * theme: WC_Frontend_Scripts gates the whole gallery bundle behind
+     * `is_product() && ! wp_is_block_theme()`. The handles are always
+     * *registered* though, so we enqueue them ourselves — WooCommerce then
+     * localizes `wc_single_product_params` for every queued handle, and
+     * single-product.js initialises on `.woocommerce-product-gallery`.
+     */
+    public static function enqueue_gallery_scripts() {
+        if (!function_exists('is_product') || !is_product()) {
+            return;
+        }
+        if (!wp_is_block_theme()) {
+            return; // Classic theme: WooCommerce enqueues the bundle itself.
+        }
+        self::enqueue_gallery_assets();
+    }
+
+    /**
+     * Enqueue whichever Woo gallery features are theme-supported.
+     * Shared by the wp_enqueue_scripts hook and [woo_gallery mode="woo"].
+     */
+    private static function enqueue_gallery_assets() {
+        $zoom     = current_theme_supports('wc-product-gallery-zoom');
+        $lightbox = current_theme_supports('wc-product-gallery-lightbox');
+        $slider   = current_theme_supports('wc-product-gallery-slider');
+
+        if (!$zoom && !$lightbox && !$slider) {
+            return;
+        }
+
+        if ($zoom && wp_script_is('zoom', 'registered')) {
+            wp_enqueue_script('zoom');
+        }
+        if ($slider && wp_script_is('flexslider', 'registered')) {
+            wp_enqueue_script('flexslider');
+        }
+        if ($lightbox && wp_script_is('photoswipe-ui-default', 'registered')) {
+            wp_enqueue_script('photoswipe-ui-default');
+            wp_enqueue_style('photoswipe-default-skin');
+            // Prints the .pswp lightbox root markup PhotoSwipe opens into.
+            if (function_exists('woocommerce_photoswipe') && !has_action('wp_footer', 'woocommerce_photoswipe')) {
+                add_action('wp_footer', 'woocommerce_photoswipe', 15);
+            }
+        }
+        if (wp_script_is('wc-single-product', 'registered')) {
+            wp_enqueue_script('wc-single-product');
+        }
     }
 
     /* ============================================================
@@ -1267,11 +1332,21 @@ final class Woo4Etch {
             'size'             => 'woocommerce_thumbnail',
             'include_featured' => 'no',
             'link'             => 'no',
+            'mode'             => 'custom',
+            'columns'          => 4,
         ], $atts, 'woo_gallery');
 
         $product = self::resolve_product($atts);
         if (!$product) {
             return '';
+        }
+
+        // mode="woo": WooCommerce-native gallery markup that Woo's own
+        // zoom/lightbox/slider scripts initialise on (featured image first,
+        // like Woo's product-image.php). size/include_featured/link don't
+        // apply here — Woo's wc_get_gallery_image_html() decides those.
+        if ($atts['mode'] === 'woo') {
+            return self::render_native_woo_gallery($product, absint($atts['columns']));
         }
 
         $size = sanitize_key($atts['size']);
@@ -1301,6 +1376,55 @@ final class Woo4Etch {
         }
 
         return $items === '' ? '' : sprintf('<div class="woo-gallery">%s</div>', $items);
+    }
+
+    /**
+     * WooCommerce-native gallery for [woo_gallery mode="woo"]: the exact
+     * wrapper + per-image data attributes (data-thumb, data-large_image, …)
+     * that Woo's single-product.js initialises zoom, PhotoSwipe and
+     * FlexSlider on. Featured image always comes first — without a main
+     * slide the slider has nothing to show, exactly like Woo core.
+     *
+     * @param WC_Product $product Product to render.
+     * @param int        $columns Thumbnail columns (data-columns).
+     * @return string
+     */
+    private static function render_native_woo_gallery($product, $columns) {
+        if (!function_exists('wc_get_gallery_image_html')) {
+            return '';
+        }
+
+        $ids = $product->get_gallery_image_ids();
+        if ($product->get_image_id()) {
+            array_unshift($ids, $product->get_image_id());
+        }
+        $ids = array_values(array_unique(array_map('absint', $ids)));
+        if (empty($ids)) {
+            return '';
+        }
+
+        // The supports may be active without is_product() (e.g. a quick-view
+        // pattern) — make sure the scripts come along wherever this renders.
+        self::enqueue_gallery_assets();
+
+        $columns = max(1, $columns);
+        $images  = '';
+        foreach ($ids as $i => $attachment_id) {
+            $images .= wc_get_gallery_image_html($attachment_id, 0 === $i);
+        }
+
+        $has_gallery_js = current_theme_supports('wc-product-gallery-zoom')
+            || current_theme_supports('wc-product-gallery-lightbox')
+            || current_theme_supports('wc-product-gallery-slider');
+
+        return sprintf(
+            '<div class="woocommerce-product-gallery woocommerce-product-gallery--with-images woocommerce-product-gallery--columns-%1$d images" data-columns="%1$d"%2$s><figure class="woocommerce-product-gallery__wrapper">%3$s</figure></div>',
+            $columns,
+            // single-product.js fades the gallery in after init; without the
+            // scripts the inline opacity would hide it forever, so skip it.
+            $has_gallery_js ? ' style="opacity: 0; transition: opacity .25s ease-in-out;"' : '',
+            $images
+        );
     }
 
     /* ============================================================

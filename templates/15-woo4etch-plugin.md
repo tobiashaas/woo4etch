@@ -24,7 +24,7 @@ WooCommerce expects the active theme to call `add_theme_support('woocommerce')`.
 
 - Runs on `after_setup_theme` at **priority 99**, so a theme or child theme that already declares support always wins — the plugin only fills the gap.
 - Sets sensible image sizes (`thumbnail_image_width` 600, `single_image_width` 1200, a 3-column product grid).
-- Does **not** enable Woo's gallery JS (zoom/lightbox/slider) by default — Etch layouts usually build their own gallery.
+- Does **not** enable Woo's gallery JS (zoom/lightbox/slider) by default — Etch layouts usually build their own gallery. Opt in via the checkbox **Woo4Etch → Settings → Enable WooCommerce gallery scripts** or the `woo4etch/gallery_features` filter; the plugin then also *enqueues* the scripts on product pages, because WooCommerce itself never loads them on block themes (like Etch's) even with the theme supports declared.
 
 You normally don't touch this. To customise:
 
@@ -38,11 +38,15 @@ add_filter('woo4etch/theme_support_args', function ($args) {
     return $args;
 });
 
-// Opt in to Woo's built-in product gallery JS
+// Opt in to Woo's built-in product gallery JS (or just use the Settings
+// checkbox; the filter receives the checkbox result and wins either way —
+// handy to enable only some features, e.g. zoom + lightbox without slider)
 add_filter('woo4etch/gallery_features', function () {
     return ['wc-product-gallery-zoom', 'wc-product-gallery-lightbox', 'wc-product-gallery-slider'];
 });
 ```
+
+The gallery scripts initialise on Woo's gallery classes — use `[woo_gallery mode="woo"]` or the hand-written markup variant in [`01-single-product-simple.md`](./01-single-product-simple.md#gallery-variant--woocommerce-zoom-lightbox--thumbnail-slider).
 
 See the plain-language explanation in [`00-README.md`](./00-README.md#declare-woocommerce-support-in-the-theme).
 
@@ -194,6 +198,8 @@ add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
 [woo_image size="woocommerce_single"]           → featured image
 [woo_gallery size="woocommerce_thumbnail"]      → gallery (featured NOT included)
 [woo_gallery include_featured="yes" link="yes"] → prepend featured + link to full size
+[woo_gallery mode="woo" columns="4"]            → Woo-native markup (featured first) for
+                                                  Woo's zoom/lightbox/slider scripts
 ```
 
 The gallery shortcode mirrors the `gallery_images` Dynamic Key (see [`00-README.md`](./00-README.md#product-image-gallery--gallery_images)). For custom markup, prefer the Etch loop `{#loop this.gallery_images as image}`; reach for `[woo_gallery]` when you want Woo's standard image attributes server-side.
