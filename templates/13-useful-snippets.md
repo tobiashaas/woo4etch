@@ -27,6 +27,8 @@ Behind the scenes, WooCommerce's "URL add-to-cart" handler runs on `wp_loaded`. 
 
 ## "Buy Now" button (skip the cart, go straight to checkout)
 
+> **Built into the Woo4Etch plugin since 1.5.0-beta.3** — a submit button `name="buy_now"` inside `form.cart` is all you need; see [`16-one-click-checkout.md`](./16-one-click-checkout.md). The snippet below remains for plugin-free setups:
+
 ```php
 add_action('woocommerce_after_add_to_cart_button', 'kr_buy_now_button');
 function kr_buy_now_button() {

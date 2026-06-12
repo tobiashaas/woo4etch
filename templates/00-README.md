@@ -35,6 +35,8 @@ All templates follow the same structure:
 | `13-useful-snippets.md` | Buy-now button, custom add-to-cart URLs, free-shipping bar, refund request, more |
 | `14-visual-hook-guides.md` | Links to Business Bloomer's annotated hook diagrams |
 | `15-woo4etch-plugin.md` | **Woo4Etch** plugin (shortcodes + customizations) |
+| `16-one-click-checkout.md` | One-click checkout (Buy Now → checkout → thank-you) |
+| `17-components.md` | Component blueprints with pre-wired Woo markup |
 | `functions-snippets.md` | Consolidated PHP snippets from all templates |
 | `etch-copy/` | Copy/paste Etch snippets — paste a ready-made layout (e.g. the full cart) into the builder |
 
@@ -84,11 +86,13 @@ The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
 ### Disable default Woo CSS (optional, recommended for custom markup)
 
+> Easiest way: the checkbox under **Etch → Woo4Etch → Settings → Disable WooCommerce default styles** (Woo4Etch 1.5.0-beta.3+) — togglable any time, no code. Snippet alternative:
+
 ```php
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');
 ```
 
-Keeps your own styling clean without Woo defaults interfering.
+Keeps your own styling clean without Woo defaults interfering. Don't fight Woo's CSS with overrides — remove it and style on a blank slate. (See also [`../docs/ADR-001-no-template-overrides.md`](../docs/ADR-001-no-template-overrides.md) for why Woo4Etch never overrides Woo template files.)
 
 ### Replace Woo content wrappers
 

@@ -36,8 +36,25 @@ add_action('after_setup_theme', function () {
 
 ### Disable WooCommerce default styles
 
+> Since Woo4Etch 1.5.0-beta.3 this is a checkbox in the plugin admin (**Woo4Etch → Settings → Disable WooCommerce default styles**) — no snippet needed, and you can bring the Woo styling back at any time. The snippet remains as an alternative:
+
 ```php
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');
+```
+
+### Remove the duplicate Gutenberg page title (cart/checkout/account)
+
+WooCommerce's block templates auto-render a `<h1 class="wp-block-post-title">` above your content; with your own `<h1>` in Etch the heading appears twice:
+
+```php
+add_filter('render_block', function ($content, $block) {
+    if (($block['blockName'] ?? '') === 'core/post-title'
+        && function_exists('is_cart')
+        && (is_cart() || is_checkout() || is_account_page())) {
+        return '';
+    }
+    return $content;
+}, 10, 2);
 ```
 
 ### Replace WooCommerce content wrappers

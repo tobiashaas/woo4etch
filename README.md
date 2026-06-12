@@ -32,6 +32,8 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 | [`13-useful-snippets.md`](./templates/13-useful-snippets.md) | Curated practical snippets |
 | [`14-visual-hook-guides.md`](./templates/14-visual-hook-guides.md) | Business Bloomer hook diagrams |
 | [`15-woo4etch-plugin.md`](./templates/15-woo4etch-plugin.md) | Woo4Etch plugin (shortcodes + install) |
+| [`16-one-click-checkout.md`](./templates/16-one-click-checkout.md) | One-click checkout (Buy Now → checkout → thank-you) |
+| [`17-components.md`](./templates/17-components.md) | Component blueprints with pre-wired Woo markup |
 | [`functions-snippets.md`](./templates/functions-snippets.md) | Consolidated PHP snippets |
 | [`etch-copy/`](./templates/etch-copy/README.md) | Copy/paste Etch snippets — paste a ready-made layout (e.g. the full cart) into the builder |
 

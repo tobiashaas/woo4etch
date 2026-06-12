@@ -165,8 +165,21 @@ The inner `item.gallery_images` is read from the outer loop's current `item`; in
 > **In a Loop** → "I'm iterating; the current one is `item` → `{item.title}`."
 > **On a Page** → "Etch knows nothing specific; I either use `{user.*}` / `{site.*}`, or I bring my own data source."
 
+## Condition blocks hide content in the builder
+
+Content inside an Etch condition (`{#if …}`) is invisible — and therefore not editable — in the builder whenever the condition is false in the builder's preview context (e.g. *is on sale*, *in stock*, a chosen variation). Removing the condition to edit and re-adding it afterwards is error-prone.
+
+Workarounds, in order of preference:
+
+1. **Preview with a "fully loaded" product.** Set the template preview to a test product that satisfies every condition you use: on sale, in stock, with gallery, with variations. All condition branches become visible at once.
+2. **Build first, condition last.** Author the markup unconditioned, style it, and wrap it in the condition as the final step.
+3. **Temporarily invert instead of remove.** To edit the *false* branch, flip the condition (`!`) rather than deleting it — flipping back is harder to forget than re-creating the whole condition.
+
+The Woo4Etch dynamic-data bridges already help here: cart, account, and order loops return **sample data inside the builder**, so those layouts preview without a real shopping session.
+
 ## Common mistakes
 
+- Content inside a `{#if …}` condition seems to have vanished in the builder — the condition is false for the previewed item. See "Condition blocks hide content in the builder" above; don't rebuild the markup, change the preview product.
 - Writing `{item.title}` on a Single template (outside any loop). Etch doesn't know what `item` refers to → empty output.
 - Writing `{this.title}` inside a `{#loop … as item}` block. `this` still points to the template's main item (the archive), not the loop's current product → wrong title.
 - Forgetting to wrap card markup in `{#loop mainQuery as item}` on an archive template → only the first row renders or nothing at all.
