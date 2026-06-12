@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.0-beta.4
+Stable tag: 1.5.0-beta.5
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -114,6 +114,23 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.5 =
+* Experimental {woo.*} dynamic-data root: the shop data from {options.*} additionally under a namespaced, structured root — {woo.cart.items}, {woo.cart.count}, {woo.checkout.url}, {woo.account.menu}, {woo.account.orders}, {woo.order}, … Same values and builder sample data as {options.*}; lazy registration; fully guarded against Etch internals changing (then the woo root disappears while {options.*} keeps working — options.* remains the documented spelling). Filters: woo4etch/enable_woo_root, woo4etch/woo_root_data.
+* Ready-made layouts install without page reloads: per-layout install buttons now run via AJAX (button state and checkmark update in place), and a new "Install / reinstall all layouts" button installs the whole set in one click. The old form submit remains as a no-JS fallback.
+* Single-product layout: the gallery now uses Woo's native gallery markup (woocommerce-product-gallery classes, data-thumb/data-large_image attributes), so zoom/lightbox/slider work as soon as the gallery scripts are enabled in Settings; without them the bundled CSS renders the same markup as featured image + thumbnail grid. New root class w4e-gal so reinstalling picks up the new styles.
+* Single-product layout: the excerpt is now a Raw HTML element instead of a text element — Woo short descriptions may contain HTML, which text elements escape to literal tags.
+* Fix: variable products couldn't be purchased from the single-product layout — the buy box is now type-aware: simple products keep the hand-built form, variable/grouped/external get WooCommerce's native form (variations fully working; swatches.js bridges custom swatch markup on top).
+* Live variation price: swatches.js mirrors the chosen variation's price into elements marked data-w4e-variation-price (restores the range price on reset). The single-product layout marks its price row accordingly.
+* Hook marker data-w4e-hook (kses-proof [do_action]): an empty <div data-w4e-hook="..." data-w4e-product="{this.id}"></div> is filled with captured do_action() output after Etch renders — third-party hooks emitting forms/buttons/scripts survive Etch's raw-html sanitizer. Same woo4etch/allow_do_action restriction. The single-product layout ships these markers around its simple-product form.
+* WooCommerce's block-template compatibility layer is disabled on block themes (filter: woo4etch/disable_block_hook_compatibility) — Woo strips classic product/shop hook callbacks during block-template rendering and re-injects them only around woocommerce/* blocks, which Etch layouts don't contain; third-party hook output (e.g. Germanized legal info) silently disappeared even via [do_action]. With the layer off, classic hooks work again.
+* data-w4e-skip-defaults for hook markers: fires a hook with WooCommerce core's own template callbacks unhooked (restored afterwards) — e.g. woocommerce_single_product_summary renders only third-party extras (Germanized unit price, tax/shipping notices, delivery time) instead of duplicating the layout's title/price/excerpt/form. The single-product layout ships a summary-extras marker after its price row. Filter: woo4etch/hook_core_defaults.
+* New server-side embed marker data-w4e-add-to-cart: an empty <div data-w4e-add-to-cart="{this.id}"></div> is filled with Woo's native add-to-cart form after Etch renders — Etch's raw-html sanitizer would strip form/input/select tags from a shortcode in a raw-html block (unless the off-by-default "allow unsafe raw HTML" Etch setting is on).
+* New product key {this.is_simple} (bool) for conditions — note: {this.product_type} is shadowed by Etch's own taxonomy term object on product posts; use {this.product_type.name} for display.
+* Fix: wc-add-to-cart-variation never loaded for hand-built variation forms — now enqueued automatically on variable-product pages (filter: woo4etch/enqueue_variation_script).
+* New Dynamic Key {this.variations_json} for hand-built form.variations_form markup (data-product_variations); computed only for the main product on its own page (filter: woo4etch/expose_variations_json).
+* Fix: plugin updates wiped includes/customizations.php — the upgrader now preserves your edits across updates (backup before, restore after, skipped when the file is the untouched skeleton). New optional update-safe location: wp-content/woo4etch-customizations.php is loaded automatically when present and lives entirely outside the plugin folder.
+* Fix: the shop-archive layout rendered no products — its loop referenced a raw mainQuery target, but Etch runs query-type loops only through loop presets (etch_loops option). The layout now resolves the site's main-query preset (or creates one) and binds the loop via loopId.
 
 = 1.5.0-beta.4 =
 * Native Woo gallery effects (hover zoom, PhotoSwipe lightbox, FlexSlider thumbnail slider) for Etch layouts: new settings checkbox "Enable WooCommerce gallery scripts" declares the wc-product-gallery-* theme supports AND enqueues Woo's registered gallery scripts on single product pages — necessary because WooCommerce only auto-loads them for classic themes, never on block themes like Etch's. Filter: woo4etch/gallery_features (receives the checkbox result; return a subset to enable only some effects).

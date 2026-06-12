@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.5.0-beta.4
+ * Version:           1.5.0-beta.5
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -27,8 +27,54 @@ if (!defined('WOO4ETCH_ETCH_AFFILIATE_URL')) {
 
 require_once __DIR__ . '/includes/class-woo4etch-admin.php';
 require_once __DIR__ . '/includes/class-woo4etch-layouts.php';
+require_once __DIR__ . '/includes/class-woo4etch-woo-root.php';
 require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
+
+// Update-safe alternative to includes/customizations.php: a file OUTSIDE the
+// plugin folder that no plugin update can ever touch. Optional — create it
+// and it loads; the bundled file keeps working too (and is preserved across
+// updates by the upgrader hooks below).
+if (file_exists(WP_CONTENT_DIR . '/woo4etch-customizations.php')) {
+    require_once WP_CONTENT_DIR . '/woo4etch-customizations.php';
+}
+
+/*
+ * Preserve includes/customizations.php across plugin updates.
+ *
+ * WordPress replaces the whole plugin folder on update, which would wipe the
+ * snippets users pasted into customizations.php — breaking the ADR-001
+ * promise that updates never touch user customisations. Before this plugin
+ * is updated the file is copied aside; afterwards it is restored, but only
+ * when it actually differs from the freshly shipped skeleton (so skeleton
+ * improvements still arrive for users who never edited it).
+ */
+add_filter('upgrader_pre_install', static function ($response, $hook_extra) {
+    if (!is_wp_error($response)
+        && isset($hook_extra['plugin'])
+        && plugin_basename(__FILE__) === $hook_extra['plugin']
+        && file_exists(__DIR__ . '/includes/customizations.php')) {
+        @copy(__DIR__ . '/includes/customizations.php', get_temp_dir() . 'woo4etch-customizations.preserved.php');
+    }
+    return $response;
+}, 10, 2);
+
+add_filter('upgrader_post_install', static function ($response, $hook_extra, $result) {
+    if (is_wp_error($response)
+        || empty($hook_extra['plugin'])
+        || plugin_basename(__FILE__) !== $hook_extra['plugin']) {
+        return $response;
+    }
+    $backup = get_temp_dir() . 'woo4etch-customizations.preserved.php';
+    if (file_exists($backup)) {
+        $dest = isset($result['destination']) ? trailingslashit($result['destination']) . 'includes/customizations.php' : '';
+        if ($dest !== '' && file_exists($dest) && md5_file($backup) !== md5_file($dest)) {
+            @copy($backup, $dest);
+        }
+        @unlink($backup);
+    }
+    return $response;
+}, 10, 3);
 
 /**
  * Declare compatibility with WooCommerce High-Performance Order Storage (HPOS).
@@ -130,7 +176,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.5.0-beta.4';
+    const VERSION = '1.5.0-beta.5';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -157,6 +203,10 @@ final class Woo4Etch {
         // the same seam Etch's own integration uses for gallery_images.
         // Disable: woo4etch/expose_product_data.
         add_filter('etch/dynamic_data/post', [__CLASS__, 'expose_product_data'], 10, 2);
+
+        // Experimental {woo.*} root — same data as {options.*}, namespaced.
+        // Disable: woo4etch/enable_woo_root. See class-woo4etch-woo-root.php.
+        Woo4Etch_Woo_Root::init();
 
         self::register_frontend_features();
 
@@ -686,6 +736,34 @@ final class Woo4Etch {
         // even with the wc-product-gallery-* supports declared — WooCommerce
         // only enqueues the bundle for classic themes. Close that gap.
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_gallery_scripts'], 20);
+
+        // Same gap for variable products: Woo enqueues wc-add-to-cart-variation
+        // from its own add-to-cart template, which hand-built Etch forms never
+        // render. Without it, selecting a variation does nothing.
+        // Disable: add_filter('woo4etch/enqueue_variation_script', '__return_false');
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_variation_script'], 20);
+
+        // WooCommerce's block-template compatibility layer strips the
+        // callbacks from the classic product/shop hooks on block themes and
+        // re-injects them around woocommerce/* blocks — which hand-written
+        // Etch layouts don't contain, so third-party hook output (Germanized
+        // legal info, trust badges, …) silently disappears even when fired
+        // via [do_action] or data-w4e-hook. Disable the layer: Etch layouts
+        // fire their hooks explicitly where they want them.
+        // Re-enable: add_filter('woo4etch/disable_block_hook_compatibility', '__return_false');
+        if (apply_filters('woo4etch/disable_block_hook_compatibility', true)) {
+            add_filter('woocommerce_disable_compatibility_layer', '__return_true');
+        }
+
+        // Server-side embed markers, filled AFTER Etch renders the block —
+        // Etch's raw-html sanitizer strips <form>/<input>/<select>/<script>
+        // unless the global "allow unsafe raw HTML" setting is on (off by
+        // default), so shortcodes in raw-html blocks lose exactly the markup
+        // forms and many third-party hooks emit. The markers sidestep the
+        // sanitizer without touching Etch security settings:
+        //   <div data-w4e-add-to-cart="{this.id}"></div>          → native add-to-cart form
+        //   <div data-w4e-hook="hook_name" data-w4e-product="{this.id}"></div> → do_action() output
+        add_filter('render_block', [__CLASS__, 'render_etch_placeholders'], 20);
     }
 
     /**
@@ -770,6 +848,141 @@ final class Woo4Etch {
             return; // Classic theme: WooCommerce enqueues the bundle itself.
         }
         self::enqueue_gallery_assets();
+    }
+
+    /**
+     * Fill empty `data-w4e-*` marker elements after block rendering, so
+     * Etch's raw-html sanitizer never sees the generated markup:
+     *
+     *   data-w4e-add-to-cart="<id>" — WooCommerce's native add-to-cart form
+     *     (simple, variable, grouped, external).
+     *   data-w4e-hook="<hook>" [data-w4e-product="<id>"] — captured
+     *     do_action() output: the kses-proof equivalent of [do_action].
+     *     Restricted by the same woo4etch/allow_do_action filter; the
+     *     optional product id sets the global $product for the hook.
+     *
+     * @param string $content Rendered block HTML.
+     * @return string
+     */
+    public static function render_etch_placeholders($content) {
+        if (!is_string($content) || strpos($content, 'data-w4e-') === false) {
+            return $content;
+        }
+
+        if (strpos($content, 'data-w4e-add-to-cart') !== false && function_exists('wc_get_product')) {
+            $content = preg_replace_callback(
+                '/<(div|span)([^>]*)\sdata-w4e-add-to-cart="(\d+)"([^>]*)>\s*<\/\1>/',
+                static function ($m) {
+                    $form = self::shortcode_add_to_cart(['id' => (int) $m[3]]);
+                    return '<' . $m[1] . $m[2] . ' data-w4e-add-to-cart="' . $m[3] . '"' . $m[4] . '>' . $form . '</' . $m[1] . '>';
+                },
+                $content
+            );
+        }
+
+        if (strpos($content, 'data-w4e-hook') !== false) {
+            $content = preg_replace_callback(
+                '/<(div|span)([^>]*)\sdata-w4e-hook="([a-z0-9_\-]+)"([^>]*)>\s*<\/\1>/i',
+                static function ($m) {
+                    $hook = sanitize_key($m[3]);
+                    if (!$hook || !apply_filters('woo4etch/allow_do_action', true, $hook)) {
+                        return $m[0];
+                    }
+
+                    $extra_attrs = $m[2] . $m[4];
+
+                    $product = null;
+                    if (function_exists('wc_get_product') && preg_match('/data-w4e-product="(\d+)"/', $extra_attrs, $pm)) {
+                        $maybe   = wc_get_product((int) $pm[1]);
+                        $product = $maybe instanceof WC_Product ? $maybe : null;
+                    }
+
+                    // data-w4e-skip-defaults: temporarily unhook WooCommerce
+                    // core's own template callbacks so the hook renders ONLY
+                    // what third parties added. Essential for hooks like
+                    // woocommerce_single_product_summary, where core would
+                    // duplicate the layout's title/price/excerpt/form but
+                    // plugins (e.g. Germanized: unit price, tax notice,
+                    // delivery time) attach their extras between them.
+                    $removed = [];
+                    if (strpos($extra_attrs, 'data-w4e-skip-defaults') !== false) {
+                        $defaults = apply_filters('woo4etch/hook_core_defaults', self::CORE_HOOK_DEFAULTS, $hook);
+                        foreach (isset($defaults[$hook]) ? $defaults[$hook] : [] as $cb) {
+                            if (remove_action($hook, $cb[0], $cb[1])) {
+                                $removed[] = $cb;
+                            }
+                        }
+                    }
+
+                    if ($product) {
+                        $out = self::with_product($product, static function () use ($hook) {
+                            do_action($hook);
+                        });
+                    } else {
+                        ob_start();
+                        do_action($hook);
+                        $out = ob_get_clean();
+                    }
+
+                    foreach ($removed as $cb) {
+                        add_action($hook, $cb[0], $cb[1]);
+                    }
+
+                    return '<' . $m[1] . $m[2] . ' data-w4e-hook="' . esc_attr($hook) . '"' . $m[4] . '>' . $out . '</' . $m[1] . '>';
+                },
+                $content
+            );
+        }
+
+        return $content;
+    }
+
+    /**
+     * WooCommerce core template callbacks per hook — the ones
+     * data-w4e-skip-defaults unhooks (the layout already renders that content
+     * itself). Third-party callbacks on the same hooks are untouched.
+     * Filterable: woo4etch/hook_core_defaults.
+     */
+    const CORE_HOOK_DEFAULTS = [
+        'woocommerce_single_product_summary' => [
+            ['woocommerce_template_single_title', 5],
+            ['woocommerce_template_single_rating', 10],
+            ['woocommerce_template_single_price', 10],
+            ['woocommerce_template_single_excerpt', 20],
+            ['woocommerce_template_single_add_to_cart', 30],
+            ['woocommerce_template_single_meta', 40],
+            ['woocommerce_template_single_sharing', 50],
+        ],
+        'woocommerce_before_main_content' => [
+            ['woocommerce_output_content_wrapper', 10],
+            ['woocommerce_breadcrumb', 20],
+        ],
+        'woocommerce_after_main_content' => [
+            ['woocommerce_output_content_wrapper_end', 10],
+        ],
+        'woocommerce_before_shop_loop' => [
+            ['woocommerce_output_all_notices', 10],
+            ['woocommerce_result_count', 20],
+            ['woocommerce_catalog_ordering', 30],
+        ],
+    ];
+
+    /**
+     * Enqueue Woo's variation script on variable-product pages so hand-built
+     * `form.variations_form` markup works (price/stock update, variation_id).
+     */
+    public static function enqueue_variation_script() {
+        $enqueue = function_exists('is_product') && is_product();
+        if ($enqueue) {
+            $product = wc_get_product(get_queried_object_id());
+            $enqueue = $product instanceof WC_Product && $product->is_type('variable');
+        }
+        if (!apply_filters('woo4etch/enqueue_variation_script', $enqueue)) {
+            return;
+        }
+        if (wp_script_is('wc-add-to-cart-variation', 'registered')) {
+            wp_enqueue_script('wc-add-to-cart-variation');
+        }
     }
 
     /**
@@ -1932,7 +2145,14 @@ final class Woo4Etch {
      *   price_amount               — raw decimal for itemprop/schema
      *   currency_symbol
      *   is_on_sale (bool), sale_percentage (int; cheapest variation for variables)
-     *   sku, product_type          — `type` is already taken by Etch (post type)
+     *   sku                        — product SKU
+     *   product_type               — NOTE: shadowed by Etch on product posts
+     *                                (Etch exposes the product_type taxonomy
+     *                                term object under the same key, and Etch
+     *                                keys win). {this.product_type.name} gives
+     *                                the type string either way.
+     *   is_simple (bool)           — condition-safe product-type check
+     *                                ({#if this.is_simple} … isTruthy/isFalsy)
      *   stock_status               — instock | outofstock | onbackorder
      *   stock_label                — localized availability text (may be empty for
      *                                in-stock products, per Woo inventory settings)
@@ -1995,7 +2215,12 @@ final class Woo4Etch {
             'is_on_sale'       => $product->is_on_sale(),
             'sale_percentage'  => $percentage,
             'sku'              => (string) $product->get_sku(),
+            // CAUTION: on product posts Etch itself exposes `product_type` as
+            // the WooCommerce product_type TAXONOMY TERM (an object), and Etch
+            // keys always win — so this scalar is shadowed there. Use
+            // {this.product_type.name} for display, `is_simple` in conditions.
             'product_type'     => $product->get_type(),
+            'is_simple'        => $product->is_type('simple'),
             'stock_status'     => $product->get_stock_status(),
             'stock_label'      => isset($availability['availability']) ? self::plain($availability['availability']) : '',
             'stock_quantity'   => $product->get_stock_quantity() ?? '',
@@ -2011,6 +2236,18 @@ final class Woo4Etch {
             'dimensions'       => $product->has_dimensions() ? self::plain(wc_format_dimensions($product->get_dimensions(false))) : '',
             'upsell_ids'       => array_map('intval', (array) $product->get_upsell_ids()),
         ];
+
+        // Variations JSON for hand-built variation forms (template 02):
+        //   <form class="variations_form cart" … data-product_variations="{this.variations_json}">
+        // get_available_variations() renders every variation, so it's computed
+        // only for the main product on its own page — never for loop items
+        // (a 10-product grid would otherwise pay it 10 times). Force it on:
+        // add_filter('woo4etch/expose_variations_json', '__return_true').
+        $is_main_product = function_exists('is_product') && is_product() && (int) get_queried_object_id() === (int) $post_id;
+        if ($product->is_type('variable') && apply_filters('woo4etch/expose_variations_json', $is_main_product, $product)) {
+            $payload['variations_json'] = wc_esc_json(wp_json_encode($product->get_available_variations()));
+        }
+
         $payload = apply_filters('woo4etch/product_data', $payload, $product);
 
         // Etch's own keys (and future ones) always win.

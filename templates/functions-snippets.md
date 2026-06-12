@@ -8,6 +8,8 @@ All PHP snippets from the template files in this folder, organized so you can co
 
 After installing [`plugin/woo4etch/`](../plugin/woo4etch/), edit **`includes/customizations.php`** on your site. Do not create a second plugin file.
 
+> **Updates are safe:** your edits to `customizations.php` are preserved across plugin auto-updates (the updater backs the file up and restores it). If you prefer a file that lives entirely outside the plugin folder, create **`wp-content/woo4etch-customizations.php`** — Woo4Etch loads it automatically when it exists, and no update can ever touch it. (MU-plugin copies update manually anyway.)
+
 ---
 
 ## Setup

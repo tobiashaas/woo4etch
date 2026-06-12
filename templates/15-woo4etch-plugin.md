@@ -87,7 +87,7 @@ Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, ed
 
 Two ways to use them:
 
-- **Install as pattern** — creates the layout in Etch's **pattern library** (category "Woo4Etch", unsynced: inserting gives you a detached copy you can restyle freely). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system. Reinstalling refreshes the pattern in place.
+- **Install as pattern** — creates the layout in Etch's **pattern library** (category "Woo4Etch", unsynced: inserting gives you a detached copy you can restyle freely). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system. Reinstalling refreshes the pattern in place. Installs run via AJAX (no page reload); **Install / reinstall all layouts** does the whole set in one click.
 - **Copy JSON** — puts the layout on your clipboard in Etch's native copy/paste format; paste straight onto the canvas. The same files live in [`templates/etch-copy/`](./etch-copy/README.md) for use without wp-admin access.
 
 The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens.
@@ -116,7 +116,8 @@ On `product` posts, Woo4Etch enriches Etch's post data (the same seam Etch's own
 | `{this.is_on_sale}` | boolean — for Etch condition blocks |
 | `{this.sale_percentage}` | integer discount (cheapest variation for variables); `0` when not on sale |
 | `{this.sku}` | product SKU |
-| `{this.product_type}` | `simple` \| `variable` \| `grouped` \| `external` (`type` is Etch's post type) |
+| `{this.product_type}` | **Caution:** on product posts Etch itself sets this key to the WooCommerce product_type *taxonomy term object*, and Etch keys win — use `{this.product_type.name}` for the type string (`simple` \| `variable` \| …); plain `{this.product_type}` comparisons in conditions silently fail |
+| `{this.is_simple}` | bool — condition-safe type check: `{#if this.is_simple}` (use this instead of comparing `product_type`) |
 | `{this.stock_status}` | `instock` \| `outofstock` \| `onbackorder` — handy as a CSS-class suffix |
 | `{this.stock_label}` | localized availability text (can be empty for in-stock products, per Woo inventory settings) |
 | `{this.stock_quantity}` | number, or empty when stock management is off |
@@ -148,6 +149,32 @@ With arguments:
 ```
 
 `args` is a comma-separated string list passed as positional arguments. Use Etch's Dynamic Keys to inject context-specific values like `{this.id}`.
+
+### Hook markers — when `[do_action]` output gets stripped
+
+`[do_action]` works wherever shortcodes run, **but** in Etch raw-html blocks the output passes through Etch's sanitizer, which strips `<form>`, `<input>`, `<select>` and `<script>` unless the off-by-default Etch setting "allow unsafe raw HTML" is on. Hooks whose callbacks emit exactly that markup (express-pay buttons, forms, widgets) come out broken — and look like "the hook doesn't work".
+
+The marker variant sidesteps this (Woo4Etch 1.5.0-beta.5+): place an **empty element** with `data-w4e-hook`, and the plugin fills it with the captured `do_action()` output *after* Etch has rendered — the sanitizer never sees it:
+
+```html
+<div data-w4e-hook="woocommerce_after_add_to_cart_button"
+     data-w4e-product="{this.id}"></div>
+```
+
+`data-w4e-product` (optional) sets the global `$product` while the hook fires, so product-aware callbacks work. The same `woo4etch/allow_do_action` filter applies. The ready-made single-product layout uses these markers around its add-to-cart form. The same mechanism powers `data-w4e-add-to-cart="{this.id}"` (the full native add-to-cart form, see [`02-single-product-variable.md`](./02-single-product-variable.md)).
+
+**`data-w4e-skip-defaults`** — for hooks where WooCommerce core renders its own templates. The classic case is `woocommerce_single_product_summary`: plugins like **Germanized** attach their extras there (unit price at 11, tax/shipping notices at 12, delivery time at 27), *between* core's title (5), price (10), excerpt (20) and add-to-cart (30) callbacks. Firing the hook plainly would duplicate everything your layout already renders. With skip-defaults the core callbacks are unhooked for this one call (and restored afterwards) — only the third-party extras render:
+
+```html
+<!-- After your price row: Germanized legal info, delivery time, etc. -->
+<div data-w4e-hook="woocommerce_single_product_summary"
+     data-w4e-skip-defaults="1"
+     data-w4e-product="{this.id}"></div>
+```
+
+Which callbacks count as "core defaults" per hook is filterable via `woo4etch/hook_core_defaults`.
+
+> **Why hooks used to vanish entirely on block themes:** WooCommerce's *block-template compatibility layer* strips the callbacks from the classic product/shop hooks while rendering block templates and re-injects them only around `woocommerce/*` blocks — which Etch layouts don't contain. Even `[do_action]`/`data-w4e-hook` then fired into emptied hooks. Woo4Etch disables that layer on block themes (Woo's official `woocommerce_disable_compatibility_layer` switch); re-enable it via `add_filter('woo4etch/disable_block_hook_compatibility', '__return_false')` if your Etch templates embed WooCommerce product blocks that rely on it.
 
 ### Restricting which hooks can be fired
 
@@ -514,6 +541,27 @@ The same bridge exposes My Account and order data, so those pages can be built a
 Toggle/reshape: `woo4etch/expose_account_data` (off switch), `woo4etch/account_order_data`, `woo4etch/account_orders_limit`, `woo4etch/account_orders_sample`, `woo4etch/order_sample`.
 
 **Notes:** `{options.account_orders}` is queried only on the My Account area (or in the builder). `{options.order}` populates on the checkout **order-received / view-order** endpoint (or in the builder) — a standalone page won't have an order in context. **Checkout** itself keeps the native `[woocommerce_checkout]` shortcode for the form (payment + validation are real PHP); build the page chrome and an order-summary sidebar (loop `{options.cart_items}`) around it in Etch.
+
+### Experimental: the namespaced `{woo.*}` root
+
+The shop data above lives on Etch's shared `options` root because that's the only root Etch currently lets third parties extend (filter `etch/dynamic_data/option`). Don't confuse it with ACF/Metabox-style "options pages" — `options` is simply Etch's global dynamic-data namespace, and *every* plugin/theme that extends it competes for the same key names.
+
+Woo4Etch therefore also registers the same data under its own **`woo`** root — instantly recognisable, collision-free, and structured:
+
+| `{woo.*}` (experimental) | Same data as |
+|---|---|
+| `{woo.cart.items}` | `{options.cart_items}` |
+| `{woo.cart.count}` / `{woo.cart.subtotal}` / `{woo.cart.total}` / `{woo.cart.is_empty}` | `{options.cart_count}` / `…cart_subtotal` / `…cart_total` / `…cart_is_empty` |
+| `{woo.cart.url}` / `{woo.cart.nonce}` / `{woo.cart.cross_sells}` | `{options.cart_url}` / `…cart_nonce` / `…cross_sells` |
+| `{woo.checkout.url}` | `{options.checkout_url}` |
+| `{woo.account.menu}` / `{woo.account.endpoint}` / `{woo.account.orders}` | `{options.account_menu}` / `…account_endpoint` / `…account_orders` |
+| `{woo.order}` | `{options.order}` |
+
+Both roots are fed by the same builders — identical values, identical sample data in the builder canvas. The root is registered lazily: only pages whose blocks actually reference `woo.` pay for the data assembly.
+
+**Why "experimental":** Etch has no public API for registering dynamic-data roots yet, so this rides on an Etch internal (`DynamicContentRegistry::enqueue()` — see `ETCH-FEATURE-REQUESTS.md` #3, where we ask for exactly this as a public API). The access is fully guarded: if an Etch update renames that internal, the `woo` root silently disappears while **`{options.*}` keeps working** — which is why `options.*` remains the documented, guaranteed spelling. If/when Etch ships the public API, Woo4Etch swaps the registration mechanism internally and the `{woo.*}` keys stay exactly the same — layouts built on them keep running.
+
+Toggle/reshape: `woo4etch/enable_woo_root` (off switch), `woo4etch/woo_root_data`.
 
 ## Limitations
 

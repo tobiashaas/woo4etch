@@ -70,9 +70,16 @@
 		syncSelect(swatch);
 	});
 
-	// Woo's "Clear" link fires reset_data on the form — unselect swatches in
-	// that specific form only (scoped to avoid cross-form bleed).
-	if (window.jQuery) {
+	// jQuery-side bridges. The script ships without a jquery dependency (simple
+	// product pages stay jQuery-free), so jQuery may load after us — bind now
+	// when available, otherwise once the DOM (and all footer scripts) are in.
+	function bindJQueryBridges() {
+		if (!window.jQuery) {
+			return;
+		}
+
+		// Woo's "Clear" link fires reset_data on the form — unselect swatches
+		// in that specific form only (scoped to avoid cross-form bleed).
 		window.jQuery(document).on('reset_data', 'form.variations_form', function () {
 			var form = this;
 			form.querySelectorAll('[data-w4e-swatch].is-selected').forEach(function (el) {
@@ -80,5 +87,39 @@
 				el.setAttribute('aria-pressed', 'false');
 			});
 		});
+
+		// Live price sync: mirror the chosen variation's price into every
+		// element marked data-w4e-variation-price (e.g. the layout's top price
+		// row) and restore the original (range) price on reset_data. Woo only
+		// renders the variation price inside the form
+		// (.woocommerce-variation-price); the page's main price element stays
+		// static without this bridge.
+		var priceTargets = function () {
+			return document.querySelectorAll('[data-w4e-variation-price]');
+		};
+		window.jQuery(document).on('found_variation', 'form.variations_form', function (event, variation) {
+			if (!variation || !variation.price_html) {
+				return; // Woo omits price_html when all variations cost the same.
+			}
+			priceTargets().forEach(function (el) {
+				if (!el.hasAttribute('data-w4e-original-price')) {
+					el.setAttribute('data-w4e-original-price', el.innerHTML);
+				}
+				el.innerHTML = variation.price_html;
+			});
+		});
+		window.jQuery(document).on('reset_data', 'form.variations_form', function () {
+			priceTargets().forEach(function (el) {
+				if (el.hasAttribute('data-w4e-original-price')) {
+					el.innerHTML = el.getAttribute('data-w4e-original-price');
+				}
+			});
+		});
+	}
+
+	if (window.jQuery) {
+		bindJQueryBridges();
+	} else if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', bindJQueryBridges);
 	}
 })();

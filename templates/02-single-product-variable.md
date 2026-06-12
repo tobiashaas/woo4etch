@@ -14,8 +14,9 @@ Product page with variations. Size, color, material, etc. — live update of pri
 
 In addition to the base config in [`00-README.md`](./00-README.md):
 
+> **Woo4Etch 1.5.0-beta.5+ enqueues `wc-add-to-cart-variation` automatically** on variable-product pages (WooCommerce itself only enqueues it from its own add-to-cart template, which hand-built Etch forms never render — without the script, selecting a variation does nothing). Disable: `add_filter('woo4etch/enqueue_variation_script', '__return_false');`. On older versions, or for variation forms embedded outside product pages, enqueue manually:
+
 ```php
-// Make sure the variation script is loaded on custom single templates
 add_action('wp_enqueue_scripts', function () {
     if (is_product()) {
         wp_enqueue_script('wc-add-to-cart-variation');
@@ -23,7 +24,7 @@ add_action('wp_enqueue_scripts', function () {
 });
 ```
 
-On a "real" single-product page this happens automatically. On heavily customized builder templates or loops with embedded variation forms, you need to enqueue manually.
+> **Shortcut — skip the hand-built form entirely:** place an empty `<div data-w4e-add-to-cart="{this.id}"></div>` in your layout (Woo4Etch 1.5.0-beta.5+). The plugin fills it server-side with WooCommerce's complete native variations form — attribute selects with options, variations JSON, working price/stock updates — *after* Etch renders, so Etch's raw-html sanitizer (which strips `<form>/<input>/<select>` unless the off-by-default "allow unsafe raw HTML" setting is on) never touches it. The ready-made single-product layout uses exactly this for non-simple products; `swatches.js` bridges custom swatch markup on top. The hand-built form below remains the full-control alternative.
 
 ## Etch HTML
 
@@ -64,7 +65,7 @@ On a "real" single-product page this happens automatically. On heavily customize
               method="post"
               enctype="multipart/form-data"
               data-product_id="{this.id}"
-              data-product_variations="{this.variationsJson}">
+              data-product_variations="{this.variations_json}">
 
           <!-- Hook: woocommerce_before_variations_form -->
 
@@ -213,27 +214,17 @@ On a "real" single-product page this happens automatically. On heavily customize
 
 ### Provide variations JSON to Etch
 
-Etch currently doesn't receive a ready-made variations dataset. Until Etch's team addresses this, you can inject it yourself:
+**Woo4Etch 1.5.0-beta.5+ provides this as a real Dynamic Key:** `{this.variations_json}` — the product's available variations as the exact JSON `wc-add-to-cart-variation` expects in `data-product_variations`:
 
-```php
-add_filter('etch/dynamic_data/item', function ($data, $post) {
-    if ($post->post_type !== 'product') {
-        return $data;
-    }
-
-    $product = wc_get_product($post->ID);
-    if (!$product instanceof WC_Product_Variable) {
-        return $data;
-    }
-
-    $data['variationsJson']               = wc_esc_json(wp_json_encode($product->get_available_variations()));
-    $data['meta']['_min_variation_price'] = wc_price($product->get_variation_price('min'));
-
-    return $data;
-}, 10, 2);
+```html
+<form class="variations_form cart" …
+      data-product_id="{this.id}"
+      data-product_variations="{this.variations_json}">
 ```
 
-> Filter name is illustrative — the actual Etch filter may differ. When in doubt, ask the Etch team if there's an official hook for extending the `item` object.
+It is computed only for the **main product on its own page** (`get_available_variations()` renders every variation — a 10-product grid loop would pay that cost per item). To expose it elsewhere too: `add_filter('woo4etch/expose_variations_json', '__return_true');`.
+
+> **Note:** earlier revisions of this page showed an illustrative `{this.variationsJson}` filter — replace it with the real key above.
 
 ### Prevent duplicate add-to-cart markup
 

@@ -24,6 +24,7 @@ final class Woo4Etch_Admin {
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
         add_action('admin_post_woo4etch_install_layout', [__CLASS__, 'handle_install_layout']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
+        add_action('wp_ajax_woo4etch_install_layout', [__CLASS__, 'ajax_install_layout']);
     }
 
     /**
@@ -70,6 +71,34 @@ final class Woo4Etch_Admin {
 
         wp_safe_redirect($redirect);
         exit;
+    }
+
+    /**
+     * AJAX handler: install one layout (layout=<slug>) or all of them
+     * (layout=all) without a page reload. The admin-post handler above stays
+     * as the no-JS fallback for the per-row forms.
+     */
+    public static function ajax_install_layout() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_send_json_error(['message' => __('You do not have permission to do this.', 'woo4etch')], 403);
+        }
+        check_ajax_referer('woo4etch_install_layouts');
+
+        $slug  = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
+        $slugs = ($slug === 'all') ? array_keys(Woo4Etch_Layouts::catalog()) : [$slug];
+
+        $installed = [];
+        $failed    = [];
+        foreach ($slugs as $layout_slug) {
+            $result = Woo4Etch_Layouts::install($layout_slug);
+            if (is_wp_error($result)) {
+                $failed[$layout_slug] = $result->get_error_message();
+            } else {
+                $installed[] = $layout_slug;
+            }
+        }
+
+        wp_send_json_success(['installed' => $installed, 'failed' => $failed]);
     }
 
     /**
@@ -165,6 +194,7 @@ final class Woo4Etch_Admin {
             . '.woo4etch-shortcodes .category-heading{margin:2em 0 .5em;font-size:1.1em;}'
             . '.woo4etch-shortcodes .woo4etch-intro{max-width:72em;}'
             . '.woo4etch-shortcodes .woo4etch-installed{color:#00a32a;font-weight:700;margin-left:4px;}'
+            . '.woo4etch-shortcodes #woo4etch-install-all-status{margin-left:8px;}'
         );
     }
 
@@ -249,6 +279,16 @@ final class Woo4Etch_Admin {
             <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Install as pattern” adds them to Etch’s pattern library (as detached copies you can restyle freely; existing styles with the same selectors are reused, never overwritten). “Copy JSON” puts the layout on your clipboard — paste it straight onto the Etch canvas.', 'woo4etch'); ?>
         </p>
 
+        <p>
+            <button type="button"
+                    class="button button-primary"
+                    id="woo4etch-install-all"
+                    data-nonce="<?php echo esc_attr(wp_create_nonce('woo4etch_install_layouts')); ?>">
+                <?php esc_html_e('Install / reinstall all layouts', 'woo4etch'); ?>
+            </button>
+            <span id="woo4etch-install-all-status" role="status" aria-live="polite"></span>
+        </p>
+
         <table class="widefat striped">
             <thead>
                 <tr>
@@ -272,7 +312,11 @@ final class Woo4Etch_Admin {
                         <td><strong><?php echo esc_html($meta['name']); ?></strong></td>
                         <td><?php echo esc_html($meta['description']); ?></td>
                         <td>
-                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                            <form method="post"
+                                  action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+                                  style="display:inline"
+                                  class="woo4etch-install-form"
+                                  data-layout="<?php echo esc_attr($slug); ?>">
                                 <input type="hidden" name="action" value="woo4etch_install_layout">
                                 <input type="hidden" name="layout" value="<?php echo esc_attr($slug); ?>">
                                 <?php wp_nonce_field('woo4etch_install_layout_' . $slug); ?>
@@ -386,6 +430,91 @@ final class Woo4Etch_Admin {
         </div>
 
         <script>
+        (function () {
+            var allBtn = document.getElementById('woo4etch-install-all');
+            if (!allBtn || typeof window.ajaxurl === 'undefined') {
+                return; // No-JS/edge case: the per-row forms still work via admin-post.
+            }
+
+            var nonce   = allBtn.getAttribute('data-nonce');
+            var status  = document.getElementById('woo4etch-install-all-status');
+            var strings = {
+                installing: '<?php echo esc_js(__('Installing…', 'woo4etch')); ?>',
+                reinstall:  '<?php echo esc_js(__('Reinstall pattern', 'woo4etch')); ?>',
+                allDone:    '<?php echo esc_js(__('All layouts installed ✓ — insert them from the “Woo4Etch” pattern category in the Etch builder.', 'woo4etch')); ?>',
+                someFailed: '<?php echo esc_js(__('Some layouts failed:', 'woo4etch')); ?>',
+                error:      '<?php echo esc_js(__('Install failed:', 'woo4etch')); ?>'
+            };
+
+            function install(slug) {
+                var body = new URLSearchParams();
+                body.append('action', 'woo4etch_install_layout');
+                body.append('layout', slug);
+                body.append('_ajax_nonce', nonce);
+                return fetch(window.ajaxurl, { method: 'POST', credentials: 'same-origin', body: body })
+                    .then(function (r) { return r.json(); });
+            }
+
+            function markInstalled(slug) {
+                var form = document.querySelector('.woo4etch-install-form[data-layout="' + slug + '"]');
+                if (!form) return;
+                var btn = form.querySelector('button[type="submit"]');
+                btn.textContent = strings.reinstall;
+                btn.classList.remove('button-primary');
+                var cell = form.parentElement;
+                if (!cell.querySelector('.woo4etch-installed')) {
+                    var check = document.createElement('span');
+                    check.className = 'woo4etch-installed';
+                    check.textContent = '✓';
+                    cell.appendChild(check);
+                }
+            }
+
+            document.querySelectorAll('.woo4etch-install-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var slug     = form.getAttribute('data-layout');
+                    var btn      = form.querySelector('button[type="submit"]');
+                    var original = btn.textContent;
+                    btn.disabled    = true;
+                    btn.textContent = strings.installing;
+                    install(slug).then(function (res) {
+                        btn.disabled = false;
+                        if (res && res.success && res.data.installed.indexOf(slug) !== -1) {
+                            markInstalled(slug);
+                        } else {
+                            btn.textContent = original;
+                            var msg = (res && res.data && (res.data.failed && res.data.failed[slug] || res.data.message)) || '';
+                            window.alert(strings.error + ' ' + msg);
+                        }
+                    }).catch(function () {
+                        btn.disabled    = false;
+                        btn.textContent = original;
+                        window.alert(strings.error);
+                    });
+                });
+            });
+
+            allBtn.addEventListener('click', function () {
+                allBtn.disabled    = true;
+                status.textContent = strings.installing;
+                install('all').then(function (res) {
+                    allBtn.disabled = false;
+                    if (!res || !res.success) {
+                        status.textContent = strings.error + ' ' + ((res && res.data && res.data.message) || '');
+                        return;
+                    }
+                    res.data.installed.forEach(markInstalled);
+                    var failed = Object.keys(res.data.failed || {});
+                    status.textContent = failed.length
+                        ? strings.someFailed + ' ' + failed.join(', ')
+                        : strings.allDone;
+                }).catch(function () {
+                    allBtn.disabled    = false;
+                    status.textContent = strings.error;
+                });
+            });
+        })();
         (function () {
             document.querySelectorAll('.woo4etch-copy-json').forEach(function (btn) {
                 btn.addEventListener('click', function () {

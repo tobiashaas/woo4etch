@@ -48,7 +48,7 @@ final class Woo4Etch_Layouts {
             ],
             'product-single' => [
                 'name'        => 'Single product — gallery + buy box',
-                'description' => 'Featured image + gallery loop, title, formatted price with sale badge, stock label, working add-to-cart form (simple products), SKU. Uses {this.*} product keys.',
+                'description' => 'Featured image + gallery loop in Woo\'s gallery markup (zoom/lightbox/slider work when the gallery scripts are enabled in Settings), title, formatted price with sale badge, stock label, type-aware add-to-cart (hand-built form for simple products, Woo\'s native form for variable/grouped/external — variations fully working), SKU. Uses {this.*} product keys.',
                 'area'        => 'Single product',
             ],
             'product-grid' => [
@@ -324,9 +324,65 @@ final class Woo4Etch_Layouts {
         return self::el($tag, $attributes, $styles, [self::txt($content)], $name);
     }
 
-    /** etch/loop block. */
+    /**
+     * etch/raw-html block — for values that may contain HTML ({this.excerpt},
+     * …): etch/text escapes HTML, so tags would show as literal text there.
+     */
+    private static function raw($content, $name = 'Raw HTML') {
+        return [
+            'blockName'    => 'etch/raw-html',
+            'attrs'        => ['metadata' => ['name' => $name], 'content' => $content],
+            'innerBlocks'  => [],
+            'innerHTML'    => '',
+            'innerContent' => [],
+        ];
+    }
+
+    /** etch/loop block over a data path ({this.gallery_images}, {options.cart_items}, …). */
     private static function loop($target, $item_id, array $children) {
         return self::block('etch/loop', ['target' => $target, 'itemId' => $item_id], $children);
+    }
+
+    /**
+     * etch/loop block bound to a loop preset (etch_loops option). Query-type
+     * loops (main-query, wp-query) only work via presets — a raw target
+     * string renders nothing for them.
+     */
+    private static function preset_loop($loop_id, $item_id, array $children) {
+        return self::block('etch/loop', ['loopId' => $loop_id, 'itemId' => $item_id], $children);
+    }
+
+    /**
+     * Resolve the site's global main-query loop preset, creating one if none
+     * exists. Etch seeds installs with such a preset (id `etch_main_query`),
+     * but the id is not guaranteed — match by config type instead.
+     *
+     * @return string Preset id for use as a loop block's loopId.
+     */
+    private static function ensure_main_query_loop() {
+        $loops = (array) get_option('etch_loops', []);
+        foreach ($loops as $id => $loop) {
+            if (is_array($loop) && isset($loop['config']['type']) && 'main-query' === $loop['config']['type']) {
+                return (string) $id;
+            }
+        }
+        // Mirrors the shape of Etch's own default main-query preset.
+        $loops['w4e_main_query'] = [
+            'name'   => 'Main Query',
+            'key'    => 'mainQuery',
+            'global' => true,
+            'config' => [
+                'type' => 'main-query',
+                'args' => [
+                    'posts_per_page' => '$count ?? 10',
+                    'orderby'        => "\$orderby ?? 'date'",
+                    'order'          => "\$order ?? 'DESC'",
+                    'offset'         => '$offset ?? 0',
+                ],
+            ],
+        ];
+        update_option('etch_loops', $loops);
+        return 'w4e_main_query';
     }
 
     /**
@@ -428,10 +484,27 @@ final class Woo4Etch_Layouts {
 
         $section  = self::cls($s, 'w4e-product', '');
         $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: start; padding-block: 24px 48px;');
-        $gallery  = self::cls($s, 'w4e-product-gallery', 'display: flex; flex-direction: column; gap: 12px;');
-        $featured = self::cls($s, 'w4e-product-gallery__featured', 'width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: #f3f4f6;');
-        $thumbs   = self::cls($s, 'w4e-product-gallery__thumbs', 'display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;');
-        $thumb    = self::cls($s, 'w4e-product-gallery__thumb', 'width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #f3f4f6;');
+        // Gallery: Woo's gallery classes/attributes so WooCommerce's own
+        // zoom/lightbox/slider scripts initialise on it when enabled
+        // (Woo4Etch → Settings). Without the scripts the nested CSS lays the
+        // same markup out as featured image + thumbnail grid; the .flex-*
+        // rules style the FlexSlider DOM (thumbnails, viewport) once active.
+        $gallery = self::cls(
+            $s,
+            'w4e-gal',
+            'position: relative;'
+            . ' & .w4e-gal-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0; }'
+            . ' & .flex-viewport .w4e-gal-wrap { display: block; }'
+            . ' & .w4e-gal-item--featured { grid-column: 1 / -1; }'
+            . ' & .w4e-gal-item a { display: block; }'
+            . ' & .w4e-gal-item img:not(.zoomImg) { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: #f3f4f6; display: block; }'
+            . ' & .flex-viewport { border-radius: 14px; }'
+            . ' & .flex-control-thumbs { display: flex; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }'
+            . ' & .flex-control-thumbs li { flex: 1; cursor: pointer; }'
+            . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; opacity: .6; }'
+            . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; }'
+            . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: #fff; border-radius: 999px; }'
+        );
         $info     = self::cls($s, 'w4e-product-info', 'display: flex; flex-direction: column; gap: 14px;');
         $title    = self::cls($s, 'w4e-product__title', 'font-size: 32px; letter-spacing: -.02em; margin: 0;');
         $pricerow = self::cls($s, 'w4e-product__pricerow', 'display: flex; align-items: center; gap: 12px;');
@@ -439,6 +512,9 @@ final class Woo4Etch_Layouts {
         $excerpt  = self::cls($s, 'w4e-product__excerpt', 'color: #6b7280; margin: 0;');
         $stock    = self::cls($s, 'w4e-product__stock', 'font-size: 14px; color: #15803d; margin: 0;');
         $form     = self::cls($s, 'w4e-product__form', 'display: flex; gap: 10px; align-items: stretch; margin-top: 4px;');
+        // The top price row syncs to the chosen variation (swatches.js), so the
+        // duplicate price Woo renders inside the form is hidden here.
+        $nativecart = self::cls($s, 'w4e-native-cart', '& .woocommerce-variation-price { display: none; }');
         $qty      = self::cls($s, 'w4e-product__qty', 'width: 84px; padding: 11px; border: 1px solid #e6e7eb; border-radius: 10px; font-size: 15px;');
         $meta     = self::cls($s, 'w4e-product__meta', 'color: #6b7280; font-size: 13px; border-top: 1px solid #e6e7eb; padding-top: 14px; margin-top: 6px;');
         $badge    = self::badge_style($s);
@@ -448,29 +524,98 @@ final class Woo4Etch_Layouts {
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
                 self::el('div', ['class' => 'w4e-product-layout'], [$layout], [
 
-                    self::el('div', ['class' => 'w4e-product-gallery'], [$gallery], [
-                        self::el('img', ['class' => 'w4e-product-gallery__featured', 'src' => '{this.image.url}', 'alt' => '{this.title}'], [$featured], [], 'Featured'),
-                        self::el('div', ['class' => 'w4e-product-gallery__thumbs'], [$thumbs], [
+                    self::el('div', [
+                        'class'        => 'w4e-gal woocommerce-product-gallery woocommerce-product-gallery--with-images woocommerce-product-gallery--columns-4 images',
+                        'data-columns' => '4',
+                    ], [$gallery], [
+                        self::el('figure', ['class' => 'w4e-gal-wrap woocommerce-product-gallery__wrapper'], [], [
+                            self::el('div', [
+                                'class'          => 'w4e-gal-item w4e-gal-item--featured woocommerce-product-gallery__image',
+                                'data-thumb'     => '{this.image.url}',
+                                'data-thumb-alt' => '{this.title}',
+                            ], [], [
+                                self::el('a', ['href' => '{this.image.url}'], [], [
+                                    self::el('img', [
+                                        'class'                   => 'wp-post-image',
+                                        'src'                     => '{this.image.url}',
+                                        'alt'                     => '{this.title}',
+                                        'data-src'                => '{this.image.url}',
+                                        'data-large_image'        => '{this.image.url}',
+                                        'data-large_image_width'  => '{this.image.width}',
+                                        'data-large_image_height' => '{this.image.height}',
+                                    ], [], [], 'Featured image'),
+                                ], 'Featured link'),
+                            ], 'Featured'),
                             self::loop('this.gallery_images', 'image', [
-                                self::el('img', ['class' => 'w4e-product-gallery__thumb', 'src' => '{image.url}', 'alt' => '{image.alt}'], [$thumb], [], 'Thumb'),
+                                self::el('div', [
+                                    'class'          => 'w4e-gal-item woocommerce-product-gallery__image',
+                                    'data-thumb'     => '{image.url}',
+                                    'data-thumb-alt' => '{image.alt}',
+                                ], [], [
+                                    self::el('a', ['href' => '{image.url}'], [], [
+                                        self::el('img', [
+                                            'src'                     => '{image.url}',
+                                            'alt'                     => '{image.alt}',
+                                            'data-src'                => '{image.url}',
+                                            'data-large_image'        => '{image.url}',
+                                            'data-large_image_width'  => '{image.width}',
+                                            'data-large_image_height' => '{image.height}',
+                                        ], [], [], 'Image'),
+                                    ], 'Link'),
+                                ], 'Slide'),
                             ]),
-                        ], 'Thumbs'),
+                        ], 'Wrapper'),
                     ], 'Gallery'),
 
                     self::el('div', ['class' => 'w4e-product-info'], [$info], [
                         self::text_el('h1', '{this.title}', ['class' => 'w4e-product__title product_title entry-title'], [$title], 'Title'),
                         self::el('div', ['class' => 'w4e-product__pricerow'], [$pricerow], [
-                            self::text_el('span', '{this.price}', ['class' => 'w4e-product__price'], [$price], 'Price'),
+                            // data-w4e-variation-price: swatches.js mirrors the
+                            // chosen variation's live price into this element.
+                            self::text_el('span', '{this.price}', ['class' => 'w4e-product__price', 'data-w4e-variation-price' => ''], [$price], 'Price'),
                             self::cond('this.is_on_sale', 'isTruthy', null, [
                                 self::text_el('span', '-{this.sale_percentage}%', ['class' => 'w4e-badge'], [$badge], 'Sale badge'),
                             ], 'this.is_on_sale'),
                         ], 'Price row'),
-                        self::text_el('p', '{this.excerpt}', ['class' => 'w4e-product__excerpt'], [$excerpt], 'Excerpt'),
+                        // Third-party summary extras (Germanized unit price /
+                        // tax & shipping notices / delivery time, review stars,
+                        // structured data, …): fires the standard summary hook
+                        // with WooCommerce core's own callbacks skipped — the
+                        // layout already renders title/price/excerpt/form.
+                        self::el('div', ['class' => 'w4e-hook w4e-product__summary-extras', 'data-w4e-hook' => 'woocommerce_single_product_summary', 'data-w4e-skip-defaults' => '1', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: summary extras'),
+                        // Raw HTML, not a text element: Woo short descriptions
+                        // may contain HTML and etch/text would escape it.
+                        self::el('div', ['class' => 'w4e-product__excerpt woocommerce-product-details__short-description'], [$excerpt], [
+                            self::raw('{this.excerpt}', 'Excerpt HTML'),
+                        ], 'Excerpt'),
                         self::text_el('p', '{this.stock_label}', ['class' => 'w4e-product__stock stock--{this.stock_status}'], [$stock], 'Stock'),
-                        self::el('form', ['class' => 'cart w4e-product__form', 'action' => '{this.permalink.relative}', 'method' => 'post', 'enctype' => 'multipart/form-data'], [$form], [
-                            self::el('input', ['class' => 'w4e-product__qty', 'type' => 'number', 'name' => 'quantity', 'value' => '1', 'min' => '1', 'step' => '1'], [$qty], [], 'Qty'),
-                            self::text_el('button', '{this.add_to_cart_text}', ['class' => 'single_add_to_cart_button button', 'type' => 'submit', 'name' => 'add-to-cart', 'value' => '{this.id}'], [$button], 'Add to cart'),
-                        ], 'Add-to-cart form'),
+                        // Simple products: hand-built classic-POST form.
+                        // is_simple (bool, from Woo4Etch) — NOT product_type:
+                        // Etch shadows that key with the taxonomy term object.
+                        // The data-w4e-hook markers are filled server-side with
+                        // do_action() output, so third-party plugins hooking the
+                        // standard Woo positions (trust badges, express-pay
+                        // buttons, …) appear like on a native product page.
+                        self::cond('this.is_simple', 'isTruthy', null, [
+                            self::el('div', ['class' => 'w4e-hook', 'data-w4e-hook' => 'woocommerce_before_add_to_cart_form', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: before form'),
+                            self::el('form', ['class' => 'cart w4e-product__form', 'action' => '{this.permalink.relative}', 'method' => 'post', 'enctype' => 'multipart/form-data'], [$form], [
+                                self::el('input', ['class' => 'w4e-product__qty', 'type' => 'number', 'name' => 'quantity', 'value' => '1', 'min' => '1', 'step' => '1'], [$qty], [], 'Qty'),
+                                self::text_el('button', '{this.add_to_cart_text}', ['class' => 'single_add_to_cart_button button', 'type' => 'submit', 'name' => 'add-to-cart', 'value' => '{this.id}'], [$button], 'Add to cart'),
+                                self::el('div', ['class' => 'w4e-hook', 'data-w4e-hook' => 'woocommerce_after_add_to_cart_button', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: after button'),
+                            ], 'Add-to-cart form'),
+                            self::el('div', ['class' => 'w4e-hook', 'data-w4e-hook' => 'woocommerce_after_add_to_cart_form', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: after form'),
+                        ], 'this.is_simple'),
+                        // Variable/grouped/external: WooCommerce's native form
+                        // (attribute selects with options, variations JSON,
+                        // wc-add-to-cart-variation script — all from Woo core;
+                        // swatches.js bridges custom swatch markup on top).
+                        // The marker div is filled server-side by the plugin
+                        // (render_block) — raw-html + shortcode would get the
+                        // form tags stripped by Etch's sanitizer instead. The
+                        // native form fires the standard Woo hooks itself.
+                        self::cond('this.is_simple', 'isFalsy', null, [
+                            self::el('div', ['class' => 'w4e-native-cart', 'data-w4e-add-to-cart' => '{this.id}'], [$nativecart], [], 'Native add-to-cart'),
+                        ], '!this.is_simple'),
                         self::text_el('div', 'SKU: {this.sku}', ['class' => 'w4e-product__meta'], [$meta], 'Meta'),
                     ], 'Buy box'),
 
@@ -500,7 +645,7 @@ final class Woo4Etch_Layouts {
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-shop'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
                 self::el('div', ['class' => 'w4e-shopgrid products'], [$grid], [
-                    self::loop('mainQuery', 'item', [
+                    self::preset_loop(self::ensure_main_query_loop(), 'item', [
                         self::el('article', ['class' => 'w4e-card product'], [$card], [
                             self::el('div', ['class' => 'w4e-card__badge'], [$cardbdg], [
                                 self::cond('item.is_on_sale', 'isTruthy', null, [
