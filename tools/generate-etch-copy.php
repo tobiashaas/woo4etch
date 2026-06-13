@@ -12,7 +12,10 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-require __DIR__ . '/../plugin/woo4etch/includes/class-woo4etch-layouts.php';
+// The WordPress shim (constants + stub functions) lets the layout builder run
+// outside WordPress — product-grid's loop preset uses get_option/update_option,
+// which would otherwise be undefined here and in CI.
+require __DIR__ . '/../tests/php/bootstrap.php';
 
 $out_dir = __DIR__ . '/../templates/etch-copy';
 $written = [];
