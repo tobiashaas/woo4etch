@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [1.5.0-beta.6] — 2026-06-13
+
+Pre-release — not offered to installed sites via the auto-updater; install manually to test.
+
+### Changed
+
+- **Minimum PHP is now 8.1** (header `Requires PHP`, `readme.txt`, updater fallbacks). Etch itself requires PHP 8.1, so the older 7.4/8.0 floor was dead weight. No code changed — the plugin already ran on 8.1+.
+
+### Fixed
+
+- **Copy/paste layout artifacts were out of sync with the plugin's layouts.** The `templates/etch-copy/*.json` files are generated from the layout definitions, but two had drifted: `product-grid.json` still carried the broken raw `mainQuery` loop target (so a pasted shop archive rendered no products — the same bug fixed for the one-click installer in beta.5, but the copy/paste file was never regenerated), and `product-single.json` still had the pre-beta.5 gallery markup and an escaped (text-element) excerpt. Both regenerated to match the current layouts. The one-click installer was unaffected; this only fixes the manual copy/paste route.
+
+### Internal
+
+- **CI test layer (no WordPress required).** A fast, service-free GitHub Actions job (`tests/php/`) now gates every PR: version-marker sync (`Version` header == `Woo4Etch::VERSION` == `Stable tag`), shortcode-catalog integrity (every entry maps to an existing `shortcode_*` method; every shortcode documented), and layout DSL invariants — most importantly that every `etch/loop` binds to a data path or a `loopId`, never a bare query key like `mainQuery` (the empty-archive bug). A drift guard re-runs `tools/generate-etch-copy.php` and fails if the committed copy/paste artifacts change. The PHP lint matrix now runs 8.1 → 8.5. See `tests/php/README.md`.
+
 ## [1.5.0-beta.5] — 2026-06-12
 
 Pre-release — not offered to installed sites via the auto-updater; install manually to test. Everything below was verified live on a staging shop (Etch 1.5.1, WooCommerce 10.8.1, block theme, Germanized).

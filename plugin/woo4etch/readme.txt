@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.5.0-beta.5
+Stable tag: 1.5.0-beta.6
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -114,6 +114,11 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.5.0-beta.6 =
+* Minimum PHP is now 8.1 (Etch itself requires it; 7.4/8.0 support was dead weight). No code changed — the plugin already ran on 8.1+.
+* Fix: the copy/paste layout files (templates/etch-copy/*.json) were out of sync with the plugin's layouts — product-grid.json still had the broken mainQuery loop target (a pasted shop archive showed no products; fixed for the one-click installer in beta.5 but the copy/paste file was never regenerated) and product-single.json had the pre-beta.5 gallery + escaped excerpt. Both regenerated. The one-click installer was unaffected.
+* Internal: a fast, WordPress-free CI test layer now gates every PR (version-marker sync, shortcode-catalog integrity, layout loop/Woo-contract invariants, and a copy/paste-artifact drift guard); PHP lint matrix runs 8.1 → 8.5.
 
 = 1.5.0-beta.5 =
 * Experimental {woo.*} dynamic-data root: the shop data from {options.*} additionally under a namespaced, structured root — {woo.cart.items}, {woo.cart.count}, {woo.checkout.url}, {woo.account.menu}, {woo.account.orders}, {woo.order}, … Same values and builder sample data as {options.*}; lazy registration; fully guarded against Etch internals changing (then the woo root disappears while {options.*} keeps working — options.* remains the documented spelling). Filters: woo4etch/enable_woo_root, woo4etch/woo_root_data.
