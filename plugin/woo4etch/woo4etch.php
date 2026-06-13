@@ -5,7 +5,7 @@
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
  * Version:           1.5.0-beta.5
  * Requires at least: 6.0
- * Requires PHP:      7.4
+ * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
  * Author:            Tobias Haas
  * Author URI:        https://etchwp.com/?aff=06de86e5

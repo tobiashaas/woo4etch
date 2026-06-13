@@ -6,7 +6,9 @@ Guidance for working in this repository.
 
 **WooCommerce in Etch (Woo4Etch)** — an open-source (MIT) *documentation + template library*, plus a small companion WordPress plugin, for building WooCommerce shops in [Etch](https://etchwp.com) without the WooCommerce Gutenberg blocks.
 
-This is **not a runnable application**. There is no build step, test suite, or dev server. The deliverables are Markdown docs and copy-ready snippets. "Running" anything means installing the `plugin/woo4etch/` plugin into a real WordPress + WooCommerce + Etch site and pasting template markup into Etch.
+This is **not a runnable application**. There is no build step or dev server, and the deliverables are Markdown docs and copy-ready snippets. "Running" anything means installing the `plugin/woo4etch/` plugin into a real WordPress + WooCommerce + Etch site and pasting template markup into Etch.
+
+There *is* a fast, service-free test layer: `php tests/php/run.php` checks version-marker sync, the shortcode catalog, and the layout DSL invariants under plain PHP-CLI (no WordPress). It runs on every PR via `.github/workflows/test.yml` alongside a PHP 8.1→8.5 lint matrix (8.1 is Etch's own floor). See `tests/php/README.md`. The copy/paste artifacts in `templates/etch-copy/*.json` are generated from the layout definitions via `php tools/generate-etch-copy.php` (now WordPress-free too) and CI fails if they drift.
 
 ## Layout
 
