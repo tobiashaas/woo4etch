@@ -90,15 +90,6 @@ if (!function_exists('wp_slash')) {
 if (!function_exists('absint')) {
     function absint($n) { return abs((int) $n); }
 }
-if (!function_exists('array_is_list')) {
-    // PHP 8.0+ builtin; polyfilled so the harness also runs under PHP 7.4.
-    function array_is_list(array $arr) {
-        if ($arr === []) {
-            return true;
-        }
-        return array_keys($arr) === range(0, count($arr) - 1);
-    }
-}
 
 /* ---- Hook system: record nothing, just don't fatal ---- */
 if (!function_exists('add_action')) {

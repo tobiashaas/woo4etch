@@ -105,7 +105,7 @@ final class Woo4Etch_Updater {
             'homepage'      => $plugin_data['PluginURI'] ?: 'https://github.com/' . self::GITHUB_REPO,
             'download_link' => $release['package'],
             'requires'      => $plugin_data['RequiresWP'] ?: '6.0',
-            'requires_php'  => $plugin_data['RequiresPHP'] ?: '7.4',
+            'requires_php'  => $plugin_data['RequiresPHP'] ?: '8.1',
             'sections'      => [
                 'description' => $plugin_data['Description'] ?: '',
                 'changelog'   => $release['notes'] !== '' ? $release['notes'] : __('See GitHub Releases for changes.', 'woo4etch'),
@@ -218,7 +218,7 @@ final class Woo4Etch_Updater {
             'banners'     => [],
             'tested'      => '',
             'requires'    => '6.0',
-            'requires_php'=> '7.4',
+            'requires_php'=> '8.1',
         ];
     }
 
