@@ -34,6 +34,7 @@ Product data:
 * `[woo_weight]` / `[woo_dimensions]` — formatted weight / dimensions
 * `[woo_meta key="..." default="..."]` — any product meta field
 * `[woo_attribute name="pa_color" default="..."]` — product attribute by taxonomy
+* `[woo_product_attributes]` — full attributes table (visible attributes + weight/dimensions), empty when the product has no data
 * `[woo_categories]` / `[woo_tags]` — linked category / tag list
 * `[woo_short_description]` / `[woo_description]` — product copy (filtered HTML)
 
@@ -114,6 +115,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= Unreleased =
+* New: `[woo_product_attributes]` — the "Additional information" attributes table (visible attributes + weight/dimensions) as a shortcode. Needed because the woocommerce_product_additional_information hook expects the product as a do_action argument, which the hook island cannot pass.
+* New: `woo4etch/cart_item_payload` filter — adjust each cart-item payload (e.g. strip Germanized's gzd-* rows from `meta`) before it reaches `{options.cart_items}`.
 
 = 1.5.0-beta.6 =
 * Minimum PHP is now 8.1 (Etch itself requires it; 7.4/8.0 support was dead weight). No code changed — the plugin already ran on 8.1+.

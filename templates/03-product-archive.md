@@ -11,7 +11,7 @@ Loop with product cards for `/shop`, categories, and tag pages. AJAX add-to-cart
 
 ## Preparation
 
-> **Etch context:** this is an **Archive template** in the Etch Template Hub. `{this.*}` refers to the archive context (category/tag term, or the shop page on `/shop`); each product card uses `{item.*}` inside `{#loop mainQuery as item}`. Do not use `{this.title}` inside the loop — that stays the archive title, not the product. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
+> **Etch context:** this is an **Archive template** in the Etch Template Hub. The archive heading is `{archive.title}` (term name on category views, "Shop" on `/shop`) — **not** `{this.title}`, which resolves to the first product of the query on Etch 1.6.x, and not `{taxonomy.name}`, which yields the taxonomy slug. Each product card uses `{item.*}` inside `{#loop mainQuery as item}`. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 WooCommerce must be declared in the theme (see [`00-README.md`](./00-README.md)).
 
@@ -31,9 +31,12 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
 
   <header class="archive-header">
     <h1 class="woocommerce-products-header__title page-title">
-      {this.title}
+      {archive.title}
     </h1>
-    <div class="term-description">{this.description}</div>
+    <!-- {term.name} is verified on term views; {term.description} follows the
+         same context (verify on your build — on /shop there is no term, so
+         ship the description div conditionally or drop it) -->
+    <div class="term-description">{term.description}</div>
   </header>
 
   <!-- Hook: woocommerce_before_shop_loop -->
