@@ -302,14 +302,13 @@ Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_
 > standalone for any other layout.
 >
 > **As a component:** on the Woo4Etch admin page, *"Woo Notices as an Etch
-> component"* creates a real Etch component through Etch's public scripting
-> API (`etch.components` — [docs](https://docs.etchwp.com/public-api/components)).
-> The API only runs inside the builder, so the install is a handshake: click
-> the button, then open the builder once — the component is created
-> automatically and the admin page shows its id. Insert instances from the
-> component library ("Woo Notices"), and optionally replace the inline
-> notices blocks in the installed layouts with instances for one globally
-> editable region.
+> component"* installs the region as a real Etch component (one click,
+> server-side: a `wp_block` post with Etch's component meta, styles merged
+> into the style system — the same mechanism the Bricks2Etch migrator uses
+> for its bundled components). Insert instances from the component library
+> ("Woo Notices"), and optionally replace the inline notices blocks in the
+> installed layouts with instances for one globally editable region.
+> Reinstalling updates the definition in place.
 
 `[woo_result_count]`, `[woo_catalog_ordering]`, and `[woo_pagination]` read the current loop, so place them on a shop/archive template where the main product query runs.
 

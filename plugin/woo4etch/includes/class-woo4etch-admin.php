@@ -50,9 +50,8 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * admin-post handler: arm the "Woo Notices" component install. The
-     * component itself is created on the next Etch builder load through
-     * Etch's public scripting API (see class-woo4etch-components.php).
+     * admin-post handler: install (or refresh) the "Woo Notices" Etch
+     * component (see class-woo4etch-components.php).
      */
     public static function handle_request_component() {
         if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
@@ -60,9 +59,13 @@ final class Woo4Etch_Admin {
         }
         check_admin_referer('woo4etch_request_component');
 
-        Woo4Etch_Components::request_install();
+        $result = Woo4Etch_Components::install();
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = remove_query_arg(['w4e_component_error'], $redirect);
+        if (is_wp_error($result)) {
+            $redirect = add_query_arg('w4e_component_error', rawurlencode($result->get_error_message()), $redirect);
+        }
         wp_safe_redirect($redirect);
         exit;
     }
@@ -366,60 +369,41 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * "Woo Notices" as a real Etch component — created through Etch's public
-     * scripting API on the next builder load (the API only exists inside the
-     * builder, so the install is a deferred handshake).
+     * "Woo Notices" as a real Etch component — one definition, instances
+     * everywhere, globally editable.
      */
     private static function render_component_section() {
-        $state = Woo4Etch_Components::state();
+        $component_id = Woo4Etch_Components::installed_post_id();
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flag.
+        $error_flag = isset($_GET['w4e_component_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_component_error'])) : '';
+        // phpcs:enable
         ?>
         <h3><?php esc_html_e('Woo Notices as an Etch component', 'woo4etch'); ?></h3>
         <p class="woo4etch-intro">
-            <?php esc_html_e('The notices region ships inline in the cart, single-product and account layouts. As an Etch component you manage it globally instead: one definition, instances everywhere. Etch\'s scripting API only runs inside the builder, so after clicking the button the component is created automatically on your next builder visit.', 'woo4etch'); ?>
+            <?php esc_html_e('The notices region ships inline in the cart, single-product and account layouts. As an Etch component you manage it globally instead: one definition, instances everywhere. Insert it in the builder from the component library (“Woo Notices”), and optionally replace the inline notices blocks in the installed layouts with instances.', 'woo4etch'); ?>
         </p>
 
-        <?php if ($state['id'] > 0 && !$state['pending']) : ?>
-            <p>
-                <span class="woo4etch-installed">✓</span>
-                <?php
-                printf(
-                    /* translators: %d: Etch component id */
-                    esc_html__('Component installed (id %d). In the builder, insert it from the component library as “Woo Notices” — and optionally replace the inline notices blocks in the installed layouts with instances.', 'woo4etch'),
-                    (int) $state['id']
-                );
-                ?>
-            </p>
-        <?php elseif ($state['pending']) : ?>
-            <p><em><?php esc_html_e('Waiting for a builder visit: open any page in the Etch builder — the component is created automatically and this page will show its id afterwards.', 'woo4etch'); ?></em></p>
+        <?php if ($error_flag !== '') : ?>
+            <div class="notice notice-error inline"><p><?php echo esc_html($error_flag); ?></p></div>
         <?php endif; ?>
 
-        <?php if ($state['error'] !== '') : ?>
-            <div class="notice notice-error inline"><p>
-                <?php
-                printf(
-                    /* translators: %s: error message reported from the builder */
-                    esc_html__('Component install failed in the builder: %s — you can retry below.', 'woo4etch'),
-                    esc_html($state['error'])
-                );
-                ?>
-            </p></div>
-        <?php endif; ?>
-
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
             <input type="hidden" name="action" value="woo4etch_request_component">
             <?php wp_nonce_field('woo4etch_request_component'); ?>
-            <button type="submit" class="button <?php echo ($state['id'] > 0 || $state['pending']) ? '' : 'button-primary'; ?>">
-                <?php
-                if ($state['pending']) {
-                    esc_html_e('Re-arm install', 'woo4etch');
-                } elseif ($state['id'] > 0) {
-                    esc_html_e('Reinstall on next builder visit', 'woo4etch');
-                } else {
-                    esc_html_e('Create component on next builder visit', 'woo4etch');
-                }
-                ?>
+            <button type="submit" class="button <?php echo $component_id > 0 ? '' : 'button-primary'; ?>">
+                <?php $component_id > 0 ? esc_html_e('Reinstall component', 'woo4etch') : esc_html_e('Install component', 'woo4etch'); ?>
             </button>
         </form>
+        <?php if ($component_id > 0) : ?>
+            <span class="woo4etch-installed" aria-label="<?php esc_attr_e('Installed', 'woo4etch'); ?>">✓</span>
+            <?php
+            printf(
+                /* translators: %d: Etch component post id */
+                esc_html__('Installed (id %d).', 'woo4etch'),
+                (int) $component_id
+            );
+            ?>
+        <?php endif; ?>
         <?php
     }
 

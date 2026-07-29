@@ -161,8 +161,7 @@ final class Woo4Etch_Layouts {
             return new WP_Error('woo4etch_unknown_layout', __('Unknown layout.', 'woo4etch'));
         }
 
-        $map    = self::merge_styles($layout['styles']);
-        $blocks = [self::remap_style_ids($layout['block'], $map)];
+        $blocks = self::blocks_for_install($slug);
 
         $installed = (array) get_option(self::INSTALLED_OPTION, []);
         $post_id   = isset($installed[$slug]) ? (int) $installed[$slug] : 0;
@@ -195,6 +194,24 @@ final class Woo4Etch_Layouts {
         update_option(self::INSTALLED_OPTION, $installed);
 
         return $post_id;
+    }
+
+    /**
+     * Merge a layout's styles into the site's Etch style system and return
+     * its block tree with the style references remapped accordingly — shared
+     * by the pattern installer above and the component installer
+     * (Woo4Etch_Components).
+     *
+     * @param string $slug Catalog key.
+     * @return array<int,array<string,mixed>>|null Block list, null when unknown.
+     */
+    public static function blocks_for_install($slug) {
+        $layout = self::get($slug);
+        if ($layout === null) {
+            return null;
+        }
+        $map = self::merge_styles($layout['styles']);
+        return [self::remap_style_ids($layout['block'], $map)];
     }
 
     /**

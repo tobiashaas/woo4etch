@@ -209,10 +209,6 @@ final class Woo4Etch {
         // Disable: woo4etch/enable_woo_root. See class-woo4etch-woo-root.php.
         Woo4Etch_Woo_Root::init();
 
-        // "Woo Notices" component installer (builder-side handshake via
-        // Etch's public scripting API). See class-woo4etch-components.php.
-        Woo4Etch_Components::init();
-
         self::register_frontend_features();
 
         if (is_admin()) {

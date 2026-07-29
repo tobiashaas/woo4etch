@@ -38,7 +38,7 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 | [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with `{options.cart_count}`; the count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
 | [`account.json`](./account.json) | **My Account** — nav from `{options.account_menu}`, dashboard + orders views switched via `{options.account_endpoint}`, all other endpoints via `[woo_account_content]`. | Account bridge + endpoint conditions ([`07-account.md`](../07-account.md#how-endpoints-work-read-this-first)). |
 | [`thank-you.json`](./thank-you.json) | **Thank-you / order received** — notice, order overview (number, date, total, payment), line-items loop; renders only when `{options.order}` is populated. | Order bridge ([`08-thank-you.md`](../08-thank-you.md)). |
-| [`notices.json`](./notices.json) | **Woo notices (standalone)** — the feedback region ("Cart updated.", coupon/form/security errors) as styleable `.w4e-notice` markup. Already built into the cart, single-product and account layouts; paste this wherever else a page needs Woo feedback. | `[woo_notices format="plain"]` in a styled wrapper. **Tip:** the Woo4Etch admin page can create this as a real Etch **component** ("Woo Notices", via Etch's public scripting API — created on your next builder visit); then place instances instead of pasting copies, and the region stays globally editable. |
+| [`notices.json`](./notices.json) | **Woo notices (standalone)** — the feedback region ("Cart updated.", coupon/form/security errors) as styleable `.w4e-notice` markup. Already built into the cart, single-product and account layouts; paste this wherever else a page needs Woo feedback. | `[woo_notices format="plain"]` in a styled wrapper. **Tip:** the Woo4Etch admin page can install this as a real Etch **component** ("Woo Notices", one click); then place instances instead of pasting copies, and the region stays globally editable. |
 
 ### About the shop-archive snippet (loop preset)
 
@@ -69,9 +69,8 @@ preset at install time.
   shipped styles, editable in Etch's style panel. The same block ships in the
   single-product and account layouts and standalone as
   [`notices.json`](./notices.json) — or as a real Etch **component**: the
-  Woo4Etch admin page creates "Woo Notices" through Etch's public scripting
-  API on your next builder visit (the API only runs inside the builder), so
-  the region becomes one globally editable definition with instances.
+  Woo4Etch admin page installs "Woo Notices" with one click, so the region
+  becomes one globally editable definition with instances.
 - **Empty-cart state:** the form + cross-sells sit in a `!options.cart_is_empty`
   condition; the inverse condition shows "Your cart is currently empty" with a
   Return-to-shop button (`{options.shop_url}`). Before this, coupon, totals and

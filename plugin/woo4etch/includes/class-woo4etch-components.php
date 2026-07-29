@@ -1,25 +1,22 @@
 <?php
 /**
- * "Woo Notices" Etch component installer.
+ * "Woo Notices" Etch component installer — server-side.
  *
- * Etch's public scripting API (window.etch — docs.etchwp.com/public-api) can
- * create components programmatically via etch.components.createAsync() /
- * updateAsync({key, description, blocks}), but the API runtime only exists
- * inside the builder (the front-end page loaded with ?etch=magic) — there is
- * still no server-side install route a plugin could call directly (see
- * ETCH-FEATURE-REQUESTS.md). The install is therefore a two-step handshake:
- *
- *  1. The admin opts in on the Woo4Etch page → a pending flag is stored.
- *  2. On the next builder load, assets/component-install.js waits for
- *     window.etch, creates the component through the public API (guarded
- *     paths: validation + undo/redo), and reports the new component id back
- *     via admin-ajax. The flag clears; the admin page shows the result.
+ * An Etch component is a `wp_block` post whose content is serialized Etch
+ * block markup, distinguished from patterns by the `etch_component_html_key`
+ * meta (PascalCase reference key) plus `etch_component_properties` (the
+ * property schema array). Writing the post + meta directly is the same
+ * approach the Bricks2Etch migrator uses in production for its bundled
+ * system components (upsert by key, kses filters lifted around the insert so
+ * Etch's block comments survive) — no builder round-trip needed. Etch's
+ * public scripting API (etch.components — docs.etchwp.com/public-api) covers
+ * the same operation but only runs inside the builder; a supported
+ * server-side entry point remains on the wishlist (ETCH-FEATURE-REQUESTS.md).
  *
  * The component wraps [woo_notices format="plain"] in the same .w4e-notices
  * element the ready-made layouts inline — one globally editable notices
- * region. Replacing the inline copies with component instances is a manual
- * step in the builder (select → replace), until Etch exposes instances to
- * the pattern format.
+ * region. Its styles are merged into Etch's style system exactly like the
+ * pattern installer does (existing selectors reused, never overwritten).
  *
  * @package Woo4Etch
  */
@@ -29,117 +26,78 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Handles the builder-side component install handshake.
+ * Installs the "Woo Notices" component.
  */
 final class Woo4Etch_Components {
 
-    /** Option holding {pending: bool, id: int, error: string}. */
-    const OPTION = 'woo4etch_notices_component';
-
-    /** Component reference key (PascalCase, Etch convention). */
+    /** Component reference key (PascalCase — Etch requires /^[A-Z][A-Za-z0-9]*$/). */
     const KEY = 'WooNotices';
 
     /** Component display name. */
     const NAME = 'Woo Notices';
 
     /**
-     * Hook registration.
-     */
-    public static function init() {
-        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_builder_script'], 30);
-        add_action('wp_ajax_woo4etch_component_result', [__CLASS__, 'ajax_result']);
-    }
-
-    /**
-     * Current install state.
+     * Look up the installed component by its stable Etch key. The meta is the
+     * source of truth — patterns and components share the wp_block post type,
+     * so neither slug nor title are reliable.
      *
-     * @return array{pending: bool, id: int, error: string}
+     * @return int Component post ID, 0 when not installed.
      */
-    public static function state() {
-        $state = (array) get_option(self::OPTION, []);
-        return [
-            'pending' => !empty($state['pending']),
-            'id'      => isset($state['id']) ? (int) $state['id'] : 0,
-            'error'   => isset($state['error']) ? (string) $state['error'] : '',
+    public static function installed_post_id() {
+        $matches = get_posts([
+            'post_type'      => 'wp_block',
+            'post_status'    => 'any',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'meta_key'       => 'etch_component_html_key',
+            'meta_value'     => self::KEY,
+        ]);
+        return !empty($matches) ? (int) $matches[0] : 0;
+    }
+
+    /**
+     * Create (or refresh) the component. Idempotent: an existing component
+     * with the key is updated in place, so builder-made tweaks to name or
+     * properties survive only until a reinstall — same semantics as the
+     * pattern installer.
+     *
+     * @return int|WP_Error Component post ID.
+     */
+    public static function install() {
+        $blocks = Woo4Etch_Layouts::blocks_for_install('notices');
+        if ($blocks === null) {
+            return new WP_Error('woo4etch_unknown_layout', __('Unknown layout.', 'woo4etch'));
+        }
+
+        $postarr = [
+            'post_title'   => self::NAME,
+            'post_name'    => sanitize_title(self::NAME),
+            'post_type'    => 'wp_block',
+            'post_status'  => 'publish',
+            'post_content' => serialize_blocks($blocks),
         ];
-    }
 
-    /**
-     * Arm the pending flag (admin opt-in). The actual creation happens on the
-     * next builder load.
-     */
-    public static function request_install() {
-        update_option(self::OPTION, [
-            'pending' => true,
-            'id'      => self::state()['id'],
-            'error'   => '',
-        ]);
-    }
-
-    /**
-     * The Etch builder is the front-end page loaded with ?etch=magic — the
-     * same signal Woo4Etch::is_etch_builder() keys on for sample data.
-     */
-    private static function is_builder_request() {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing check.
-        return isset($_GET['etch']) && 'magic' === sanitize_text_field(wp_unslash($_GET['etch']));
-    }
-
-    /**
-     * Enqueue the install script on builder loads while an install is pending.
-     */
-    public static function enqueue_builder_script() {
-        if (!self::is_builder_request() || !self::state()['pending']) {
-            return;
-        }
-        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
-            return;
+        $existing = self::installed_post_id();
+        if ($existing > 0) {
+            $postarr['ID'] = $existing;
         }
 
-        wp_enqueue_script(
-            'woo4etch-component-install',
-            plugins_url('assets/component-install.js', dirname(__DIR__) . '/woo4etch.php'),
-            [],
-            Woo4Etch::VERSION,
-            true
-        );
-        wp_localize_script('woo4etch-component-install', 'woo4etchComponentInstall', [
-            'pending'     => true,
-            'ajaxUrl'     => admin_url('admin-ajax.php'),
-            'nonce'       => wp_create_nonce('woo4etch_component_result'),
-            'key'         => self::KEY,
-            'name'        => self::NAME,
-            'description' => __('WooCommerce feedback region: queued notices ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup. Place once near the top of a page layout.', 'woo4etch'),
-            'shortcode'   => '[woo_notices format="plain"]',
-        ]);
-    }
-
-    /**
-     * admin-ajax: the builder script reports the outcome.
-     */
-    public static function ajax_result() {
-        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
-            wp_send_json_error(['message' => __('You do not have permission to do this.', 'woo4etch')], 403);
-        }
-        check_ajax_referer('woo4etch_component_result');
-
-        $status = isset($_POST['status']) ? sanitize_key(wp_unslash($_POST['status'])) : '';
-        $state  = self::state();
-
-        if ('installed' === $status) {
-            $state = [
-                'pending' => false,
-                'id'      => isset($_POST['component_id']) ? absint(wp_unslash($_POST['component_id'])) : 0,
-                'error'   => '',
-            ];
-        } else {
-            $state['pending'] = false;
-            $state['error']   = isset($_POST['message'])
-                ? sanitize_text_field(wp_unslash($_POST['message']))
-                : __('Component install failed in the builder.', 'woo4etch');
+        // Etch block comments would be stripped by KSES for non-unfiltered
+        // users; try/finally guarantees the filters come back on.
+        kses_remove_filters();
+        try {
+            $post_id = wp_insert_post(wp_slash($postarr), true);
+        } finally {
+            kses_init_filters();
         }
 
-        update_option(self::OPTION, $state);
-        wp_send_json_success($state);
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
+
+        update_post_meta($post_id, 'etch_component_html_key', self::KEY);
+        update_post_meta($post_id, 'etch_component_properties', []);
+
+        return (int) $post_id;
     }
 }
