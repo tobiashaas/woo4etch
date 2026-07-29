@@ -168,7 +168,20 @@ function w4e_test_layouts() {
             continue;
         }
         foreach (w4e_collect_blocks($root, 'etch/loop') as $i => $loop) {
-            w4e_assert_loop_valid($loop, "{$name} loop #" . ($i + 1));
+            $where = "{$name} loop #" . ($i + 1);
+            w4e_assert_loop_valid($loop, $where);
+            // Portability (issue #13): the paste artifacts run on sites the
+            // one-click installer never touched, so a loopId minted by the
+            // installer (w4e_*) won't exist there. Artifacts must reference
+            // Etch's seeded preset ids (e.g. etch_main_query) instead. Live
+            // trees are exempt — the installer resolves presets at runtime.
+            $loop_id = (string) ($loop['attrs']['loopId'] ?? '');
+            if ($loop_id !== '') {
+                w4e_check(
+                    strpos($loop_id, 'w4e_') !== 0,
+                    "{$where}: loopId '{$loop_id}' is portable (not an installer-minted w4e_* id)"
+                );
+            }
         }
     }
 }
