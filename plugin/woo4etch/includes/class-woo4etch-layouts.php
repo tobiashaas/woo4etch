@@ -24,6 +24,9 @@ final class Woo4Etch_Layouts {
     /** Option mapping layout slug => md5 of the layout build installed last. */
     const INSTALLED_HASHES_OPTION = 'woo4etch_layout_hashes';
 
+    /** Option mapping layout slug => md5 of the pattern post_content as saved. */
+    const INSTALLED_CONTENT_OPTION = 'woo4etch_layout_content_hashes';
+
     /** Option mapping layout slug => installed wp_block post ID. */
     const INSTALLED_OPTION = 'woo4etch_installed_layouts';
 
@@ -101,11 +104,13 @@ final class Woo4Etch_Layouts {
             if (!is_array($data) || empty($data['gutenbergBlock'])) {
                 return null;
             }
+            $styles = isset($data['styles']) && is_array($data['styles']) ? $data['styles'] : [];
+            $block  = self::bind_class_styles($data['gutenbergBlock'], $styles);
             return [
                 'name'        => $meta['name'],
                 'description' => $meta['description'],
-                'block'       => $data['gutenbergBlock'],
-                'styles'      => isset($data['styles']) && is_array($data['styles']) ? $data['styles'] : [],
+                'block'       => $block,
+                'styles'      => $styles,
             ];
         }
 
@@ -113,13 +118,99 @@ final class Woo4Etch_Layouts {
         if (!method_exists(__CLASS__, $method)) {
             return null;
         }
-        $built = self::$method();
+        $built  = self::$method();
+        $styles = $built['styles'];
+        $block  = self::bind_class_styles($built['block'], $styles);
         return [
             'name'        => $meta['name'],
             'description' => $meta['description'],
-            'block'       => $built['block'],
-            'styles'      => $built['styles'],
+            'block'       => $block,
+            'styles'      => $styles,
         ];
+    }
+
+    /**
+     * Guarantee every literal class in a block's class attribute is backed by
+     * a referenced style record.
+     *
+     * Etch's save reconciliation keeps a class on an element only while the
+     * block also references a style record whose selector matches it. Classes
+     * that ship without a record — above all the WooCommerce contract classes
+     * (`cart`, `single_add_to_cart_button`, `button`, `quantity`, the gallery
+     * classes) — are silently stripped on the first builder save, breaking
+     * Woo's JS/styling contract while the page keeps rendering (issue #21).
+     *
+     * For every class without a matching record reference this attaches the
+     * existing record for that selector, creating an empty one when none is
+     * defined. Dynamic classes (`stock--{this.stock_status}`) are skipped —
+     * no static selector can match them.
+     *
+     * @param array<string,mixed>                 $block  Block (parse_blocks shape).
+     * @param array<string,array<string,mixed>>   $styles Style map, extended in place.
+     * @return array<string,mixed>
+     */
+    private static function bind_class_styles(array $block, array &$styles) {
+        $class_attr = $block['attrs']['attributes']['class'] ?? '';
+        if (is_string($class_attr) && trim($class_attr) !== '') {
+            $refs = isset($block['attrs']['styles']) && is_array($block['attrs']['styles'])
+                ? array_values($block['attrs']['styles'])
+                : [];
+
+            $by_selector = [];
+            foreach ($styles as $id => $style) {
+                if (is_array($style) && isset($style['selector'])) {
+                    $by_selector[(string) $style['selector']] = (string) $id;
+                }
+            }
+            $ref_selectors = [];
+            foreach ($refs as $ref) {
+                if (isset($styles[$ref]['selector'])) {
+                    $ref_selectors[(string) $styles[$ref]['selector']] = true;
+                }
+            }
+
+            foreach (preg_split('/\s+/', trim($class_attr)) as $class) {
+                if ($class === '' || strpos($class, '{') !== false) {
+                    continue;
+                }
+                $selector = '.' . $class;
+                if (isset($ref_selectors[$selector])) {
+                    continue;
+                }
+                if (isset($by_selector[$selector])) {
+                    $id = $by_selector[$selector];
+                } else {
+                    $id = self::sid($class);
+                    // crc32 collision with a different selector → suffix.
+                    while (isset($styles[$id]) && (string) ($styles[$id]['selector'] ?? '') !== $selector) {
+                        $id .= 'w';
+                    }
+                    $styles[$id] = [
+                        'type'       => 'class',
+                        'selector'   => $selector,
+                        'collection' => 'default',
+                        'css'        => '',
+                        'readonly'   => false,
+                    ];
+                    $by_selector[$selector] = $id;
+                }
+                $refs[]                   = $id;
+                $ref_selectors[$selector] = true;
+            }
+
+            if ($refs) {
+                $block['attrs']['styles'] = array_values(array_unique($refs));
+            }
+        }
+
+        if (!empty($block['innerBlocks']) && is_array($block['innerBlocks'])) {
+            foreach ($block['innerBlocks'] as $i => $inner) {
+                if (is_array($inner)) {
+                    $block['innerBlocks'][$i] = self::bind_class_styles($inner, $styles);
+                }
+            }
+        }
+        return $block;
     }
 
     /**
@@ -155,10 +246,16 @@ final class Woo4Etch_Layouts {
      * overwritten — block references are remapped to the existing style instead
      * (same strategy as Etch's paste flow).
      *
-     * @param string $slug Catalog key.
+     * An existing pattern the user has edited since it was installed is never
+     * overwritten silently: without $force the install aborts with the
+     * `woo4etch_pattern_edited` error so the caller can ask for an explicit
+     * opt-in (issue #21 — plugin updates must never clobber user layout).
+     *
+     * @param string $slug  Catalog key.
+     * @param bool   $force Overwrite the pattern even if the user edited it.
      * @return int|WP_Error Pattern post ID.
      */
-    public static function install($slug) {
+    public static function install($slug, $force = false) {
         $layout = self::get($slug);
         if ($layout === null) {
             return new WP_Error('woo4etch_unknown_layout', __('Unknown layout.', 'woo4etch'));
@@ -169,6 +266,13 @@ final class Woo4Etch_Layouts {
         $installed = (array) get_option(self::INSTALLED_OPTION, []);
         $post_id   = isset($installed[$slug]) ? (int) $installed[$slug] : 0;
         $existing  = $post_id ? get_post($post_id) : null;
+
+        if (!$force && $existing && 'wp_block' === $existing->post_type && self::pattern_edited($slug, $existing)) {
+            return new WP_Error(
+                'woo4etch_pattern_edited',
+                __('This library pattern was edited since it was installed. Reinstalling would replace your edits — confirm the overwrite to proceed.', 'woo4etch')
+            );
+        }
 
         $post_data = [
             'post_type'    => 'wp_block',
@@ -202,7 +306,32 @@ final class Woo4Etch_Layouts {
         $hashes[$slug] = self::build_hash($slug);
         update_option(self::INSTALLED_HASHES_OPTION, $hashes);
 
+        // Record the content as actually saved (KSES may have altered it), so
+        // user edits to the library pattern are detectable on the next install.
+        $saved                 = get_post($post_id);
+        $content_hashes        = (array) get_option(self::INSTALLED_CONTENT_OPTION, []);
+        $content_hashes[$slug] = md5((string) ($saved ? $saved->post_content : ''));
+        update_option(self::INSTALLED_CONTENT_OPTION, $content_hashes);
+
         return $post_id;
+    }
+
+    /**
+     * True when the installed library pattern's content no longer matches what
+     * the installer saved — i.e. the user edited the pattern itself. Patterns
+     * installed before content tracking existed count as edited (conservative:
+     * never risk clobbering unknown state without an explicit opt-in).
+     *
+     * @param string  $slug     Catalog key.
+     * @param WP_Post $existing Installed pattern post.
+     * @return bool
+     */
+    public static function pattern_edited($slug, $existing) {
+        $content_hashes = (array) get_option(self::INSTALLED_CONTENT_OPTION, []);
+        if (empty($content_hashes[$slug])) {
+            return true;
+        }
+        return !hash_equals((string) $content_hashes[$slug], md5((string) $existing->post_content));
     }
 
     /**

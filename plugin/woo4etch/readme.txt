@@ -117,6 +117,8 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* Fix: the layout installer binds every literal class to an Etch style record (existing records with the same selector are reused, empty ones created otherwise). Without a referenced record, Etch's save reconciliation stripped record-less classes — including the Woo contract classes cart / single_add_to_cart_button / button / quantity — on the first builder save, silently breaking variation + add-to-cart JS. Applies to install, health-check insert, component install and the copy/paste JSON alike.
+* Fix: reinstalling a layout no longer silently overwrites a library pattern you edited — the installer detects edits (patterns installed before this tracking count as edited) and asks for an explicit overwrite confirmation. Inserted copies on pages were never touched either way.
 * New: `[woo_product_attributes]` — the "Additional information" attributes table (visible attributes + weight/dimensions) as a shortcode. Needed because the woocommerce_product_additional_information hook expects the product as a do_action argument, which the hook island cannot pass.
 * New: `woo4etch/cart_item_payload` filter — adjust each cart-item payload (e.g. strip Germanized's gzd-* rows from `meta`) before it reaches `{options.cart_items}`.
 * New: `{this.is_sold_individually}` exposed in the product data bridge — hide the quantity input for one-per-order products via `{#if !this.is_sold_individually}`.

@@ -50,6 +50,47 @@ function w4e_collect_blocks($root, $block_name) {
     return $found;
 }
 
+/**
+ * Assert every literal class in every element's class attribute is backed by a
+ * referenced style record (selector ".class") — issue #21: Etch's save
+ * reconciliation strips classes without a matching referenced record on the
+ * first builder save, silently breaking the Woo contract (form.cart,
+ * .single_add_to_cart_button, …). Dynamic classes ({this.*}) are exempt.
+ *
+ * @param array  $root   Block tree.
+ * @param array  $styles Style map (id => definition).
+ * @param string $where  Label for messages.
+ */
+function w4e_assert_classes_bound($root, $styles, $where) {
+    $unbound = [];
+    w4e_walk_blocks($root, static function ($b) use (&$unbound, $styles) {
+        $class_attr = $b['attrs']['attributes']['class'] ?? '';
+        if (!is_string($class_attr) || trim($class_attr) === '') {
+            return;
+        }
+        $refs          = $b['attrs']['styles'] ?? [];
+        $ref_selectors = [];
+        foreach ((array) $refs as $ref) {
+            if (isset($styles[$ref]['selector'])) {
+                $ref_selectors[(string) $styles[$ref]['selector']] = true;
+            }
+        }
+        foreach (preg_split('/\s+/', trim($class_attr)) as $class) {
+            if ($class === '' || strpos($class, '{') !== false) {
+                continue;
+            }
+            if (!isset($ref_selectors['.' . $class])) {
+                $unbound[] = $class;
+            }
+        }
+    });
+    w4e_check(
+        $unbound === [],
+        "{$where}: every literal class has a referenced style record"
+        . ($unbound ? ' (unbound: ' . implode(', ', array_unique($unbound)) . ')' : '')
+    );
+}
+
 /** True when any etch/element in the tree has an attribute matching a predicate. */
 function w4e_any_element($root, callable $pred) {
     $hit = false;
@@ -105,6 +146,9 @@ function w4e_test_layouts() {
         foreach ($loops as $i => $loop) {
             w4e_assert_loop_valid($loop, "{$slug} loop #" . ($i + 1));
         }
+
+        // Issue #21: classes survive builder saves only when record-backed.
+        w4e_assert_classes_bound($root, $layout['styles'] ?? [], $slug);
     }
 
     /* ---- Single-product Woo contract (server logic keys off these) ---- */
@@ -167,6 +211,7 @@ function w4e_test_layouts() {
         if (!is_array($root)) {
             continue;
         }
+        w4e_assert_classes_bound($root, isset($data['styles']) && is_array($data['styles']) ? $data['styles'] : [], $name);
         foreach (w4e_collect_blocks($root, 'etch/loop') as $i => $loop) {
             $where = "{$name} loop #" . ($i + 1);
             w4e_assert_loop_valid($loop, $where);

@@ -104,10 +104,11 @@ final class Woo4Etch_Admin {
             wp_die(esc_html__('You do not have permission to do this.', 'woo4etch'));
         }
 
-        $slug = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
+        $slug  = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
+        $force = !empty($_POST['force']);
         check_admin_referer('woo4etch_install_layout_' . $slug);
 
-        $result   = Woo4Etch_Layouts::install($slug);
+        $result   = Woo4Etch_Layouts::install($slug, $force);
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
         $redirect = remove_query_arg(['w4e_installed', 'w4e_error'], $redirect);
 
@@ -134,13 +135,19 @@ final class Woo4Etch_Admin {
 
         $slug  = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
         $slugs = ($slug === 'all') ? array_keys(Woo4Etch_Layouts::catalog()) : [$slug];
+        // Overwriting a user-edited pattern needs a per-layout confirmation —
+        // force is only honored for an explicitly named layout, never for 'all'.
+        $force = ($slug !== 'all') && !empty($_POST['force']);
 
         $installed = [];
         $failed    = [];
         foreach ($slugs as $layout_slug) {
-            $result = Woo4Etch_Layouts::install($layout_slug);
+            $result = Woo4Etch_Layouts::install($layout_slug, $force);
             if (is_wp_error($result)) {
-                $failed[$layout_slug] = $result->get_error_message();
+                $failed[$layout_slug] = [
+                    'code'    => $result->get_error_code(),
+                    'message' => $result->get_error_message(),
+                ];
             } else {
                 $installed[] = $layout_slug;
             }
@@ -328,7 +335,7 @@ final class Woo4Etch_Admin {
         </p>
         <p class="woo4etch-intro">
             <strong><?php esc_html_e('What “Reinstall” touches:', 'woo4etch'); ?></strong>
-            <?php esc_html_e('it replaces the pattern in the library only — copies you already inserted into pages are untouched, and class styles with existing selectors are reused, never overwritten (your CSS edits survive). If you edited the library pattern itself, those edits are replaced.', 'woo4etch'); ?>
+            <?php esc_html_e('it replaces the pattern in the library only — copies you already inserted into pages are untouched, and class styles with existing selectors are reused, never overwritten (your CSS edits survive). If you edited the library pattern itself, reinstalling asks for confirmation before replacing your edits.', 'woo4etch'); ?>
         </p>
 
         <p>
@@ -645,17 +652,27 @@ final class Woo4Etch_Admin {
                 installing: '<?php echo esc_js(__('Installing…', 'woo4etch')); ?>',
                 reinstall:  '<?php echo esc_js(__('Reinstall pattern', 'woo4etch')); ?>',
                 allDone:    '<?php echo esc_js(__('All layouts installed ✓ — insert them from the “Woo4Etch” pattern category in the Etch builder.', 'woo4etch')); ?>',
-                someFailed: '<?php echo esc_js(__('Some layouts failed:', 'woo4etch')); ?>',
-                error:      '<?php echo esc_js(__('Install failed:', 'woo4etch')); ?>'
+                someFailed: '<?php echo esc_js(__('Some layouts were skipped or failed:', 'woo4etch')); ?>',
+                error:      '<?php echo esc_js(__('Install failed:', 'woo4etch')); ?>',
+                confirmOverwrite: '<?php echo esc_js(__('This library pattern was edited since it was installed. Reinstall anyway and replace your edits? (Copies already inserted into pages are untouched.)', 'woo4etch')); ?>'
             };
 
-            function install(slug) {
+            function install(slug, force) {
                 var body = new URLSearchParams();
                 body.append('action', 'woo4etch_install_layout');
                 body.append('layout', slug);
                 body.append('_ajax_nonce', nonce);
+                if (force) {
+                    body.append('force', '1');
+                }
                 return fetch(window.ajaxurl, { method: 'POST', credentials: 'same-origin', body: body })
                     .then(function (r) { return r.json(); });
+            }
+
+            function failureOf(res, slug) {
+                var f = res && res.data && res.data.failed && res.data.failed[slug];
+                if (!f) return null;
+                return (typeof f === 'string') ? { code: '', message: f } : f;
             }
 
             function markInstalled(slug) {
@@ -681,20 +698,31 @@ final class Woo4Etch_Admin {
                     var original = btn.textContent;
                     btn.disabled    = true;
                     btn.textContent = strings.installing;
-                    install(slug).then(function (res) {
+                    var finish = function (res) {
                         btn.disabled = false;
                         if (res && res.success && res.data.installed.indexOf(slug) !== -1) {
                             markInstalled(slug);
-                        } else {
-                            btn.textContent = original;
-                            var msg = (res && res.data && (res.data.failed && res.data.failed[slug] || res.data.message)) || '';
-                            window.alert(strings.error + ' ' + msg);
+                            return;
                         }
-                    }).catch(function () {
+                        btn.textContent = original;
+                        var failure = failureOf(res, slug);
+                        if (failure && failure.code === 'woo4etch_pattern_edited') {
+                            if (window.confirm(strings.confirmOverwrite)) {
+                                btn.disabled    = true;
+                                btn.textContent = strings.installing;
+                                install(slug, true).then(finish).catch(fail);
+                            }
+                            return;
+                        }
+                        var msg = (failure && failure.message) || (res && res.data && res.data.message) || '';
+                        window.alert(strings.error + ' ' + msg);
+                    };
+                    var fail = function () {
                         btn.disabled    = false;
                         btn.textContent = original;
                         window.alert(strings.error);
-                    });
+                    };
+                    install(slug, false).then(finish).catch(fail);
                 });
             });
 
