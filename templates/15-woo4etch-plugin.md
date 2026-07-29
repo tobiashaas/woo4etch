@@ -299,10 +299,17 @@ Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_
 > and security errors all arrive as Woo notices; without an output they fail
 > *silently*. The ready-made layouts (cart, single product, account) include a
 > `.w4e-notices` block, and **Ready-made layouts → Woo notices** installs it
-> standalone for any other layout. The block is structurally identical
-> everywhere on purpose: select one instance in Etch and **save it as a
-> component** to control the region globally (a plugin cannot install Etch
-> components — no API; see `ETCH-FEATURE-REQUESTS.md`).
+> standalone for any other layout.
+>
+> **As a component:** on the Woo4Etch admin page, *"Woo Notices as an Etch
+> component"* creates a real Etch component through Etch's public scripting
+> API (`etch.components` — [docs](https://docs.etchwp.com/public-api/components)).
+> The API only runs inside the builder, so the install is a handshake: click
+> the button, then open the builder once — the component is created
+> automatically and the admin page shows its id. Insert instances from the
+> component library ("Woo Notices"), and optionally replace the inline
+> notices blocks in the installed layouts with instances for one globally
+> editable region.
 
 `[woo_result_count]`, `[woo_catalog_ordering]`, and `[woo_pagination]` read the current loop, so place them on a shop/archive template where the main product query runs.
 

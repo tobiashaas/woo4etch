@@ -73,7 +73,7 @@ final class Woo4Etch_Layouts {
             ],
             'notices' => [
                 'name'        => 'Woo notices — feedback messages',
-                'description' => 'Queued WooCommerce feedback ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup via [woo_notices format="plain"]. Already included in the cart, single-product and account layouts; insert this standalone version near the top of any other page layout. Tip: select it in Etch and save it as a component to manage the notices region globally.',
+                'description' => 'Queued WooCommerce feedback ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup via [woo_notices format="plain"]. Already included in the cart, single-product and account layouts; insert this standalone version near the top of any other page layout — or use "Woo Notices as an Etch component" below to manage the region globally.',
                 'area'        => 'Global',
             ],
         ];

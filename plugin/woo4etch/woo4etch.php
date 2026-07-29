@@ -27,6 +27,7 @@ if (!defined('WOO4ETCH_ETCH_AFFILIATE_URL')) {
 
 require_once __DIR__ . '/includes/class-woo4etch-admin.php';
 require_once __DIR__ . '/includes/class-woo4etch-layouts.php';
+require_once __DIR__ . '/includes/class-woo4etch-components.php';
 require_once __DIR__ . '/includes/class-woo4etch-woo-root.php';
 require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
@@ -207,6 +208,10 @@ final class Woo4Etch {
         // Experimental {woo.*} root — same data as {options.*}, namespaced.
         // Disable: woo4etch/enable_woo_root. See class-woo4etch-woo-root.php.
         Woo4Etch_Woo_Root::init();
+
+        // "Woo Notices" component installer (builder-side handshake via
+        // Etch's public scripting API). See class-woo4etch-components.php.
+        Woo4Etch_Components::init();
 
         self::register_frontend_features();
 
