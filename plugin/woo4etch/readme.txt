@@ -117,6 +117,7 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* New: "Add to page/template" — layouts install straight to where they render: cart/account onto the WooCommerce-assigned pages, shop archive / single product / order confirmation into the area's Etch template (created bare when missing). Append-only, refuses double-inserts, shows "On its page ✓" once present. Pattern install and Copy JSON stay as secondary routes.
 * Fix: the layout installer binds every literal class to an Etch style record (existing records with the same selector are reused, empty ones created otherwise). Without a referenced record, Etch's save reconciliation stripped record-less classes — including the Woo contract classes cart / single_add_to_cart_button / button / quantity — on the first builder save, silently breaking variation + add-to-cart JS. Applies to install, health-check insert, component install and the copy/paste JSON alike.
 * Fix: reinstalling a layout no longer silently overwrites a library pattern you edited — the installer detects edits (patterns installed before this tracking count as edited) and asks for an explicit overwrite confirmation. Inserted copies on pages were never touched either way.
 * New: `[woo_product_attributes]` — the "Additional information" attributes table (visible attributes + weight/dimensions) as a shortcode. Needed because the woocommerce_product_additional_information hook expects the product as a do_action argument, which the hook island cannot pass.
