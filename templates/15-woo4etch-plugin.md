@@ -215,6 +215,10 @@ add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
 [woo_weight default="—"]      [woo_dimensions default="—"]
 [woo_meta key="_my_field" default="—"]
 [woo_attribute name="pa_color"]
+[woo_product_attributes]      → full attributes table ("Additional information":
+                                visible attributes + weight/dimensions; empty
+                                output when the product has no data — ship the
+                                surrounding heading conditionally)
 [woo_categories sep=", "]     [woo_tags sep=", "]
 [woo_short_description]       [woo_description]
 ```

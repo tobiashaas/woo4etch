@@ -356,6 +356,76 @@ add_action('woocommerce_order_status_processing', function ($order_id) {
 });
 ```
 
+## Product option checkbox (pre-assembly, gift wrap, engraving note, …)
+
+A yes/no product option that travels from the product page through the cart into
+the order (order emails, admin, packing slip) — without the Product Add-ons
+plugin. Four hooks; verified end-to-end on a live build (variable products,
+Germanized, Mollie).
+
+```php
+// 1) Checkbox before the add-to-cart button.
+//    Fires inside Woo's own variable-product form; hand-written simple-product
+//    forms need a [do_action hook="woocommerce_before_add_to_cart_button"]
+//    island at that spot (see 01/15).
+add_action('woocommerce_before_add_to_cart_button', function () {
+    global $product;
+    if (!$product instanceof WC_Product) return;
+    // Optional gate, e.g. only a category:
+    // if (!has_term('containers', 'product_cat', $product->get_id())) return;
+    $checked = isset($_POST['my_option']) ? 'checked' : '';
+    echo '<label class="my-option"><input type="checkbox" name="my_option" value="1" ' . $checked . '> '
+        . esc_html__('Pre-assemble before shipping', 'textdomain') . '</label>';
+});
+
+// 2) Into the cart item. Read $_REQUEST, not $_POST — the ?add-to-cart=…
+//    URL route (see "Add-to-cart URLs" above) arrives as GET and would
+//    silently drop the option otherwise.
+add_filter('woocommerce_add_cart_item_data', function (array $data, int $product_id): array {
+    if (!empty($_REQUEST['my_option'])) {
+        $data['my_option'] = true;
+    }
+    return $data;
+}, 10, 2);
+
+// 3) Display on the cart/checkout line item.
+add_filter('woocommerce_get_item_data', function (array $item_data, array $cart_item): array {
+    if (!empty($cart_item['my_option'])) {
+        $item_data[] = ['key' => __('Pre-assembly', 'textdomain'), 'value' => __('Yes', 'textdomain')];
+    }
+    return $item_data;
+}, 10, 2);
+
+// 4) Persist on the order line item (emails, admin, packing slip).
+add_action('woocommerce_checkout_create_order_line_item', function ($item, $key, $values) {
+    if (!empty($values['my_option'])) {
+        $item->add_meta_data(__('Pre-assembly', 'textdomain'), __('Yes', 'textdomain'), true);
+    }
+}, 10, 3);
+```
+
+## Tame Germanized's gzd-* rows in custom cart layouts
+
+WooCommerce Germanized injects raw rows (`gzd-delivery_time`, `gzd-item_desc`, …)
+via `woocommerce_get_item_data` **at priority ≥ 1000** — a custom cart layout
+rendering `{item.meta}` dumps them verbatim. Strip them for classic renders only;
+the checkout **block** (Store API) must keep them — the delivery time shown there
+is a mandatory disclosure in DE shops:
+
+```php
+add_filter('woocommerce_get_item_data', function (array $item_data): array {
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        return $item_data; // Store API / checkout block: untouched
+    }
+    return array_values(array_filter($item_data, function ($d) {
+        return strpos((string) ($d['key'] ?? $d['name'] ?? ''), 'gzd-') !== 0;
+    }));
+}, PHP_INT_MAX); // must run AFTER Germanized — an ordinary 999 is too early
+```
+
+Alternative without PHP: reshape the payload via the `woo4etch/cart_item_payload`
+filter (see [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md)).
+
 ## Sources
 
 - Business Bloomer — [Custom Add to Cart URLs](https://www.businessbloomer.com/woocommerce-custom-add-cart-urls-ultimate-guide/)

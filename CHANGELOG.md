@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [Unreleased]
+
+Findings from a production build (Caracciolo Olivenöl staging — Etch 1.6.2, WooCommerce block theme, Germanized, Mollie).
+
+### Added
+
+- **`[woo_product_attributes]`** — the "Additional information" attributes table (visible attributes plus weight/dimensions) as a shortcode; empty output when the product has no data. Needed because `woocommerce_product_additional_information` expects the product as a `do_action` **argument**, which neither `[do_action]` nor the `data-w4e-hook` island passes — the hooked `wc_display_product_attributes()` would receive `null`.
+- **`woo4etch/cart_item_payload` filter** — adjust each cart-item payload before it reaches `{options.cart_items}` / `{woo.cart.items}`. Primary use case: WooCommerce Germanized injects raw `gzd-*` rows (delivery time, item description) via `woocommerce_get_item_data` at priority ≥ 1000, which `{item.meta}` otherwise dumps verbatim into custom cart layouts.
+
+### Docs
+
+- **Archive context corrected** (10, 03): on product archives in Etch 1.6.x, `{this.title}` resolves to the **first product**, not the archive title, and `{taxonomy.name}` yields the taxonomy slug (`product_cat`), not the term. `{archive.title}` is the key that works for both term archives and the shop page. Search views expose **no** query keyword ( `{search.query}`/`{this.query}` render empty) — use a static heading.
+- **Gallery caveat** (01): with Woo styles disabled, give slide images an `aspect-ratio` guard — FlexSlider measures the viewport at init, and images that haven't loaded yet collapse it to 0 (the layout degrades to a bare thumbnail grid; also a CLS win).
+- **Copy/paste layouts** (etch-copy): builder-assigned classes ride as style-record references — when those records are lost, the next `saveAsync` silently strips the classes from the blocks. Re-apply critical classes as explicit `class` attributes.
+- **New snippets** (13): product option checkbox (pre-assembly & similar) via four hooks incl. the `$_REQUEST` add-to-cart-URL pitfall, and taming Germanized's `gzd-*` rows in classic cart renders (priority `PHP_INT_MAX` + REST guard so the checkout block keeps its mandatory delivery-time display).
+
 ## [1.5.0-beta.6] — 2026-06-13
 
 Pre-release — not offered to installed sites via the auto-updater; install manually to test.

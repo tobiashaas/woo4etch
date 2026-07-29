@@ -791,6 +791,21 @@ $url = wp_nonce_url(
 
 ## Useful smaller helpers
 
+### Product option checkbox (pre-assembly, gift wrap, …) → order meta
+
+Full walkthrough incl. the `$_REQUEST` pitfall in [`13-useful-snippets.md`](./13-useful-snippets.md#product-option-checkbox-pre-assembly-gift-wrap-engraving-note-):
+checkbox via `woocommerce_before_add_to_cart_button`, cart via
+`woocommerce_add_cart_item_data` (read `$_REQUEST`, not `$_POST` — the
+`?add-to-cart=` URL route is GET), display via `woocommerce_get_item_data`,
+order via `woocommerce_checkout_create_order_line_item`.
+
+### Tame Germanized's gzd-* rows in custom cart layouts
+
+Germanized adds raw `gzd-*` entries through `woocommerce_get_item_data` at
+priority ≥ 1000; `{item.meta}` dumps them verbatim. Filter at `PHP_INT_MAX`
+with a `REST_REQUEST` guard (checkout block keeps its mandatory delivery-time
+display) — snippet in [`13-useful-snippets.md`](./13-useful-snippets.md#tame-germanizeds-gzd--rows-in-custom-cart-layouts).
+
 ### Stop WooCommerce from loading scripts on non-Woo pages
 
 ```php

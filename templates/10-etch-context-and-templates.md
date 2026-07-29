@@ -80,7 +80,11 @@ Etch's recommended template types:
 | **404** | Anything that doesn't match | No `this.*` |
 | **Index (catch-all)** | Fallback when no specific template matches | Depends on the request |
 
-Inside a Single template, `{this.title}` gives the product title. Inside an Archive template, `{this.title}` gives the archive title (category/tag term, or the shop page on `/shop`) and you loop products with `{#loop mainQuery as item}` — never `{this.title}` for cards inside that loop.
+Inside a Single template, `{this.title}` gives the product title. Inside an Archive template, loop products with `{#loop mainQuery as item}` — never `{this.title}` for cards inside that loop.
+
+> **Archive heading — use `{archive.title}`, not `{this.title}` (verified on Etch 1.6.2).** On product archives `{this.title}` resolves to the **first product of the query**, not the archive title, and `{taxonomy.name}` yields the taxonomy slug (`product_cat`), not the term name. `{archive.title}` returns the term name on category/tag views **and** "Shop" on `/shop` — the one key that works for both. `{term.name}` works on term views only.
+>
+> **Search views expose no query keyword.** `{search.query}`, `{this.query}`, `{search.term}` all render empty on `?s=…` — use a static heading ("Search results") on the Search template. When unsure which key resolves, render a throwaway text block with all candidates (`K1[{a}] K2[{b}] …`) and read the frontend — don't guess.
 
 ### Pages (static layout, dynamic data injected)
 

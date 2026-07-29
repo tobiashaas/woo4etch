@@ -60,3 +60,12 @@ shortcode placeholder in the builder). See [`../15-woo4etch-plugin.md`](../15-wo
 > The class CSS embedded in the snippet uses literal colours (it mirrors the demo's
 > `tests/manual/demo-mu/demo.css`). Tweak the classes in Etch's CSS panel to match
 > your design — or wire them to your Automatic.css / design-token variables.
+
+> **Class-stripping pitfall:** the pasted blocks carry their classes as
+> **style-record references**, not as plain `class` attributes. If those style
+> records ever get lost (deleted in a cleanup, or a stale builder session
+> reverts them), the classes still render — until the **next save of that
+> document silently strips them** and the layout falls apart while its CSS is
+> still present. If you restyle the layout outside Etch's style panel (e.g.
+> moving the CSS into a global stylesheet), re-apply the critical classes as
+> explicit `class` attributes on the blocks first.

@@ -317,6 +317,13 @@ final class Woo4Etch {
                 'description' => __('Product attribute by taxonomy slug (e.g. pa_color).', 'woo4etch'),
                 'example'     => '[woo_attribute name="pa_color"]',
             ],
+            'woo_product_attributes' => [
+                'method'      => 'shortcode_product_attributes',
+                'category'    => __('Product data', 'woo4etch'),
+                'attributes'  => 'id',
+                'description' => __('Full attributes table (visible attributes plus weight/dimensions) — the "Additional information" tab as a table, empty when the product has no data.', 'woo4etch'),
+                'example'     => '[woo_product_attributes]',
+            ],
             'woo_categories' => [
                 'method'      => 'shortcode_categories',
                 'category'    => __('Product data', 'woo4etch'),
@@ -1182,6 +1189,28 @@ final class Woo4Etch {
         }
         $value = $product->get_attribute(sanitize_text_field($atts['name']));
         return $value === '' ? esc_html($atts['default']) : esc_html($value);
+    }
+
+    /**
+     * Full attributes table — WooCommerce's "Additional information" tab as a
+     * plain table (visible attributes plus weight/dimensions when enabled).
+     * Returns an empty string when the product has nothing to show, so a
+     * surrounding heading can be shipped conditionally by the layout.
+     *
+     * Why a shortcode and not the woocommerce_product_additional_information
+     * hook via [do_action]/data-w4e-hook: that hook expects the product as a
+     * do_action ARGUMENT, which the hook island does not pass — the callbacks
+     * would receive null. wc_display_product_attributes() needs the object.
+     */
+    public static function shortcode_product_attributes($atts) {
+        $atts = shortcode_atts(['id' => 0], $atts, 'woo_product_attributes');
+        $product = self::resolve_product($atts);
+        if (!$product || !function_exists('wc_display_product_attributes')) {
+            return '';
+        }
+        ob_start();
+        wc_display_product_attributes($product);
+        return trim(ob_get_clean());
     }
 
     /* ============================================================
@@ -2341,12 +2370,15 @@ final class Woo4Etch {
             $image = wc_placeholder_img_src($size);
         }
 
-        return [
+        $payload = [
             'key'        => $key,
             'id'         => $product->get_id(),
             'name'       => $product->get_name(),
             'sku'        => $product->get_sku(),
             // Variation / add-on attributes as a flat string, e.g. "Color: Blue, Size: M".
+            // Note: third parties can inject noisy rows via woocommerce_get_item_data
+            // (Germanized adds gzd-* entries) — filter the payload below, or unhook
+            // their get_item_data filter for classic renders (see 13-useful-snippets.md).
             'meta'       => self::plain(wc_get_formatted_cart_item_data($cart_item, true)),
             'quantity'   => $cart_item['quantity'],
             'price'      => self::plain(WC()->cart->get_product_price($product)),
@@ -2356,6 +2388,16 @@ final class Woo4Etch {
             'remove_url' => wc_get_cart_remove_url($key),
             'on_sale'    => $product->is_on_sale(),
         ];
+
+        /**
+         * Adjust one cart-item payload before it reaches the dynamic-data bridge
+         * ({options.cart_items} / {woo.cart.items}).
+         *
+         * @param array      $payload   The item payload (key, id, name, meta, …).
+         * @param array      $cart_item Raw WooCommerce cart item.
+         * @param WC_Product $product   Resolved product object.
+         */
+        return apply_filters('woo4etch/cart_item_payload', $payload, $cart_item, $product);
     }
 
     /**

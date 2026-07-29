@@ -221,6 +221,12 @@ What the scripts key off — don't drop these:
 
 Caveats:
 
+- **Give slide images an `aspect-ratio` guard** — FlexSlider measures the viewport height at init, and images that haven't finished loading measure 0: the main slide collapses and the gallery degrades to a bare thumbnail grid (races on slow connections and in headless tests; also a CLS win). One rule fixes it:
+
+  ```css
+  .woocommerce-product-gallery__image img { inline-size: 100%; aspect-ratio: 1 / 1; object-fit: contain; display: block; }
+  ```
+
 - In the hand-written variant `data-thumb="{image.url}"` points at the full-size file — fine for small galleries, but the thumbnail strip then downloads full images. `[woo_gallery mode="woo"]` uses the registered `woocommerce_gallery_thumbnail` size instead; prefer it for image-heavy products.
 - Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. If you checked **Disable WooCommerce default styles**, add a minimal replacement yourself:
 
