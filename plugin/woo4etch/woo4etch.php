@@ -47,15 +47,25 @@ if (file_exists(WP_CONTENT_DIR . '/woo4etch-customizations.php')) {
  * WordPress replaces the whole plugin folder on update, which would wipe the
  * snippets users pasted into customizations.php — breaking the ADR-001
  * promise that updates never touch user customisations. Before this plugin
- * is updated the file is copied aside; afterwards it is restored, but only
- * when it actually differs from the freshly shipped skeleton (so skeleton
- * improvements still arrive for users who never edited it).
+ * is updated the file is copied aside — but only when the user actually
+ * edited it (it differs from the shipped skeleton, WOO4ETCH_SKELETON_MD5);
+ * afterwards the backup, if any, is restored. An untouched skeleton is never
+ * preserved, so skeleton improvements still arrive for users who never
+ * edited it. (Comparing the backup against the *new* file instead — the old
+ * behaviour — couldn't tell "user edited" from "skeleton improved" and
+ * clobbered improved skeletons with the old one.)
+ *
+ * WOO4ETCH_SKELETON_MD5 must equal md5 of the shipped skeleton — the
+ * service-free test layer asserts this on every PR.
  */
+define('WOO4ETCH_SKELETON_MD5', '2f16c60ee54637bae945f4b62b939ba0');
+
 add_filter('upgrader_pre_install', static function ($response, $hook_extra) {
     if (!is_wp_error($response)
         && isset($hook_extra['plugin'])
         && plugin_basename(__FILE__) === $hook_extra['plugin']
-        && file_exists(__DIR__ . '/includes/customizations.php')) {
+        && file_exists(__DIR__ . '/includes/customizations.php')
+        && md5_file(__DIR__ . '/includes/customizations.php') !== WOO4ETCH_SKELETON_MD5) {
         @copy(__DIR__ . '/includes/customizations.php', get_temp_dir() . 'woo4etch-customizations.preserved.php');
     }
     return $response;
@@ -70,7 +80,7 @@ add_filter('upgrader_post_install', static function ($response, $hook_extra, $re
     $backup = get_temp_dir() . 'woo4etch-customizations.preserved.php';
     if (file_exists($backup)) {
         $dest = isset($result['destination']) ? trailingslashit($result['destination']) . 'includes/customizations.php' : '';
-        if ($dest !== '' && file_exists($dest) && md5_file($backup) !== md5_file($dest)) {
+        if ($dest !== '' && file_exists($dest)) {
             @copy($backup, $dest);
         }
         @unlink($backup);
@@ -741,6 +751,12 @@ final class Woo4Etch {
 
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_swatches_script']);
 
+        // Optional zero-markup variation UX: native attribute <select>s become
+        // pill buttons, .quantity inputs get a −/+ stepper (assets/pills.js).
+        // Driven by the admin checkbox (Woo4Etch → Settings) or the filter:
+        //   add_filter('woo4etch/enqueue_pills', '__return_true');
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_pills_script']);
+
         // Woo's gallery JS (zoom/lightbox/slider) never loads on block themes,
         // even with the wc-product-gallery-* supports declared — WooCommerce
         // only enqueues the bundle for classic themes. Close that gap.
@@ -836,6 +852,38 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Pills widget (assets/pills.js): progressive enhancement that turns the
+     * native attribute <select>s into pill buttons and wraps .quantity inputs
+     * in a −/+ stepper. Woo's variation JS stays leading — a pill click sets
+     * the select and dispatches its change event. The inverse of swatches.js
+     * (hand-built markup → native select); both bridge into the same event.
+     *
+     * Off by default; enable per checkbox (Woo4Etch → Settings) or filter:
+     *   add_filter('woo4etch/enqueue_pills', '__return_true');
+     */
+    public static function enqueue_pills_script() {
+        $settings = (array) get_option('woo4etch_settings', []);
+        $enqueue  = !empty($settings['enable_pills'])
+            && function_exists('is_product') && is_product();
+        if (!apply_filters('woo4etch/enqueue_pills', $enqueue)) {
+            return;
+        }
+        wp_enqueue_script(
+            'woo4etch-pills',
+            plugins_url('assets/pills.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+        wp_localize_script('woo4etch-pills', 'w4ePillsI18n', [
+            /* translators: %s: attribute label (e.g. "Size") */
+            'selectLabel' => __('Choose %s', 'woo4etch'),
+            'decrease'    => __('Decrease quantity', 'woo4etch'),
+            'increase'    => __('Increase quantity', 'woo4etch'),
+        ]);
     }
 
     /**
@@ -1023,6 +1071,23 @@ final class Woo4Etch {
         }
         if (wp_script_is('wc-single-product', 'registered')) {
             wp_enqueue_script('wc-single-product');
+        }
+
+        // Companion CSS for the gallery DOM the scripts produce (FlexSlider
+        // viewport, thumbnail strip, lightbox trigger) — WooCommerce's own
+        // stylesheets would cover this, but these builds typically disable
+        // them ("Disable WooCommerce default styles"), leaving the gallery
+        // unstyled and, worse, collapsible (viewport measured at 0) or
+        // invisible (inline opacity:0 with late/failed JS init). Tokens with
+        // plain fallbacks; disable:
+        //   add_filter('woo4etch/enqueue_gallery_css', '__return_false');
+        if (apply_filters('woo4etch/enqueue_gallery_css', true)) {
+            wp_enqueue_style(
+                'woo4etch-gallery',
+                plugins_url('assets/gallery.css', __FILE__),
+                [],
+                self::VERSION
+            );
         }
     }
 

@@ -30,6 +30,21 @@ function w4e_test_consistency() {
     w4e_equals($header_version, $const_version, 'woo4etch.php header Version === Woo4Etch::VERSION');
     w4e_equals($header_version, $stable_tag, 'woo4etch.php header Version === readme.txt Stable tag');
 
+    /* ---- Customizations-skeleton fingerprint ---- */
+    // The upgrader hooks preserve includes/customizations.php across plugin
+    // updates only when it differs from the shipped skeleton. The shipped
+    // fingerprint is hardcoded (WOO4ETCH_SKELETON_MD5); if it drifts from the
+    // actual file, either every untouched skeleton gets preserved (stale
+    // skeletons forever) or edits are mistaken for the skeleton.
+    w4e_section('Customizations skeleton fingerprint');
+    preg_match('/define\(\'WOO4ETCH_SKELETON_MD5\',\s*\'([0-9a-f]{32})\'\)/', $plugin_src, $km);
+    w4e_check(isset($km[1]), 'WOO4ETCH_SKELETON_MD5 is defined in woo4etch.php');
+    w4e_equals(
+        md5_file(WOO4ETCH_PLUGIN_DIR . '/includes/customizations.php'),
+        $km[1] ?? '(none)',
+        'WOO4ETCH_SKELETON_MD5 === md5 of the shipped includes/customizations.php'
+    );
+
     /* ---- Shortcode catalog integrity ---- */
     w4e_section('Shortcode catalog integrity');
 

@@ -275,6 +275,57 @@ add_filter('woo4etch/enqueue_swatches', '__return_false');
 
 Style the selected state in Etch via `.swatch.is-selected`.
 
+### Zero-markup alternative: auto-built pills + quantity stepper (`pills.js`)
+
+The inverse of `swatches.js`: instead of bridging *hand-built* swatch markup into the
+native selects, `assets/pills.js` (Woo4Etch → Settings → "Variation pills & quantity
+stepper", or `add_filter('woo4etch/enqueue_pills', '__return_true')`) auto-builds
+accessible pill buttons *from* the native attribute `<select>`s and wraps every
+`.quantity input.qty` in a −/+ stepper — no extra Etch markup at all. Woo's variation
+JS stays the source of truth: a pill click sets the native select and dispatches its
+`change` event, so price/stock/`variation_id` keep working untouched. Works with both
+the hand-built form on this page and the `data-w4e-add-to-cart` native form.
+
+- Selected state: `.w4e-pill.is-selected` (+ `aria-pressed`); stepper: `.w4e-qty`,
+  `.w4e-qty__btn`. The injected CSS uses design tokens (`--primary`, `--space-*`,
+  `--radius`, `--text-*`) with plain fallbacks — override freely, the rules are plain
+  classes in a `<style id="w4e-pills-css">`.
+- Pick **one** mechanism per form: pills (zero markup, automatic) *or* swatches
+  (full control over the markup, e.g. color blobs / image previews).
+- Production-proven on a live shop (issue #19).
+
+### Buy-box rhythm for variable products (companion CSS)
+
+The native variations form renders extra rows (variation price, availability,
+description) that a styled buy box usually wants deduplicated and spaced. This
+production-proven set assumes the top price row mirrors the chosen variation
+(`data-w4e-variation-price` sync) and hides Woo's duplicate; adapt selectors to your
+wrapper classes. Give the variable-product form an extra class (e.g.
+`w4e-product__form--variable`, or use the ready-made layout's `.w4e-native-cart`
+wrapper) so the `:has()` dedupe can target it:
+
+```css
+/* dedupe: stock row outside the form duplicates Woo's availability row */
+.product-info:has(.w4e-product__form--variable) > .product__stock { display: none; }
+/* price row already shows the (synced) price */
+.w4e-product__form--variable .woocommerce-variation-price { display: none; }
+.w4e-product__form--variable .woocommerce-variation-availability p {
+  margin: 0; font-size: var(--text-s, .9375rem); font-weight: 600; color: var(--primary, inherit);
+}
+.woocommerce-variation-description p { margin: 0; font-size: var(--text-s, .9375rem); color: var(--text-dark-muted, #6b7280); }
+.single_variation_wrap { display: flex; flex-direction: column; gap: var(--space-s, .85rem); inline-size: 100%; }
+.single_variation { display: flex; flex-direction: column; gap: calc(var(--space-xs, .5rem) / 2); }
+.woocommerce-variation-add-to-cart,
+form.cart.w4e-product__form--variable {
+  display: flex; flex-direction: column; gap: var(--space-s, .85rem); align-items: stretch; max-inline-size: 26rem;
+}
+.w4e-product__form--variable .variations { margin: 0; inline-size: 100%; }
+/* stepper sizing (2.9rem touch targets) */
+.w4e-qty { align-self: flex-start; min-block-size: 2.9rem; }
+.w4e-qty__btn { inline-size: 2.75rem; font-size: var(--text-l, 1.1875rem); line-height: 1; }
+.w4e-qty input.qty { inline-size: 4rem; font-size: var(--text-m, 1.0625rem); text-align: center; }
+```
+
 ### Swap variation image (optional)
 
 By default Woo swaps the gallery image on variant change. If you have a custom gallery, listen to the event:

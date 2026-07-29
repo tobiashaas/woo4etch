@@ -10,6 +10,8 @@ This is **not a runnable application**. There is no build step or dev server, an
 
 There *is* a fast, service-free test layer: `php tests/php/run.php` checks version-marker sync, the shortcode catalog, and the layout DSL invariants under plain PHP-CLI (no WordPress). It runs on every PR via `.github/workflows/test.yml` alongside a PHP 8.1→8.5 lint matrix (8.1 is Etch's own floor). See `tests/php/README.md`. The copy/paste artifacts in `templates/etch-copy/*.json` are generated from the layout definitions via `php tools/generate-etch-copy.php` (now WordPress-free too) and CI fails if they drift.
 
+Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (upgrader preservation, woo-root shape, external customizations, frontend smoke) that need a real WordPress + WooCommerce. Run them via `tests/integration/run.sh --wp-env` (repo's wp-env; `.wp-env.json` is machine-specific and gitignored, Etch synced from staging into `.wp-env-local/`), `--ssh user@host --path …` against the staging server, or in CI (`Integration (wp-env)` job — no Etch there, Etch-dependent assertions skip).
+
 ## Layout
 
 | Path | What it is |

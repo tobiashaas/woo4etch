@@ -71,6 +71,7 @@ See the plain-language explanation in [`00-README.md`](./00-README.md#declare-wo
 Under **Etch → Woo4Etch → Settings**:
 
 - **Disable WooCommerce default styles** — removes all three Woo stylesheets (`woocommerce-layout`, `woocommerce-smallscreen`, `woocommerce-general`) so your Etch styles start from a blank slate: no specificity fights, no `!important`. Uncheck to bring the Woo styling back at any time. Payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override programmatically: `add_filter('woo4etch/disable_woo_styles', '__return_true');` (the filter wins over the checkbox).
+- **Variation pills & quantity stepper** — enables `assets/pills.js` on single product pages: the native attribute `<select>`s become accessible pill buttons and every `.quantity input.qty` gets a −/+ stepper, with zero extra markup. Woo's variation JS stays leading (a pill click sets the native select and fires its `change` event). Off by default; filter: `woo4etch/enqueue_pills`. Details + companion buy-box CSS in [`02-single-product-variable.md`](./02-single-product-variable.md#zero-markup-alternative-auto-built-pills--quantity-stepper-pillsjs).
 
 ## Built-in frontend behaviours (no markup)
 
@@ -80,6 +81,7 @@ These ship with the plugin and never output HTML — they only support your own 
 |---|---|---|
 | **Buy-now → checkout redirect** | a submit button `name="buy_now"` inside `form.cart` (see [`16-one-click-checkout.md`](./16-one-click-checkout.md)) | `woo4etch/enable_buy_now` (default on), `woo4etch/buy_now_empty_cart` (default off) |
 | **Variation swatch sync** | clickable elements with `data-w4e-swatch`, `data-attribute`, `data-value` (see [`02-single-product-variable.md`](./02-single-product-variable.md#variation-swatches-color-blobs--image-previews)) | `woo4etch/enqueue_swatches` (default: product pages) |
+| **Variation pills + qty stepper** | none — auto-builds from the native selects when the Settings checkbox is on (the inverse of the swatch sync: zero markup vs. full markup control; both drive the same native `change` event) | `woo4etch/enqueue_pills` (default: off) |
 
 ## Ready-made layouts (install as Etch patterns)
 

@@ -97,3 +97,20 @@ shortcode placeholder in the builder). See [`../15-woo4etch-plugin.md`](../15-wo
 > still present. If you restyle the layout outside Etch's style panel (e.g.
 > moving the CSS into a global stylesheet), re-apply the critical classes as
 > explicit `class` attributes on the blocks first.
+
+## First aid: a template got overwritten
+
+If a re-scaffold or paste replaced a customized template, the fastest full
+recovery is WordPress's own **`wp_template` revisions** — Etch templates are
+`wp_template` posts and WordPress keeps revisions of them:
+
+```
+GET /wp-json/wp/v2/templates/<theme>%2F%2F<slug>/revisions?context=edit
+```
+
+e.g. `.../templates/etch-theme%2F%2Fsingle-product/revisions?context=edit`
+(authenticated as an admin). Each revision carries the full pre-change
+`content.raw`; restore it via the editor's revision UI or by `POST`ing the
+revision content back to the template endpoint. Do this **before** saving the
+template again in the builder — every save creates a new revision and old ones
+eventually rotate out.
