@@ -37,6 +37,17 @@ Consequence for Etch: **there is nothing to register or activate per endpoint.**
 
    Build the navigation from `{options.account_menu}` (each item: `key`, `label`, `url`, `is_active`). Forms (edit address, edit account) stay with `[woo_account_content]` — they are real Woo PHP with validation.
 
+   **Gate everything on `{options.is_logged_in}`** (true in the builder so sections preview): guests must get a login form, not an empty "Hello !" dashboard — nav and endpoint views only make sense for logged-in customers:
+
+   ```text
+   {#if !options.is_logged_in}
+     [woo_login_form]
+   {/if}
+   {#if options.is_logged_in}
+     … nav + endpoint views …
+   {/if}
+   ```
+
 3. **Shortcode conditionals (server-rendered, frontend only):** `[woo_if cond="is_wc_endpoint_url" arg="orders"]…[/woo_if]` — works, but appears as a placeholder in the builder canvas.
 
 In practice, mix 1 and 2: Etch-native navigation + dashboard + orders list (all loopable, all previewing in the builder), and `[woo_account_content]` for the form endpoints.

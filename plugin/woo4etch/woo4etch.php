@@ -2630,6 +2630,7 @@ final class Woo4Etch {
      * etch/dynamic_data/option.
      *
      * Exposes:
+     *   {options.is_logged_in}     — bool (true in the builder so sections preview)
      *   {options.account_menu}     — array: key, label, url, is_active
      *   {options.account_endpoint} — current endpoint key ('dashboard', 'orders', …;
      *                                '' outside the account area)
@@ -2655,6 +2656,10 @@ final class Woo4Etch {
 
         $builder = self::is_etch_builder();
         $size    = apply_filters('woo4etch/cart_image_size', 'woocommerce_thumbnail');
+
+        // Login state, so account layouts can gate their sections and show a
+        // login form to guests. True in the builder so the sections preview.
+        $data['is_logged_in'] = $builder ? true : is_user_logged_in();
 
         // Account navigation (cheap, always available).
         $data['account_menu'] = self::account_menu();

@@ -832,7 +832,12 @@ final class Woo4Etch_Layouts {
                         self::cond('this.is_simple', 'isTruthy', null, [
                             self::el('div', ['class' => 'w4e-hook', 'data-w4e-hook' => 'woocommerce_before_add_to_cart_form', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: before form'),
                             self::el('form', ['class' => 'cart w4e-product__form', 'action' => '{this.permalink.relative}', 'method' => 'post', 'enctype' => 'multipart/form-data'], [$form], [
-                                self::el('input', ['class' => 'w4e-product__qty', 'type' => 'number', 'name' => 'quantity', 'value' => '1', 'min' => '1', 'step' => '1'], [$qty], [], 'Qty'),
+                                // Woo's classic quantity classes (div.quantity >
+                                // input.qty) so third-party scripts targeting the
+                                // native markup (steppers, min/max plugins) work.
+                                self::el('div', ['class' => 'quantity'], [], [
+                                    self::el('input', ['class' => 'w4e-product__qty input-text qty text', 'type' => 'number', 'name' => 'quantity', 'value' => '1', 'min' => '1', 'step' => '1'], [$qty], [], 'Qty'),
+                                ], 'Quantity'),
                                 self::text_el('button', '{this.add_to_cart_text}', ['class' => 'single_add_to_cart_button button', 'type' => 'submit', 'name' => 'add-to-cart', 'value' => '{this.id}'], [$button], 'Add to cart'),
                                 self::el('div', ['class' => 'w4e-hook', 'data-w4e-hook' => 'woocommerce_after_add_to_cart_button', 'data-w4e-product' => '{this.id}'], [], [], 'Hook: after button'),
                             ], 'Add-to-cart form'),
@@ -944,6 +949,7 @@ final class Woo4Etch_Layouts {
         $row     = self::cls($s, 'w4e-orderrow', 'display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid #e6e7eb;');
         $number  = self::cls($s, 'w4e-orderrow__number', 'font-weight: 700; color: inherit;');
         $status  = self::cls($s, 'w4e-orderrow__status', 'font-size: 13px; color: #6b7280;');
+        $login   = self::cls($s, 'w4e-account-login', 'max-width: 420px; margin-inline: auto; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px; & input { width: 100%; padding: 10px 12px; border: 1px solid #e6e7eb; border-radius: 8px; } & label { display: block; margin-bottom: 4px; font-weight: 500; } & .form-row { margin: 0 0 12px; }');
 
         $ep = 'options.account_endpoint';
 
@@ -952,45 +958,56 @@ final class Woo4Etch_Layouts {
                 // Login/register errors, "address saved", password changes —
                 // all account feedback arrives as Woo notices.
                 self::notices_block($s),
-                self::el('div', ['class' => 'w4e-account-layout'], [$layout], [
+                // Guests: no nav, no dashboard — WooCommerce's login/register
+                // form instead (real Woo PHP, so lost-password etc. work).
+                self::cond('options.is_logged_in', 'isFalsy', null, [
+                    self::el('div', ['class' => 'w4e-account-login'], [$login], [
+                        self::text_el('h2', 'Login', ['class' => 'w4e-account__heading'], [$heading], 'Heading'),
+                        self::txt('[woo_login_form]'),
+                    ], 'Login'),
+                ], '!options.is_logged_in'),
 
-                    self::el('nav', ['class' => 'w4e-account-nav', 'aria-label' => 'Account navigation'], [$nav], [
-                        self::loop('options.account_menu', 'm', [
-                            self::text_el('a', '{m.label}', ['class' => 'w4e-account-nav__link', 'href' => '{m.url}'], [$navlink], 'Nav link'),
-                        ]),
-                    ], 'Account nav'),
+                self::cond('options.is_logged_in', 'isTruthy', null, [
+                    self::el('div', ['class' => 'w4e-account-layout'], [$layout], [
 
-                    self::el('div', ['class' => 'w4e-account-content woocommerce-MyAccount-content'], [$content], [
-                        self::cond($ep, '===', "'dashboard'", [
-                            self::text_el('h2', 'Dashboard', ['class' => 'w4e-account__heading'], [$heading], 'Heading'),
-                            self::text_el('p', 'Hello {user.displayName}!', ['class' => ''], [], 'Greeting'),
-                        ], "options.account_endpoint === 'dashboard'"),
+                        self::el('nav', ['class' => 'w4e-account-nav', 'aria-label' => 'Account navigation'], [$nav], [
+                            self::loop('options.account_menu', 'm', [
+                                self::text_el('a', '{m.label}', ['class' => 'w4e-account-nav__link', 'href' => '{m.url}'], [$navlink], 'Nav link'),
+                            ]),
+                        ], 'Account nav'),
 
-                        self::cond($ep, '===', "'orders'", [
-                            self::text_el('h2', 'Orders', ['class' => 'w4e-account__heading'], [$heading], 'Heading'),
-                            self::el('ul', ['class' => 'w4e-orders'], [$orders], [
-                                self::loop('options.account_orders', 'o', [
-                                    self::el('li', ['class' => 'w4e-orderrow'], [$row], [
-                                        self::text_el('a', '#{o.number}', ['class' => 'w4e-orderrow__number', 'href' => '{o.view_url}'], [$number], 'Number'),
-                                        self::text_el('span', '{o.date}', ['class' => ''], [], 'Date'),
-                                        self::text_el('span', '{o.status_name}', ['class' => 'w4e-orderrow__status'], [$status], 'Status'),
-                                        self::text_el('span', '{o.total}', ['class' => ''], [], 'Total'),
-                                    ], 'Order row'),
-                                ]),
-                            ], 'Orders list'),
-                        ], "options.account_endpoint === 'orders'"),
+                        self::el('div', ['class' => 'w4e-account-content woocommerce-MyAccount-content'], [$content], [
+                            self::cond($ep, '===', "'dashboard'", [
+                                self::text_el('h2', 'Dashboard', ['class' => 'w4e-account__heading'], [$heading], 'Heading'),
+                                self::text_el('p', 'Hello {user.displayName}!', ['class' => ''], [], 'Greeting'),
+                            ], "options.account_endpoint === 'dashboard'"),
 
-                        // Everything else (forms, downloads, …) is real Woo PHP → shortcode.
-                        self::cond(
-                            self::c($ep, '!==', "'dashboard'"),
-                            '&&',
-                            self::c($ep, '!==', "'orders'"),
-                            [self::txt('[woo_account_content]')],
-                            "options.account_endpoint !== 'dashboard' && options.account_endpoint !== 'orders'"
-                        ),
-                    ], 'Account content'),
+                            self::cond($ep, '===', "'orders'", [
+                                self::text_el('h2', 'Orders', ['class' => 'w4e-account__heading'], [$heading], 'Heading'),
+                                self::el('ul', ['class' => 'w4e-orders'], [$orders], [
+                                    self::loop('options.account_orders', 'o', [
+                                        self::el('li', ['class' => 'w4e-orderrow'], [$row], [
+                                            self::text_el('a', '#{o.number}', ['class' => 'w4e-orderrow__number', 'href' => '{o.view_url}'], [$number], 'Number'),
+                                            self::text_el('span', '{o.date}', ['class' => ''], [], 'Date'),
+                                            self::text_el('span', '{o.status_name}', ['class' => 'w4e-orderrow__status'], [$status], 'Status'),
+                                            self::text_el('span', '{o.total}', ['class' => ''], [], 'Total'),
+                                        ], 'Order row'),
+                                    ]),
+                                ], 'Orders list'),
+                            ], "options.account_endpoint === 'orders'"),
 
-                ]),
+                            // Everything else (forms, downloads, …) is real Woo PHP → shortcode.
+                            self::cond(
+                                self::c($ep, '!==', "'dashboard'"),
+                                '&&',
+                                self::c($ep, '!==', "'orders'"),
+                                [self::txt('[woo_account_content]')],
+                                "options.account_endpoint !== 'dashboard' && options.account_endpoint !== 'orders'"
+                            ),
+                        ], 'Account content'),
+
+                    ]),
+                ], 'options.is_logged_in'),
             ]),
         ], 'W4e Account');
 

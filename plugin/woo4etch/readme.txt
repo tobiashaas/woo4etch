@@ -117,6 +117,8 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* Fix: account layout shows WooCommerce's login/register form to guests instead of an empty dashboard — new bridge key {options.is_logged_in} / {woo.account.is_logged_in} (true in the builder), shipped layout gated on it.
+* Fix: the quantity stepper (pills.js) now targets input[name="quantity"] inside form.cart — it silently didn't build on hand-built forms without Woo's classic .quantity/.qty classes; the shipped product layout also carries the classic markup now.
 * Fix: plugin updates no longer clobber a shipped, improved customizations.php skeleton. The upgrader hooks couldn't distinguish "user edited the file" from "the update ships an improved skeleton" and restored the old skeleton over the new one for users who never edited it. Preservation now keys off the shipped skeleton's fingerprint: only user-edited files are carried across updates.
 * New: integration test layer (tests/integration/) — non-destructive wp-cli checks (upgrader preservation, {woo.*} data shape, external customizations file, frontend smoke) runnable against wp-env, a local install, or a staging server over SSH.
 * New: gallery companion CSS (assets/gallery.css), enqueued with the gallery scripts — replaces what Woo's disabled stylesheets would provide: opacity guard (no invisible gallery on late/failed JS init), full-width flex-viewport, stable thumbnail grid matching data-columns (with column variants), active-thumb border, styled lightbox trigger, grid-blowout guard. Token-based with fallbacks; disable via woo4etch/enqueue_gallery_css. The single-product layout's gallery CSS upgraded to match.

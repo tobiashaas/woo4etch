@@ -97,9 +97,12 @@
     }
 
     function buildStepper(scope) {
-        scope.querySelectorAll('.quantity input.qty').forEach(function (input) {
+        // name="quantity" is the Woo contract every form carries; the classic
+        // .quantity/.qty classes are optional in hand-built Etch forms.
+        scope.querySelectorAll('input[name="quantity"]').forEach(function (input) {
             if (input.closest('.w4e-qty')) return;
             if (input.type === 'hidden') return; // sold-individually renders a hidden qty
+            if (input.type !== 'number' && input.type !== 'text') return;
             var box = document.createElement('span');
             box.className = 'w4e-qty';
             input.parentNode.insertBefore(box, input);

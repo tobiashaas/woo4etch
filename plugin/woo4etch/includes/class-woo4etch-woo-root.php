@@ -136,9 +136,10 @@ final class Woo4Etch_Woo_Root {
                 'url' => isset($cart['shop_url']) ? $cart['shop_url'] : '',
             ],
             'account' => [
-                'menu'     => isset($account['account_menu']) ? $account['account_menu'] : [],
-                'endpoint' => isset($account['account_endpoint']) ? $account['account_endpoint'] : '',
-                'orders'   => isset($account['account_orders']) ? $account['account_orders'] : [],
+                'is_logged_in' => isset($account['is_logged_in']) ? $account['is_logged_in'] : false,
+                'menu'         => isset($account['account_menu']) ? $account['account_menu'] : [],
+                'endpoint'     => isset($account['account_endpoint']) ? $account['account_endpoint'] : '',
+                'orders'       => isset($account['account_orders']) ? $account['account_orders'] : [],
             ],
             'order' => isset($account['order']) ? $account['order'] : null,
         ];
