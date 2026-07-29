@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [1.6.2] — 2026-07-30
+
+### Fixed
+
+- **Unstyled cart / "You may also like" on sites with pre-existing empty style records.** `merge_styles` reused existing records by selector but never wrote CSS into them — so an **empty** record (left behind by an earlier install or builder session) shadowed the shipped styles forever; on the staging build this left the cart aside, cross-sell cards, coupon field and badges completely unstyled while the local demo's `demo.css` masked the same gaps. Empty records for the plugin's own `.w4e-*` selectors are now filled with the shipped CSS during install/push (record IDs and block references stay untouched, so nothing else moves); **non-empty** records and generic contract selectors (`.button`, `.cart`, …) remain exactly as the site defines them. The demo environment's `demo.css` was cut down to the bare shell (header/footer/reset) so it can never mask shipped-record gaps again.
+
 ## [1.6.1] — 2026-07-30
 
 ### Fixed
@@ -228,6 +234,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.6.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.2
 [1.6.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.1
 [1.6.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.0
 [1.4.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.1

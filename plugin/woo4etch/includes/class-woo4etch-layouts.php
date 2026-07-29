@@ -262,7 +262,13 @@ final class Woo4Etch_Layouts {
             $selector   = isset($style['selector']) ? (string) $style['selector'] : '';
             $collection = isset($style['collection']) ? (string) $style['collection'] : 'default';
 
-            // A style for this selector already exists → reuse it, never overwrite.
+            // A style for this selector already exists → reuse its ID (keeps
+            // every block reference on the site stable). A NON-EMPTY existing
+            // record is never overwritten — that's the user's design. An
+            // EMPTY record, however, contains no user work and would block
+            // the shipped CSS forever (this is exactly how installs ended up
+            // with unstyled carts: empty records created earlier "shadowed"
+            // the shipped styles) — fill it with the shipped CSS instead.
             $matched = null;
             foreach ($existing as $ex_id => $ex) {
                 if (is_array($ex)
@@ -273,6 +279,17 @@ final class Woo4Etch_Layouts {
                 }
             }
             if ($matched !== null) {
+                // Fill only OUR selectors (.w4e-*): a generic contract class
+                // like .button may be intentionally empty on a site whose
+                // design system styles it elsewhere — filling it would
+                // change site-wide styling.
+                $shipped_css = isset($style['css']) ? trim((string) $style['css']) : '';
+                if ('' !== $shipped_css
+                    && 0 === strpos($selector, '.w4e-')
+                    && '' === trim((string) ($existing[$matched]['css'] ?? ''))) {
+                    $existing[$matched]['css'] = $style['css'];
+                    $changed                   = true;
+                }
                 $map[$id] = $matched;
                 continue;
             }

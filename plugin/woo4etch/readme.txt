@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -128,6 +128,9 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.6.2 =
+* Fix: unstyled cart / "You may also like" on sites with pre-existing empty style records. The style merger reused existing records by selector without ever writing CSS into them — an EMPTY record (e.g. created by an earlier install or builder session) therefore shadowed the shipped styles forever. Empty records for the plugin's own .w4e-* selectors are now filled with the shipped CSS on install/push (IDs and block references stay untouched); non-empty records and generic selectors like .button remain exactly as the site defines them.
 
 = 1.6.1 =
 * Fix: widget styling now lives IN Etch, not in plugin stylesheets. The pills/quantity-stepper and price-slider CSS moved from JS-injected stylesheets into the layouts' Etch class records (nested rules on .w4e-product-info, .w4e-cartrow and .w4e-filter__form — visible and editable in the builder's style panel, rendered exactly with the blocks). assets/gallery.css removed: the gallery styling already ships inside the layout's w4e-gal class record. The scripts keep a small inline fallback only for installs without Etch. Bonus: because the rules now render in site context, their var(--primary, …)-style token fallbacks pick up ACSS variables automatically where present.
