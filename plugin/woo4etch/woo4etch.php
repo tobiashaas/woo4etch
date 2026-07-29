@@ -2186,7 +2186,7 @@ final class Woo4Etch {
      *   stock_label                — localized availability text (may be empty for
      *                                in-stock products, per Woo inventory settings)
      *   stock_quantity (int|''), is_in_stock (bool)
-     *   is_purchasable, is_featured (bool)
+     *   is_purchasable, is_featured, is_sold_individually (bool)
      *   rating (float), rating_count, review_count (int)
      *   add_to_cart_url, add_to_cart_text
      *   weight, dimensions         — formatted; empty when not set
@@ -2256,6 +2256,7 @@ final class Woo4Etch {
             'is_in_stock'      => $product->is_in_stock(),
             'is_purchasable'   => $product->is_purchasable(),
             'is_featured'      => $product->is_featured(),
+            'is_sold_individually' => $product->is_sold_individually(),
             'rating'           => (float) $product->get_average_rating(),
             'rating_count'     => (int) $product->get_rating_count(),
             'review_count'     => (int) $product->get_review_count(),
