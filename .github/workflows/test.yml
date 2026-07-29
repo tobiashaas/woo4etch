@@ -72,3 +72,43 @@ jobs:
             echo "::error::templates/etch-copy/*.json is out of date. Run 'php tools/generate-etch-copy.php' and commit the result."
             exit 1
           fi
+
+  # Layers 4–5 — integration checks against a real WordPress + WooCommerce
+  # (wp-env / Docker; slower, so a separate job off the fast path). Etch is a
+  # paid plugin and not available here — the Etch-dependent assertions in the
+  # checks skip themselves; full runs incl. Etch happen against staging via
+  # tests/integration/run.sh --ssh (see tests/integration/README.md).
+  integration:
+    name: Integration (wp-env)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Write CI wp-env config
+        run: |
+          cat > .wp-env.json <<'EOF'
+          {
+            "core": null,
+            "phpVersion": "8.3",
+            "plugins": [
+              "https://downloads.wordpress.org/plugin/woocommerce.zip"
+            ],
+            "mappings": {
+              "wp-content/plugins/woo4etch": "./plugin/woo4etch",
+              "wp-content/woo4etch-tests": "./tests"
+            }
+          }
+          EOF
+
+      - name: Start wp-env
+        run: npx --yes @wordpress/env@latest start
+
+      - name: Activate plugin and seed a product
+        run: |
+          npx @wordpress/env run cli -- wp plugin activate woo4etch
+          npx @wordpress/env run cli -- wp option update woocommerce_coming_soon no
+          npx @wordpress/env run cli -- wp wc product create --name="CI Test Product" --type=simple --regular_price=9.99 --status=publish --user=admin
+
+      - name: Run integration checks
+        run: tests/integration/run.sh --wp-env

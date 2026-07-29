@@ -47,15 +47,25 @@ if (file_exists(WP_CONTENT_DIR . '/woo4etch-customizations.php')) {
  * WordPress replaces the whole plugin folder on update, which would wipe the
  * snippets users pasted into customizations.php — breaking the ADR-001
  * promise that updates never touch user customisations. Before this plugin
- * is updated the file is copied aside; afterwards it is restored, but only
- * when it actually differs from the freshly shipped skeleton (so skeleton
- * improvements still arrive for users who never edited it).
+ * is updated the file is copied aside — but only when the user actually
+ * edited it (it differs from the shipped skeleton, WOO4ETCH_SKELETON_MD5);
+ * afterwards the backup, if any, is restored. An untouched skeleton is never
+ * preserved, so skeleton improvements still arrive for users who never
+ * edited it. (Comparing the backup against the *new* file instead — the old
+ * behaviour — couldn't tell "user edited" from "skeleton improved" and
+ * clobbered improved skeletons with the old one.)
+ *
+ * WOO4ETCH_SKELETON_MD5 must equal md5 of the shipped skeleton — the
+ * service-free test layer asserts this on every PR.
  */
+define('WOO4ETCH_SKELETON_MD5', '2f16c60ee54637bae945f4b62b939ba0');
+
 add_filter('upgrader_pre_install', static function ($response, $hook_extra) {
     if (!is_wp_error($response)
         && isset($hook_extra['plugin'])
         && plugin_basename(__FILE__) === $hook_extra['plugin']
-        && file_exists(__DIR__ . '/includes/customizations.php')) {
+        && file_exists(__DIR__ . '/includes/customizations.php')
+        && md5_file(__DIR__ . '/includes/customizations.php') !== WOO4ETCH_SKELETON_MD5) {
         @copy(__DIR__ . '/includes/customizations.php', get_temp_dir() . 'woo4etch-customizations.preserved.php');
     }
     return $response;
@@ -70,7 +80,7 @@ add_filter('upgrader_post_install', static function ($response, $hook_extra, $re
     $backup = get_temp_dir() . 'woo4etch-customizations.preserved.php';
     if (file_exists($backup)) {
         $dest = isset($result['destination']) ? trailingslashit($result['destination']) . 'includes/customizations.php' : '';
-        if ($dest !== '' && file_exists($dest) && md5_file($backup) !== md5_file($dest)) {
+        if ($dest !== '' && file_exists($dest)) {
             @copy($backup, $dest);
         }
         @unlink($backup);

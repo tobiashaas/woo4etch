@@ -37,6 +37,8 @@ committed artifact, regenerate and commit:
 php tools/generate-etch-copy.php
 ```
 
-> Heavier integration tests (upgrader preservation, `Woo4Etch_Woo_Root::build_data()`,
-> external `customizations.php` loading) and an E2E smoke run need `wp-env` +
-> WooCommerce and are tracked as a follow-up (issue #10, layers 4–5).
+> Layers 4–5 (upgrader preservation, `Woo4Etch_Woo_Root::build_data()`, external
+> `customizations.php` loading, frontend smoke) live in
+> [`tests/integration/`](../integration/README.md): non-destructive
+> `wp eval-file` checks that run against wp-env (CI job `Integration (wp-env)`),
+> a local install, or a staging server over SSH.
