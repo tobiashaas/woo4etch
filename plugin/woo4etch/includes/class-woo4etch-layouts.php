@@ -712,21 +712,28 @@ final class Woo4Etch_Layouts {
         // (Woo4Etch → Settings). Without the scripts the nested CSS lays the
         // same markup out as featured image + thumbnail grid; the .flex-*
         // rules style the FlexSlider DOM (thumbnails, viewport) once active.
+        // Production-hardened (issue #20): opacity guard against the inline
+        // fade-in style, full-width flex-viewport (shrinks-to-fit mid-init
+        // otherwise), min-inline-size grid-blowout guard, thumbs as a stable
+        // grid (flex:1 stretches thumbs when there are fewer than
+        // data-columns images), --primary active border. assets/gallery.css
+        // ships the same rules generically; these scoped ones must match or
+        // they'd win the specificity fight with the outdated version.
         $gallery = self::cls(
             $s,
             'w4e-gal',
-            'position: relative;'
+            'position: relative; opacity: 1 !important; min-inline-size: 0;'
             . ' & .w4e-gal-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0; }'
             . ' & .flex-viewport .w4e-gal-wrap { display: block; }'
             . ' & .w4e-gal-item--featured { grid-column: 1 / -1; }'
             . ' & .w4e-gal-item a { display: block; }'
             . ' & .w4e-gal-item img:not(.zoomImg) { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: #f3f4f6; display: block; }'
-            . ' & .flex-viewport { border-radius: 14px; }'
-            . ' & .flex-control-thumbs { display: flex; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }'
-            . ' & .flex-control-thumbs li { flex: 1; cursor: pointer; }'
-            . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; opacity: .6; }'
-            . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; }'
-            . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: #fff; border-radius: 999px; }'
+            . ' & .flex-viewport { inline-size: 100%; border-radius: 14px; }'
+            . ' & .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }'
+            . ' & .flex-control-thumbs li { cursor: pointer; margin: 0; min-inline-size: 0; }'
+            . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-color-light, #e5e7eb); opacity: .6; transition: opacity .2s, border-color .2s; }'
+            . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }'
+            . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: #fff; border: 1px solid var(--border-color-light, #e5e7eb); border-radius: 999px; }'
         );
         $info     = self::cls($s, 'w4e-product-info', 'display: flex; flex-direction: column; gap: 14px;');
         $title    = self::cls($s, 'w4e-product__title', 'font-size: 32px; letter-spacing: -.02em; margin: 0;');

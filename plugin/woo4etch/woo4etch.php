@@ -1062,6 +1062,23 @@ final class Woo4Etch {
         if (wp_script_is('wc-single-product', 'registered')) {
             wp_enqueue_script('wc-single-product');
         }
+
+        // Companion CSS for the gallery DOM the scripts produce (FlexSlider
+        // viewport, thumbnail strip, lightbox trigger) — WooCommerce's own
+        // stylesheets would cover this, but these builds typically disable
+        // them ("Disable WooCommerce default styles"), leaving the gallery
+        // unstyled and, worse, collapsible (viewport measured at 0) or
+        // invisible (inline opacity:0 with late/failed JS init). Tokens with
+        // plain fallbacks; disable:
+        //   add_filter('woo4etch/enqueue_gallery_css', '__return_false');
+        if (apply_filters('woo4etch/enqueue_gallery_css', true)) {
+            wp_enqueue_style(
+                'woo4etch-gallery',
+                plugins_url('assets/gallery.css', __FILE__),
+                [],
+                self::VERSION
+            );
+        }
     }
 
     /* ============================================================

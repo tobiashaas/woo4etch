@@ -228,17 +228,27 @@ Caveats:
   ```
 
 - In the hand-written variant `data-thumb="{image.url}"` points at the full-size file — fine for small galleries, but the thumbnail strip then downloads full images. `[woo_gallery mode="woo"]` uses the registered `woocommerce_gallery_thumbnail` size instead; prefer it for image-heavy products.
-- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. If you checked **Disable WooCommerce default styles**, add a minimal replacement yourself:
+- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. With **Disable WooCommerce default styles** checked, the plugin ships a replacement automatically: **`assets/gallery.css`** is enqueued together with the gallery scripts (Woo4Etch 1.5.0-beta.7+; disable via `add_filter('woo4etch/enqueue_gallery_css', '__return_false')`). It's the production-proven set (issue #20) — worth knowing what it guards even if you restyle it:
 
   ```css
-  .woocommerce-product-gallery { position: relative; }
-  .woocommerce-product-gallery__trigger { position: absolute; top: .5em; right: .5em; z-index: 9; }
-  .flex-control-thumbs { display: flex; gap: .5rem; margin: .5rem 0 0; padding: 0; list-style: none; }
-  .flex-control-thumbs li { flex: 1; cursor: pointer; }
-  .flex-control-thumbs img { opacity: .5; }
+  /* belt-and-braces against the inline opacity:0 — late/failed JS init must not leave the gallery invisible */
+  .woocommerce-product-gallery { position: relative; opacity: 1 !important; min-inline-size: 0; }
+  /* FlexSlider's viewport otherwise shrinks-to-fit mid-init inside grid/flex parents */
+  .woocommerce-product-gallery .flex-viewport { inline-size: 100%; }
+  /* the aspect-ratio guard from above (see the CLS caveat) */
+  .woocommerce-product-gallery__image img:not(.zoomImg) { inline-size: 100%; aspect-ratio: 1 / 1; object-fit: contain; display: block; }
+  /* 🔍 as a round button */
+  .woocommerce-product-gallery__trigger { position: absolute; inset-block-start: var(--space-xs, .75rem); inset-inline-end: var(--space-xs, .75rem); z-index: 9; display: inline-flex; align-items: center; justify-content: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: 999px; background: var(--base-ultra-light, #fff); border: 1px solid var(--border-color-light, #e5e7eb); }
+  /* thumbs as a stable grid — flex:1 would stretch thumbs when there are fewer than data-columns images */
+  .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs, .5rem); margin: var(--space-xs, .5rem) 0 0; padding: 0; list-style: none; }
+  .flex-control-thumbs li { cursor: pointer; margin: 0; min-inline-size: 0; }
+  /* active state: opacity + a --primary border (opacity alone is a weak affordance) */
+  .flex-control-thumbs img { inline-size: 100%; aspect-ratio: 1; object-fit: contain; display: block; border: 1px solid var(--border-color-light, #e5e7eb); border-radius: calc(var(--radius, 10px) - 2px); opacity: .55; transition: opacity .2s, border-color .2s; }
   .flex-control-thumbs img.flex-active,
-  .flex-control-thumbs img:hover { opacity: 1; }
+  .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }
   ```
+
+  The shipped file also carries `--columns-2/3/5` grid variants matching `data-columns`, and uses design tokens with plain fallbacks throughout — override any of it from Etch (all rules are low-specificity class selectors). If the gallery column lives in a CSS grid, keep its track `minmax(0, …)` *and* the `min-inline-size: 0` guard — the classic grid-blowout pair.
 
   PhotoSwipe brings its own stylesheet either way (separate handle, unaffected by the checkbox).
 - Want only some effects? Pick features individually via the filter instead of the checkbox:
