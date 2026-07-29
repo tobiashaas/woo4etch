@@ -13,6 +13,11 @@ Findings from a production build (Caracciolo Olivenöl staging — Etch 1.6.2, W
 
 - **`[woo_product_attributes]`** — the "Additional information" attributes table (visible attributes plus weight/dimensions) as a shortcode; empty output when the product has no data. Needed because `woocommerce_product_additional_information` expects the product as a `do_action` **argument**, which neither `[do_action]` nor the `data-w4e-hook` island passes — the hooked `wc_display_product_attributes()` would receive `null`.
 - **`woo4etch/cart_item_payload` filter** — adjust each cart-item payload before it reaches `{options.cart_items}` / `{woo.cart.items}`. Primary use case: WooCommerce Germanized injects raw `gzd-*` rows (delivery time, item description) via `woocommerce_get_item_data` at priority ≥ 1000, which `{item.meta}` otherwise dumps verbatim into custom cart layouts.
+- **`{this.is_sold_individually}`** exposed in the product data bridge, matching its sibling booleans (`is_purchasable`, `is_featured`, …) — lets layouts hide the quantity input for one-per-order products via `{#if !this.is_sold_individually}`. The `[woo_if]` shortcode already supported `sold_individually`; this brings the Etch context to parity. (#15, thanks @zackpyle)
+
+### Fixed
+
+- **`product-grid.json` copy/paste artifact now binds its archive loop to Etch's seeded main-query preset (`etch_main_query`) instead of the installer-minted `w4e_main_query`** — an id that only exists after the one-click installer ran, so a manual paste on a fresh site referenced a missing preset and the archive could render empty. The one-click installer was unaffected (it resolves the preset live). CI now rejects installer-minted `w4e_*` loop ids in the committed artifacts. (#13)
 
 ### Docs
 

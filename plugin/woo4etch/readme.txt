@@ -119,6 +119,8 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 = Unreleased =
 * New: `[woo_product_attributes]` — the "Additional information" attributes table (visible attributes + weight/dimensions) as a shortcode. Needed because the woocommerce_product_additional_information hook expects the product as a do_action argument, which the hook island cannot pass.
 * New: `woo4etch/cart_item_payload` filter — adjust each cart-item payload (e.g. strip Germanized's gzd-* rows from `meta`) before it reaches `{options.cart_items}`.
+* New: `{this.is_sold_individually}` exposed in the product data bridge — hide the quantity input for one-per-order products via `{#if !this.is_sold_individually}`.
+* Fix: the product-grid.json copy/paste artifact binds its archive loop to Etch's seeded `etch_main_query` preset instead of the installer-minted `w4e_main_query`, which does not exist on sites where the one-click installer never ran (a manual paste could render an empty archive). The one-click installer was unaffected.
 
 = 1.5.0-beta.6 =
 * Minimum PHP is now 8.1 (Etch itself requires it; 7.4/8.0 support was dead weight). No code changed — the plugin already ran on 8.1+.

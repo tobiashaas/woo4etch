@@ -122,6 +122,7 @@ On `product` posts, Woo4Etch enriches Etch's post data (the same seam Etch's own
 | `{this.stock_label}` | localized availability text (can be empty for in-stock products, per Woo inventory settings) |
 | `{this.stock_quantity}` | number, or empty when stock management is off |
 | `{this.is_in_stock}` / `{this.is_purchasable}` / `{this.is_featured}` | booleans |
+| `{this.is_sold_individually}` | boolean — one-per-order products; wrap the quantity input in `{#if !this.is_sold_individually}` |
 | `{this.rating}` / `{this.rating_count}` / `{this.review_count}` | average rating + counts |
 | `{this.add_to_cart_url}` / `{this.add_to_cart_text}` | direct add-to-cart URL + localized button label |
 | `{this.weight}` / `{this.dimensions}` | formatted, empty when not set |
