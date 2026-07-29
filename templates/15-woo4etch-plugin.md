@@ -81,11 +81,13 @@ These ship with the plugin and never output HTML — they only support your own 
 |---|---|---|
 | **Buy-now → checkout redirect** | a submit button `name="buy_now"` inside `form.cart` (see [`16-one-click-checkout.md`](./16-one-click-checkout.md)) | `woo4etch/enable_buy_now` (default on), `woo4etch/buy_now_empty_cart` (default off) |
 | **Variation swatch sync** | clickable elements with `data-w4e-swatch`, `data-attribute`, `data-value` (see [`02-single-product-variable.md`](./02-single-product-variable.md#variation-swatches-color-blobs--image-previews)) | `woo4etch/enqueue_swatches` (default: product pages) |
-| **Variation pills + qty stepper** | none — auto-builds from the native selects when the Settings checkbox is on (the inverse of the swatch sync: zero markup vs. full markup control; both drive the same native `change` event) | `woo4etch/enqueue_pills` (default: off) |
+| **Variation pills + qty stepper** | none — auto-builds from the native selects when the Settings checkbox is on (the inverse of the swatch sync: zero markup vs. full markup control; both drive the same native `change` event); also builds steppers on cart quantity fields (`cart[<key>][qty]`) and yields automatically when a dedicated swatch plugin owns the selects | `woo4etch/enqueue_pills` (default: off) |
+| **Price-range slider** | a form containing `min_price` + `max_price` inputs on a product archive (WooCommerce's native filter params) — enhanced into a dual-handle slider synced with the fields; bound from `data-w4e-price-max` (see [`03-product-archive.md`](./03-product-archive.md#filter-sidebar--native-woocommerce-filtering-no-plugin)) | `woo4etch/enqueue_price_slider` (default: shop/taxonomy archives) |
+| **Archive filters for Etch loops** | WooCommerce's native `?min_price` / `?filter_<attribute>` params — Woo applies them to the main query only; the plugin re-applies them to Etch's main-query loop (a secondary query) on shop/category/tag pages | `woo4etch/filter_secondary_product_queries` (default: on) |
 
 ## Ready-made layouts (one-click page install)
 
-Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive, header mini-cart, My Account, thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
+Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive (working filter sidebar + category slider), category archive (SEO intro + `{term.description}`), header mini-cart (hover dropdown with empty state), My Account (login gate for guests), thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
 
 Two ways to use them:
 
@@ -170,7 +172,7 @@ With arguments:
 
 `[do_action]` works wherever shortcodes run, **but** in Etch raw-html blocks the output passes through Etch's sanitizer, which strips `<form>`, `<input>`, `<select>` and `<script>` unless the off-by-default Etch setting "allow unsafe raw HTML" is on. Hooks whose callbacks emit exactly that markup (express-pay buttons, forms, widgets) come out broken — and look like "the hook doesn't work".
 
-The marker variant sidesteps this (Woo4Etch 1.5.0-beta.5+): place an **empty element** with `data-w4e-hook`, and the plugin fills it with the captured `do_action()` output *after* Etch has rendered — the sanitizer never sees it:
+The marker variant sidesteps this (Woo4Etch 1.6.0+): place an **empty element** with `data-w4e-hook`, and the plugin fills it with the captured `do_action()` output *after* Etch has rendered — the sanitizer never sees it:
 
 ```html
 <div data-w4e-hook="woocommerce_after_add_to_cart_button"

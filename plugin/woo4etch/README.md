@@ -14,7 +14,7 @@ The plugin is ready to use: all shortcodes register on `plugins_loaded` once Woo
 
 ## Ready-made layouts
 
-**Etch → Woo4Etch → Ready-made layouts**: complete, editable Etch layouts (cart, single product, shop archive, mini-cart, My Account, thank-you) — install them into Etch's pattern library with one click, or copy them as Etch paste-JSON. Built on the dynamic-data bridges below, so they preview live in the builder.
+**Etch → Woo4Etch → Ready-made layouts**: complete, editable Etch layouts — shop archive (working filter sidebar + category slider), category archive (SEO intro + term description), single product, cart, header mini-cart (hover dropdown), My Account, thank-you, Woo notices. **Add to page/template** installs each one straight where it renders (WooCommerce's assigned page or the area's Etch template; append-only, never double-inserts), or copy them as Etch paste-JSON. Built on the dynamic-data bridges below, so they preview live in the builder.
 
 ## Dynamic data bridges (no shortcode needed)
 
@@ -22,7 +22,8 @@ Beyond shortcodes, the plugin exposes WooCommerce data as **Etch Dynamic Keys**,
 
 - **Products** — `{this.price}`, `{this.is_on_sale}`, `{this.sale_percentage}`, `{this.stock_status}`, `{this.rating}`, … on every `product` post (also as `{item.*}` in loops).
 - **Cart** — `{options.cart_items}` (loopable), `{options.cart_count}`, `{options.cart_total}`, `{options.cart_nonce}`, …
-- **Account & orders** — `{options.account_menu}`, `{options.account_orders}`, `{options.order}`.
+- **Shop & archives** — `{options.shop_categories}` (loopable, with counts + active state), `{options.shop_max_price}`, `{options.filter_min_price}`/`{options.filter_max_price}`, `{options.shop_url}`.
+- **Account & orders** — `{options.is_logged_in}`, `{options.account_menu}`, `{options.account_orders}`, `{options.order}`.
 
 Full key reference: [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4etch-plugin.md).
 

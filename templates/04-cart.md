@@ -12,6 +12,8 @@ Classic cart page. Item list with quantity update, coupon code, cart totals, upd
 
 ## Preparation
 
+> **Ready-made version (Woo4Etch 1.6.0+):** the plugin ships a complete cart layout built on real dynamic data (`{options.cart_items}` — no placeholder keys, previews live in the builder) with quantity update, coupon form, totals, cross-sells (in-stock only), notices and an empty-cart state. Install it via **Etch → Woo4Etch → Ready-made layouts → Add to page/template**. With the "Variation pills & quantity stepper" setting on, the line-item quantity fields additionally get −/+ stepper buttons. The hand-built variant below remains the full-control alternative.
+
 > **Etch context:** the cart is a **Page**, not a Template. There is no `{this.*}` product context. The pseudo-keys in the markup below (`{cart.*}`, `{cartItem.*}`) are **placeholders** — you have to wire them up to a custom data source (REST endpoint, custom field source, or by letting WooCommerce render the markup via shortcode and only theming around it). See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 In WooCommerce settings, switch the cart page to the **classic shortcode**:

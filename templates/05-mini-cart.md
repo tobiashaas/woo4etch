@@ -10,6 +10,8 @@ Small cart indicator in the header with live update via Woo fragments. Counter +
 
 ## Preparation
 
+> **Ready-made version (Woo4Etch 1.6.0+):** the plugin ships this as the "Header mini-cart (link + dropdown)" layout — link with live `{options.cart_count}`, a hover/focus dropdown with item rows, subtotal and view-cart/checkout buttons, and a "Your cart is empty." message instead of an empty panel. Pure CSS reveal (`:hover` + `:focus-within`, keyboard-accessible, no JS); the count span carries the `mini-cart-count` class the fragment snippet below targets. Copy JSON from the admin page (or `templates/etch-copy/mini-cart.json`) and paste it into your header. The hand-built variant below remains the full-control alternative.
+
 > **Etch context:** the mini-cart is a **Component** placed in the header (or other global areas). There is no `{this.*}` context. Counter values and item data come from `{user.*}` (e.g. logged-in state), a custom data source, and — most importantly — **WooCommerce fragments**, which replace specific DOM nodes via the matching CSS selector. See [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md).
 
 WooCommerce fragments are loaded automatically when AJAX add-to-cart is enabled (`WooCommerce → Settings → Products → General`). The script is `wc-cart-fragments` and handles live updates without reload.

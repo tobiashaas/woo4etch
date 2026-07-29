@@ -14,7 +14,7 @@ Product page with variations. Size, color, material, etc. — live update of pri
 
 In addition to the base config in [`00-README.md`](./00-README.md):
 
-> **Woo4Etch 1.5.0-beta.5+ enqueues `wc-add-to-cart-variation` automatically** on variable-product pages (WooCommerce itself only enqueues it from its own add-to-cart template, which hand-built Etch forms never render — without the script, selecting a variation does nothing). Disable: `add_filter('woo4etch/enqueue_variation_script', '__return_false');`. On older versions, or for variation forms embedded outside product pages, enqueue manually:
+> **Woo4Etch 1.6.0+ enqueues `wc-add-to-cart-variation` automatically** on variable-product pages (WooCommerce itself only enqueues it from its own add-to-cart template, which hand-built Etch forms never render — without the script, selecting a variation does nothing). Disable: `add_filter('woo4etch/enqueue_variation_script', '__return_false');`. On older versions, or for variation forms embedded outside product pages, enqueue manually:
 
 ```php
 add_action('wp_enqueue_scripts', function () {
@@ -24,7 +24,7 @@ add_action('wp_enqueue_scripts', function () {
 });
 ```
 
-> **Shortcut — skip the hand-built form entirely:** place an empty `<div data-w4e-add-to-cart="{this.id}"></div>` in your layout (Woo4Etch 1.5.0-beta.5+). The plugin fills it server-side with WooCommerce's complete native variations form — attribute selects with options, variations JSON, working price/stock updates — *after* Etch renders, so Etch's raw-html sanitizer (which strips `<form>/<input>/<select>` unless the off-by-default "allow unsafe raw HTML" setting is on) never touches it. The ready-made single-product layout uses exactly this for non-simple products; `swatches.js` bridges custom swatch markup on top. The hand-built form below remains the full-control alternative.
+> **Shortcut — skip the hand-built form entirely:** place an empty `<div data-w4e-add-to-cart="{this.id}"></div>` in your layout (Woo4Etch 1.6.0+). The plugin fills it server-side with WooCommerce's complete native variations form — attribute selects with options, variations JSON, working price/stock updates — *after* Etch renders, so Etch's raw-html sanitizer (which strips `<form>/<input>/<select>` unless the off-by-default "allow unsafe raw HTML" setting is on) never touches it. The ready-made single-product layout uses exactly this for non-simple products; `swatches.js` bridges custom swatch markup on top. The hand-built form below remains the full-control alternative.
 
 ## Etch HTML
 
@@ -214,7 +214,7 @@ add_action('wp_enqueue_scripts', function () {
 
 ### Provide variations JSON to Etch
 
-**Woo4Etch 1.5.0-beta.5+ provides this as a real Dynamic Key:** `{this.variations_json}` — the product's available variations as the exact JSON `wc-add-to-cart-variation` expects in `data-product_variations`:
+**Woo4Etch 1.6.0+ provides this as a real Dynamic Key:** `{this.variations_json}` — the product's available variations as the exact JSON `wc-add-to-cart-variation` expects in `data-product_variations`:
 
 ```html
 <form class="variations_form cart" …
@@ -240,7 +240,7 @@ Keep the price-area callback (priority 10) active — it writes into the `.singl
 
 ### Variation swatches (color blobs / image previews)
 
-WooCommerce default offers only the bare `<select>` dropdowns. With Woo4Etch **1.5.0-beta.3+** you can render swatches as your own Etch markup — fully visible and styleable in the builder — and the plugin's bundled script bridges clicks to the hidden native select, so Woo's variation logic (price, stock, `variation_id`) keeps working untouched.
+WooCommerce default offers only the bare `<select>` dropdowns. With Woo4Etch **1.6.0+** you can render swatches as your own Etch markup — fully visible and styleable in the builder — and the plugin's bundled script bridges clicks to the hidden native select, so Woo's variation logic (price, stock, `variation_id`) keeps working untouched.
 
 **1. Keep the native `<select>` in the form** (hide it with CSS, don't remove it):
 

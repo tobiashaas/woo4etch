@@ -4,11 +4,13 @@ Ready-made layouts in **Etch's native copy/paste format**. Build a whole area in
 seconds: copy a file's contents, then paste it straight into the Etch builder.
 
 > **Easier route:** the Woo4Etch plugin can install all of these for you. Open
-> **Etch → Woo4Etch → Ready-made layouts** and click **Install as pattern** — the
-> layout appears in Etch's pattern library (category "Woo4Etch") and its classes
-> land in Etch's style system. The **Copy JSON** button there does the same as
-> copying a file from this folder. These files are generated from the plugin's
-> layout definitions via `tools/generate-etch-copy.php` — edit there, not here.
+> **Etch → Woo4Etch → Ready-made layouts** and click **Add to page/template** —
+> the layout is inserted straight where it renders (WooCommerce's assigned page
+> or the area's Etch template; append-only, never double-inserts) and its
+> classes land in Etch's style system. The **Copy JSON** button there does the
+> same as copying a file from this folder. These files are generated from the
+> plugin's layout definitions via `tools/generate-etch-copy.php` — edit there,
+> not here.
 
 ## How to use (manual paste)
 
@@ -34,8 +36,10 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 |---|---|---|
 | [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, and "You may also like" cross-sells. | Etch Dynamic Keys + the Woo4Etch cart bridge. 100% Etch elements (no shortcodes) so it renders and is editable in the builder. |
 | [`product-single.json`](./product-single.json) | **Single product** — featured image + gallery loop, title, `{this.price}` with `-{this.sale_percentage}%` badge, stock label, working add-to-cart form (simple products), SKU. | Product bridge (`{this.*}`) + `{this.gallery_images}`. |
-| [`product-grid.json`](./product-grid.json) | **Shop archive** — product cards over `mainQuery`: image, sale badge, title, price, AJAX add-to-cart button. | Product bridge (`{item.*}`) on the main archive query. See the loop-preset note below. |
-| [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with `{options.cart_count}`; the count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
+| [`product-grid.json`](./product-grid.json) | **Shop archive** — heading, category slider, working filter sidebar (category counts, price min/max form — the plugin enhances it into a dual-handle slider), product cards with sale pill and AJAX add-to-cart. | Product bridge (`{item.*}`) on the main archive query + shop bridge (`{options.shop_categories}`, `{options.shop_max_price}`, …). See the loop-preset note below. |
+| [`category.json`](./category.json) | **Category archive** — term title, editable SEO intro copy (placeholder text), term description via `{term.description}`, then the same filter sidebar + grid. Paste into a `taxonomy-product_cat` template; duplicate per category for bespoke pages. | Shop bridge + Etch's native `{term.*}`/`{archive.*}` context ([`03-product-archive.md`](../03-product-archive.md#category-archive-pages-seo)). |
+| [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with live `{options.cart_count}` plus a hover/focus dropdown: item rows, subtotal, view-cart/checkout buttons, and a "Your cart is empty." message instead of an empty panel. The count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
+| [`notices.json`](./notices.json) | **Woo notices region** — queued WooCommerce feedback ("Cart updated.", coupon/form errors) as styleable `.w4e-notice` markup; hides itself while empty. Included in the cart/product/account layouts; paste this standalone version into any other page layout. | `[woo_notices format="plain"]` in a styled wrapper. |
 | [`account.json`](./account.json) | **My Account** — nav from `{options.account_menu}`, dashboard + orders views switched via `{options.account_endpoint}`, all other endpoints via `[woo_account_content]`. | Account bridge + endpoint conditions ([`07-account.md`](../07-account.md#how-endpoints-work-read-this-first)). |
 | [`thank-you.json`](./thank-you.json) | **Thank-you / order received** — notice, order overview (number, date, total, payment), line-items loop; renders only when `{options.order}` is populated. | Order bridge ([`08-thank-you.md`](../08-thank-you.md)). |
 

@@ -96,6 +96,19 @@ Templates:
 
 The reference page also lists the native WooCommerce shortcodes (`[woocommerce_cart]`, `[woocommerce_checkout]`, `[woocommerce_my_account]`, `[products]`, `[product_page]`, `[product_categories]`, `[add_to_cart]`, …) so every option is in one place. Those are registered by WooCommerce itself, not Woo4Etch.
 
+= Ready-made layouts =
+
+Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editable Etch layouts: shop archive (working filter sidebar with category counts and a dual-handle price slider, category slider), category archive (SEO intro + term description), single product (gallery, type-aware add-to-cart), cart (quantity update, coupon, cross-sells, empty state), header mini-cart (hover dropdown with empty state), My Account (login gate, dashboard, orders), thank-you and a Woo notices region (also installable as an Etch component).
+
+"Add to page/template" installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without touching existing content, and refuses double-inserts. "Copy JSON" exports Etch's native paste format instead. Everything previews live in the builder via the plugin's dynamic-data bridges ({options.cart_items}, {options.shop_categories}, {options.account_menu}, {options.order}, …).
+
+= Frontend enhancements =
+
+* Variation pills + quantity stepper (Settings checkbox): native attribute selects become pill buttons, quantity fields get −/+ steppers — on product pages and cart rows. Yields automatically to dedicated swatch plugins.
+* WooCommerce gallery scripts (Settings checkbox) + companion CSS: zoom, lightbox and thumbnail slider on hand-written Etch gallery markup — including block themes, where WooCommerce itself never loads them.
+* Price-range slider on archives: min_price/max_price filter forms are enhanced into a dual-handle slider; filtering stays native WooCommerce.
+* Archive filters for Etch loops: WooCommerce applies ?min_price / ?filter_<attribute> to the main query only — the plugin re-applies them to Etch's main-query loop on shop, category and tag pages.
+
 = Hardening =
 
 Restrict which hooks `[do_action]` may fire:

@@ -40,7 +40,7 @@ add_action('after_setup_theme', function () {
 
 ### Disable WooCommerce default styles
 
-> Since Woo4Etch 1.5.0-beta.3 this is a checkbox in the plugin admin (**Woo4Etch → Settings → Disable WooCommerce default styles**) — no snippet needed, and you can bring the Woo styling back at any time. The snippet remains as an alternative:
+> Since Woo4Etch 1.6.0 this is a checkbox in the plugin admin (**Woo4Etch → Settings → Disable WooCommerce default styles**) — no snippet needed, and you can bring the Woo styling back at any time. The snippet remains as an alternative:
 
 ```php
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');

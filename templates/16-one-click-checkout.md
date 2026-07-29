@@ -10,7 +10,7 @@ A "Buy now" button on the single product page that adds the product and sends th
 
 ## Preparation
 
-- Woo4Etch plugin **1.5.0-beta.3+** active — the buy-now redirect is built in (no snippet required).
+- Woo4Etch plugin **1.6.0+** active — the buy-now redirect is built in (no snippet required).
 - A working add-to-cart form from [`01-single-product-simple.md`](./01-single-product-simple.md) or [`02-single-product-variable.md`](./02-single-product-variable.md).
 - Checkout page assigned under WooCommerce → Settings → Advanced.
 

@@ -61,6 +61,14 @@ Copy PHP snippets from [`templates/functions-snippets.md`](./templates/functions
 
 Admin shortcode reference: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch).
 
+## Ready-made layouts — one-click shop
+
+The plugin ships complete, editable Etch layouts for every shop area: **shop archive** (with a working filter sidebar — category counts, dual-handle price slider — and a category slider), **category archive** (SEO intro copy + `{term.description}` + filtered grid), **single product** (gallery, type-aware add-to-cart, notices), **cart** (quantity steppers, coupon, cross-sells, empty state), **header mini-cart** (hover dropdown with a proper empty state), **My Account** (login gate, dashboard, orders) and **thank-you**.
+
+Under **Etch → Woo4Etch → Ready-made layouts**, **Add to page/template** installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without ever touching existing content, and refuses double-inserts. **Copy JSON** exports Etch's native paste format instead (also committed under [`templates/etch-copy/`](./templates/etch-copy/README.md)). Everything renders live in the builder via the plugin's dynamic-data bridges and is restyled through plain classes — existing styles with the same selectors are reused, never overwritten.
+
+Optional frontend enhancements (Settings / automatic): variation pills + quantity stepper, WooCommerce gallery scripts + companion CSS, price-range slider. Third-party compatibility notes: [`templates/15-woo4etch-plugin.md`](./templates/15-woo4etch-plugin.md#third-party-woocommerce-plugins).
+
 **Updates:** regular plugin installs receive updates from [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) via **Dashboard → Updates**. Version history: [`CHANGELOG.md`](./CHANGELOG.md). See [`.github/RELEASE.md`](.github/RELEASE.md) for the maintainer release flow.
 
 ## Status

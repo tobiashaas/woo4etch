@@ -111,7 +111,7 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
 
 ## Filter sidebar — native WooCommerce filtering, no plugin
 
-WooCommerce filters product archives through plain **GET parameters**; a hand-written Etch sidebar only has to produce the right URLs — the server does the rest (Woo4Etch ≥ 1.5.0-beta.7 also re-applies these filters to Etch's main-query loop, which runs as a secondary query Woo would otherwise ignore; see `woo4etch/filter_secondary_product_queries`):
+WooCommerce filters product archives through plain **GET parameters**; a hand-written Etch sidebar only has to produce the right URLs — the server does the rest (Woo4Etch ≥ 1.6.0 also re-applies these filters to Etch's main-query loop, which runs as a secondary query Woo would otherwise ignore; see `woo4etch/filter_secondary_product_queries`):
 
 | Parameter | Effect | Example |
 |---|---|---|
@@ -123,13 +123,15 @@ WooCommerce filters product archives through plain **GET parameters**; a hand-wr
 **Price form** (a plain GET form — no `action` keeps it on the current archive, so it works on category pages too):
 
 ```html
-<form method="get">
+<form method="get" data-w4e-price-max="{options.shop_max_price_raw}">
   <input type="number" name="min_price" value="{options.filter_min_price}" placeholder="Min" min="0">
   <input type="number" name="max_price" value="{options.filter_max_price}" placeholder="Max" min="0">
   <button type="submit" class="button">Apply</button>
 </form>
 <p>Highest price: {options.shop_max_price}</p>
 ```
+
+On product archives the plugin automatically enhances this form with a **dual-handle price-range slider** (`assets/price-slider.js`): two draggable handles above the fields, both kept in sync, submission unchanged. The `data-w4e-price-max` attribute provides the upper bound (`{options.shop_max_price_raw}` = the catalog maximum as a plain number); without it the slider falls back to the current values. Disable via `add_filter('woo4etch/enqueue_price_slider', '__return_false');`.
 
 **Category list / pills** — loop `{options.shop_categories}` (top-level, without the default bucket; each item: `id`, `name`, `slug`, `url`, `count`, `image`, `is_active`):
 

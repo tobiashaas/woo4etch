@@ -88,7 +88,7 @@ The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
 ### Disable default Woo CSS (optional, recommended for custom markup)
 
-> Easiest way: the checkbox under **Etch → Woo4Etch → Settings → Disable WooCommerce default styles** (Woo4Etch 1.5.0-beta.3+) — togglable any time, no code. Snippet alternative:
+> Easiest way: the checkbox under **Etch → Woo4Etch → Settings → Disable WooCommerce default styles** (Woo4Etch 1.6.0+) — togglable any time, no code. Snippet alternative:
 
 ```php
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');

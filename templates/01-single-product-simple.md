@@ -228,7 +228,7 @@ Caveats:
   ```
 
 - In the hand-written variant `data-thumb="{image.url}"` points at the full-size file — fine for small galleries, but the thumbnail strip then downloads full images. `[woo_gallery mode="woo"]` uses the registered `woocommerce_gallery_thumbnail` size instead; prefer it for image-heavy products.
-- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. With **Disable WooCommerce default styles** checked, the plugin ships a replacement automatically: **`assets/gallery.css`** is enqueued together with the gallery scripts (Woo4Etch 1.5.0-beta.7+; disable via `add_filter('woo4etch/enqueue_gallery_css', '__return_false')`). It's the production-proven set (issue #20) — worth knowing what it guards even if you restyle it:
+- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. With **Disable WooCommerce default styles** checked, the plugin ships a replacement automatically: **`assets/gallery.css`** is enqueued together with the gallery scripts (Woo4Etch 1.6.0+; disable via `add_filter('woo4etch/enqueue_gallery_css', '__return_false')`). It's the production-proven set (issue #20) — worth knowing what it guards even if you restyle it:
 
   ```css
   /* belt-and-braces against the inline opacity:0 — late/failed JS init must not leave the gallery invisible */
