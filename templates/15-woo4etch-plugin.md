@@ -83,16 +83,18 @@ These ship with the plugin and never output HTML — they only support your own 
 | **Variation swatch sync** | clickable elements with `data-w4e-swatch`, `data-attribute`, `data-value` (see [`02-single-product-variable.md`](./02-single-product-variable.md#variation-swatches-color-blobs--image-previews)) | `woo4etch/enqueue_swatches` (default: product pages) |
 | **Variation pills + qty stepper** | none — auto-builds from the native selects when the Settings checkbox is on (the inverse of the swatch sync: zero markup vs. full markup control; both drive the same native `change` event) | `woo4etch/enqueue_pills` (default: off) |
 
-## Ready-made layouts (install as Etch patterns)
+## Ready-made layouts (one-click page install)
 
-Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive, header mini-cart, My Account and thank-you. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
+Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive, header mini-cart, My Account, thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
 
 Two ways to use them:
 
-- **Install as pattern** — creates the layout in Etch's **pattern library** (category "Woo4Etch", unsynced: inserting gives you a detached copy you can restyle freely). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system. Reinstalling refreshes the pattern in place. Installs run via AJAX (no page reload); **Install / reinstall all layouts** does the whole set in one click.
+- **Add to page/template** — installs the layout straight where it renders: WooCommerce's assigned page (cart, account — from WooCommerce → Settings → Advanced) or the Etch `wp_template` for the area (`archive-product`, `single-product`, `order-confirmation`; created bare when missing). Strictly **append-only**: existing content is preserved, and a target that already contains the layout is refused instead of double-inserted ("On its page ✓"). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system.
 - **Copy JSON** — puts the layout on your clipboard in Etch's native copy/paste format; paste straight onto the canvas. The same files live in [`templates/etch-copy/`](./etch-copy/README.md) for use without wp-admin access.
 
-The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens.
+The **Woo notices** row additionally offers **Install as component**: the notices region as a real Etch component (one globally editable definition — place instances from the builder's component library; reinstalling updates it in place).
+
+The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens. Mini-cart has no automatic target (it lives in your site header) — paste it there.
 
 ## Product fields as Etch dynamic data
 

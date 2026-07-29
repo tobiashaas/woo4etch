@@ -21,20 +21,8 @@ if (!defined('ABSPATH') && PHP_SAPI !== 'cli') {
  */
 final class Woo4Etch_Layouts {
 
-    /** Option mapping layout slug => md5 of the layout build installed last. */
-    const INSTALLED_HASHES_OPTION = 'woo4etch_layout_hashes';
-
-    /** Option mapping layout slug => md5 of the pattern post_content as saved. */
-    const INSTALLED_CONTENT_OPTION = 'woo4etch_layout_content_hashes';
-
-    /** Option mapping layout slug => installed wp_block post ID. */
-    const INSTALLED_OPTION = 'woo4etch_installed_layouts';
-
     /** Etch global styles option (same one Etch's StylesRoutes writes). */
     const ETCH_STYLES_OPTION = 'etch_styles';
-
-    /** Pattern category shown in Etch's pattern library. */
-    const PATTERN_CATEGORY = 'Woo4Etch';
 
     /* ============================================================
        Catalog
@@ -233,141 +221,13 @@ final class Woo4Etch_Layouts {
     }
 
     /* ============================================================
-       Installer
+       Install support (shared by the page push + component installer)
        ============================================================ */
-
-    /**
-     * Install (or refresh) a layout as an Etch pattern.
-     *
-     * Mirrors Etch's PatternsRoutes::create_pattern(): wp_block post, serialized
-     * blocks, unsynced (inserts as a detached copy the user can edit freely),
-     * categorized for the pattern library. Styles are merged into the
-     * `etch_styles` option; styles whose selector already exists are NOT
-     * overwritten — block references are remapped to the existing style instead
-     * (same strategy as Etch's paste flow).
-     *
-     * An existing pattern the user has edited since it was installed is never
-     * overwritten silently: without $force the install aborts with the
-     * `woo4etch_pattern_edited` error so the caller can ask for an explicit
-     * opt-in (issue #21 — plugin updates must never clobber user layout).
-     *
-     * @param string $slug  Catalog key.
-     * @param bool   $force Overwrite the pattern even if the user edited it.
-     * @return int|WP_Error Pattern post ID.
-     */
-    public static function install($slug, $force = false) {
-        $layout = self::get($slug);
-        if ($layout === null) {
-            return new WP_Error('woo4etch_unknown_layout', __('Unknown layout.', 'woo4etch'));
-        }
-
-        $blocks = self::blocks_for_install($slug);
-
-        $installed = (array) get_option(self::INSTALLED_OPTION, []);
-        $post_id   = isset($installed[$slug]) ? (int) $installed[$slug] : 0;
-        $existing  = $post_id ? get_post($post_id) : null;
-
-        if (!$force && $existing && 'wp_block' === $existing->post_type && self::pattern_edited($slug, $existing)) {
-            return new WP_Error(
-                'woo4etch_pattern_edited',
-                __('This library pattern was edited since it was installed. Reinstalling would replace your edits — confirm the overwrite to proceed.', 'woo4etch')
-            );
-        }
-
-        $post_data = [
-            'post_type'    => 'wp_block',
-            'post_title'   => sanitize_text_field('Woo4Etch — ' . $layout['name']),
-            'post_content' => wp_slash(serialize_blocks($blocks)),
-            'post_excerpt' => sanitize_text_field($layout['description']),
-            'post_status'  => 'publish',
-        ];
-
-        if ($existing && 'wp_block' === $existing->post_type) {
-            $post_data['ID'] = $post_id;
-            $result = wp_update_post($post_data, true);
-        } else {
-            $result = wp_insert_post($post_data, true);
-        }
-        if (is_wp_error($result)) {
-            return $result;
-        }
-        $post_id = (int) $result;
-
-        // Unsynced → Etch inserts a detached copy, not a synced instance.
-        update_post_meta($post_id, 'wp_pattern_sync_status', 'unsynced');
-        wp_set_object_terms($post_id, [self::PATTERN_CATEGORY], 'wp_pattern_category');
-
-        $installed[$slug] = $post_id;
-        update_option(self::INSTALLED_OPTION, $installed);
-
-        // Record which build was installed so the admin UI can flag when the
-        // plugin ships a newer version of this layout.
-        $hashes        = (array) get_option(self::INSTALLED_HASHES_OPTION, []);
-        $hashes[$slug] = self::build_hash($slug);
-        update_option(self::INSTALLED_HASHES_OPTION, $hashes);
-
-        // Record the content as actually saved (KSES may have altered it), so
-        // user edits to the library pattern are detectable on the next install.
-        $saved                 = get_post($post_id);
-        $content_hashes        = (array) get_option(self::INSTALLED_CONTENT_OPTION, []);
-        $content_hashes[$slug] = md5((string) ($saved ? $saved->post_content : ''));
-        update_option(self::INSTALLED_CONTENT_OPTION, $content_hashes);
-
-        return $post_id;
-    }
-
-    /**
-     * True when the installed library pattern's content no longer matches what
-     * the installer saved — i.e. the user edited the pattern itself. Patterns
-     * installed before content tracking existed count as edited (conservative:
-     * never risk clobbering unknown state without an explicit opt-in).
-     *
-     * @param string  $slug     Catalog key.
-     * @param WP_Post $existing Installed pattern post.
-     * @return bool
-     */
-    public static function pattern_edited($slug, $existing) {
-        $content_hashes = (array) get_option(self::INSTALLED_CONTENT_OPTION, []);
-        if (empty($content_hashes[$slug])) {
-            return true;
-        }
-        return !hash_equals((string) $content_hashes[$slug], md5((string) $existing->post_content));
-    }
-
-    /**
-     * Deterministic fingerprint of a layout as currently shipped (pure
-     * function of the plugin code — clipboard_json is environment-free).
-     *
-     * @param string $slug Catalog key.
-     * @return string md5, empty when unknown.
-     */
-    public static function build_hash($slug) {
-        $json = self::clipboard_json($slug);
-        return $json === '' ? '' : md5($json);
-    }
-
-    /**
-     * Freshness of an installed pattern relative to the shipped layout.
-     *
-     * @param string $slug Catalog key.
-     * @return string 'not-installed' | 'current' | 'outdated' | 'unknown'
-     *                ('unknown' = installed before hash tracking existed).
-     */
-    public static function install_state($slug) {
-        if (self::installed_post_id($slug) <= 0) {
-            return 'not-installed';
-        }
-        $hashes = (array) get_option(self::INSTALLED_HASHES_OPTION, []);
-        if (empty($hashes[$slug])) {
-            return 'unknown';
-        }
-        return hash_equals((string) $hashes[$slug], self::build_hash($slug)) ? 'current' : 'outdated';
-    }
 
     /**
      * Merge a layout's styles into the site's Etch style system and return
      * its block tree with the style references remapped accordingly — shared
-     * by the pattern installer above and the component installer
+     * by the page push (Woo4Etch_Health) and the component installer
      * (Woo4Etch_Components).
      *
      * @param string $slug Catalog key.
@@ -380,22 +240,6 @@ final class Woo4Etch_Layouts {
         }
         $map = self::merge_styles($layout['styles']);
         return [self::remap_style_ids($layout['block'], $map)];
-    }
-
-    /**
-     * Installed-state lookup for the admin UI.
-     *
-     * @param string $slug Catalog key.
-     * @return int Pattern post ID, 0 when not installed.
-     */
-    public static function installed_post_id($slug) {
-        $installed = (array) get_option(self::INSTALLED_OPTION, []);
-        $post_id   = isset($installed[$slug]) ? (int) $installed[$slug] : 0;
-        if (!$post_id) {
-            return 0;
-        }
-        $post = get_post($post_id);
-        return ($post && 'wp_block' === $post->post_type && 'publish' === $post->post_status) ? $post_id : 0;
     }
 
     /**
