@@ -109,6 +109,40 @@ That loads the `wc-add-to-cart` script and fragments for mini-cart updates.
 </li>
 ```
 
+## Filter sidebar — native WooCommerce filtering, no plugin
+
+WooCommerce filters product archives through plain **GET parameters**; a hand-written Etch sidebar only has to produce the right URLs — the server does the rest (Woo4Etch ≥ 1.5.0-beta.7 also re-applies these filters to Etch's main-query loop, which runs as a secondary query Woo would otherwise ignore; see `woo4etch/filter_secondary_product_queries`):
+
+| Parameter | Effect | Example |
+|---|---|---|
+| `min_price` / `max_price` | price range | `/shop/?min_price=20&max_price=60` |
+| `filter_<attribute>` | attribute terms (comma = OR) | `/shop/?filter_fuellmenge=2-liter,5-liter` |
+| `query_type_<attribute>=and` | terms must ALL match | `…&query_type_fuellmenge=and` |
+| `orderby` | sorting (`price`, `price-desc`, `date`, `popularity`, `rating`) | `/shop/?orderby=price` |
+
+**Price form** (a plain GET form — no `action` keeps it on the current archive, so it works on category pages too):
+
+```html
+<form method="get">
+  <input type="number" name="min_price" value="{options.filter_min_price}" placeholder="Min" min="0">
+  <input type="number" name="max_price" value="{options.filter_max_price}" placeholder="Max" min="0">
+  <button type="submit" class="button">Apply</button>
+</form>
+<p>Highest price: {options.shop_max_price}</p>
+```
+
+**Category list / pills** — loop `{options.shop_categories}` (top-level, without the default bucket; each item: `id`, `name`, `slug`, `url`, `count`, `image`, `is_active`):
+
+```text
+{#loop options.shop_categories as c}
+  <a href="{c.url}"><img src="{c.image}" alt=""> {c.name} <span>{c.count}</span></a>
+{/loop}
+```
+
+**Attribute checkboxes** — a second GET form whose checkboxes are named `filter_<attribute-slug>` (one checked value per name wins; for multi-select OR, comma-join the values with a few lines of JS, or simply render each term as a **link** carrying the parameter). Term lists come from an Etch `wp-terms` loop over `pa_<attribute>`. Note the "brand" filter in typical designs is exactly this: a `pa_brand`-style attribute + `filter_brand` links.
+
+The ready-made product-grid layout ships the heading + category pills + sidebar (categories, price form) pre-wired.
+
 ## Required classes / attributes
 
 | Element | Required | Why |

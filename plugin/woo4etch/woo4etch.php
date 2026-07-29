@@ -210,6 +210,16 @@ final class Woo4Etch {
         // Disable individually: woo4etch/expose_cart_data, woo4etch/expose_account_data.
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_cart_data']);
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_account_order_data']);
+        add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_shop_data']);
+
+        // WooCommerce applies its native archive filters (?min_price,
+        // ?max_price, ?filter_<attribute>) to the MAIN query only — Etch's
+        // main-query loop runs its own product query, so the filters would be
+        // silently ignored. Re-apply them to secondary product queries while
+        // on a Woo archive. Disable:
+        //   add_filter('woo4etch/filter_secondary_product_queries', '__return_false');
+        add_action('pre_get_posts', [__CLASS__, 'apply_attribute_filters_to_secondary_queries'], 20);
+        add_filter('posts_clauses', [__CLASS__, 'apply_price_filter_to_secondary_queries'], 20, 2);
 
         // Product fields ({this.price}, {this.is_on_sale}, …) on the post root —
         // the same seam Etch's own integration uses for gallery_images.
@@ -2714,6 +2724,178 @@ final class Woo4Etch {
         return apply_filters('woo4etch/account_order_data', $data);
     }
 
+    /**
+     * Shop/archive data for filterable product grids. Hooked to
+     * etch/dynamic_data/option.
+     *
+     * Exposes:
+     *   {options.shop_categories} — array: id, name, slug, url, count, image,
+     *                               is_active (matches the queried term)
+     *   {options.shop_max_price}  — highest catalog price (plain number, for
+     *                               "highest price is X" hints / input max)
+     *   {options.filter_min_price} / {options.filter_max_price}
+     *                             — the current ?min_price/?max_price values,
+     *                               for pre-filling the filter form
+     *
+     * The filtering itself is 100% native WooCommerce: a GET form submitting
+     * min_price/max_price (and filter_<attribute> checkboxes) to the shop URL
+     * filters the main product query server-side — the Etch main-query loop
+     * picks it up automatically. No AJAX, no plugin JS.
+     *
+     * Disable: add_filter('woo4etch/expose_shop_data','__return_false').
+     *
+     * @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    public static function expose_shop_data($data) {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!apply_filters('woo4etch/expose_shop_data', true) || !function_exists('wc_get_page_permalink')) {
+            return $data;
+        }
+
+        $builder = self::is_etch_builder();
+
+        // Categories (cheap, cached taxonomy query) — always available so
+        // pills/menus can live outside the shop archive too.
+        $active_id = 0;
+        if (function_exists('is_product_taxonomy') && is_product_taxonomy()) {
+            $qo        = get_queried_object();
+            $active_id = $qo instanceof WP_Term ? (int) $qo->term_id : 0;
+        }
+        // Top-level categories only (subcategories belong on the term pages),
+        // without WooCommerce's default "Uncategorized" bucket. Reshape via
+        // the woo4etch/shop_data filter if you need the full tree.
+        $terms = get_terms([
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'parent'     => 0,
+            'exclude'    => [(int) get_option('default_product_cat', 0)],
+        ]);
+        $categories = [];
+        if (!is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                // Default/uncategorized buckets (slug varies by locale).
+                if (in_array($term->slug, apply_filters('woo4etch/shop_categories_exclude_slugs', ['uncategorized', 'unkategorisiert', 'uncategorised']), true)) {
+                    continue;
+                }
+                $thumb_id = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
+                $image    = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'woocommerce_thumbnail') : '';
+                if (!$image && function_exists('wc_placeholder_img_src')) {
+                    $image = wc_placeholder_img_src('woocommerce_thumbnail');
+                }
+                $categories[] = [
+                    'id'        => (int) $term->term_id,
+                    'name'      => $term->name,
+                    'slug'      => $term->slug,
+                    'url'       => (string) get_term_link($term),
+                    'count'     => (int) $term->count,
+                    'image'     => (string) $image,
+                    'is_active' => $active_id === (int) $term->term_id,
+                ];
+            }
+        }
+        $data['shop_categories'] = $categories;
+
+        // Price bounds + current filter values — archive pages and builder only.
+        $on_archive = (function_exists('is_shop') && is_shop())
+            || (function_exists('is_product_taxonomy') && is_product_taxonomy());
+        if ($on_archive || $builder) {
+            global $wpdb;
+            $max = $wpdb->get_var("SELECT MAX(max_price) FROM {$wpdb->wc_product_meta_lookup}");
+            $data['shop_max_price'] = $max ? self::plain(wc_price(ceil((float) $max))) : '';
+            // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Woo's own public filter params.
+            $data['filter_min_price'] = isset($_GET['min_price']) ? (string) absint(wp_unslash($_GET['min_price'])) : '';
+            $data['filter_max_price'] = isset($_GET['max_price']) ? (string) absint(wp_unslash($_GET['max_price'])) : '';
+            // phpcs:enable
+        } else {
+            $data['shop_max_price']   = '';
+            $data['filter_min_price'] = '';
+            $data['filter_max_price'] = '';
+        }
+
+        return apply_filters('woo4etch/shop_data', $data);
+    }
+
+    /**
+     * True when Woo's archive filters should be re-applied to this query:
+     * a frontend, non-main product query while a Woo archive is displayed.
+     *
+     * @param WP_Query $query
+     * @return bool
+     */
+    private static function is_filterable_secondary_query($query) {
+        if (is_admin() || !$query instanceof WP_Query || $query->is_main_query()) {
+            return false;
+        }
+        if (!apply_filters('woo4etch/filter_secondary_product_queries', true)) {
+            return false;
+        }
+        if (!function_exists('is_shop') || !(is_shop() || (function_exists('is_product_taxonomy') && is_product_taxonomy()))) {
+            return false;
+        }
+        $post_type = $query->get('post_type');
+        return 'product' === $post_type || (is_array($post_type) && in_array('product', $post_type, true));
+    }
+
+    /**
+     * Layered-nav attribute filters (?filter_<attribute>=a,b&query_type_…)
+     * for secondary product queries (Etch loops). Mirrors what WC_Query does
+     * for the main query.
+     *
+     * @param WP_Query $query
+     */
+    public static function apply_attribute_filters_to_secondary_queries($query) {
+        if (!self::is_filterable_secondary_query($query) || !class_exists('WC_Query')) {
+            return;
+        }
+        $chosen = WC_Query::get_layered_nav_chosen_attributes();
+        if (!$chosen) {
+            return;
+        }
+        $tax_query = (array) $query->get('tax_query');
+        foreach ($chosen as $taxonomy => $data) {
+            $tax_query[] = [
+                'taxonomy'         => $taxonomy,
+                'field'            => 'slug',
+                'terms'            => $data['terms'],
+                'operator'         => ('and' === $data['query_type']) ? 'AND' : 'IN',
+                'include_children' => false,
+            ];
+        }
+        $query->set('tax_query', $tax_query);
+    }
+
+    /**
+     * Price filter (?min_price/?max_price) for secondary product queries —
+     * WC implements it as posts_clauses on the main query only, so it is
+     * replicated here against the product meta lookup table.
+     *
+     * @param array<string,string> $clauses
+     * @param WP_Query             $query
+     * @return array<string,string>
+     */
+    public static function apply_price_filter_to_secondary_queries($clauses, $query) {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Woo's own public filter params.
+        if ((!isset($_GET['min_price']) && !isset($_GET['max_price'])) || !self::is_filterable_secondary_query($query)) {
+            return $clauses;
+        }
+        global $wpdb;
+        if (strpos((string) $clauses['join'], 'w4e_price_lookup') === false) {
+            $clauses['join'] .= " LEFT JOIN {$wpdb->wc_product_meta_lookup} w4e_price_lookup ON {$wpdb->posts}.ID = w4e_price_lookup.product_id ";
+        }
+        // Same range semantics as WC_Query::price_filter_post_clauses.
+        if (isset($_GET['min_price'])) {
+            $clauses['where'] .= $wpdb->prepare(' AND w4e_price_lookup.max_price >= %f ', (float) wp_unslash($_GET['min_price']));
+        }
+        if (isset($_GET['max_price'])) {
+            $clauses['where'] .= $wpdb->prepare(' AND w4e_price_lookup.min_price <= %f ', (float) wp_unslash($_GET['max_price']));
+        }
+        // phpcs:enable
+        return $clauses;
+    }
+
     /** My Account navigation items. */
     private static function account_menu() {
         if (!function_exists('wc_get_account_menu_items')) {
@@ -2843,7 +3025,11 @@ final class Woo4Etch {
 
     /** Strip tags + decode entities so formatted Woo prices are clean strings for Etch. */
     private static function plain($html) {
-        return html_entity_decode(wp_strip_all_tags((string) $html), ENT_QUOTES);
+        // Drop screen-reader spans BEFORE stripping tags — wc_price() sale
+        // markup carries "Original price was: …" helper text that would
+        // otherwise leak into the visible string.
+        $html = preg_replace('/<span[^>]*class="[^"]*screen-reader-text[^"]*"[^>]*>.*?<\/span>/s', '', (string) $html);
+        return html_entity_decode(wp_strip_all_tags($html), ENT_QUOTES);
     }
 }
 

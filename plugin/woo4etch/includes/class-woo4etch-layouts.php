@@ -708,52 +708,137 @@ final class Woo4Etch_Layouts {
         return ['block' => $block, 'styles' => self::with_base_styles($s)];
     }
 
-    /** Shop archive: product grid over the main query. */
+    /**
+     * Shop archive: heading + category pills + filter sidebar + product grid.
+     *
+     * The filters are 100% native WooCommerce: the sidebar's GET form submits
+     * `min_price`/`max_price` to the current archive URL and WC_Query filters
+     * the main product query server-side — the Etch main-query loop simply
+     * renders the filtered result. Category pills/links navigate the term
+     * archives. Attribute checkbox filters (`filter_<slug>`) can be added the
+     * same way — see templates/03-product-archive.md.
+     */
     private static function layout_product_grid() {
         $s = [];
 
         $section = self::cls($s, 'w4e-shop', '');
-        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; padding-block: 24px 48px;');
-        $card    = self::cls($s, 'w4e-card', 'position: relative; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;');
-        $link    = self::cls($s, 'w4e-card__link', 'display: block; color: inherit;');
-        $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: cover; background: #f3f4f6;');
-        $cardbdg = self::cls($s, 'w4e-card__badge', 'position: absolute; top: 12px; left: 12px;');
-        $name    = self::cls($s, 'w4e-card__name', 'font-size: 15px; font-weight: 600; margin: 12px 14px 4px;');
-        $price   = self::cls($s, 'w4e-card__price', 'margin: 0 14px 12px; font-weight: 700;');
-        $btn     = self::cls($s, 'w4e-card__btn', 'margin: auto 14px 14px; text-align: center;');
-        $badge   = self::badge_style($s);
+        $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
+        $catbar  = self::cls($s, 'w4e-catbar', 'display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 24px;');
+        $catpill = self::cls($s, 'w4e-catpill', 'display: inline-flex; align-items: center; gap: 10px; padding: 8px 20px 8px 8px; background: #fff; border: 1px solid #e6e7eb; border-radius: 999px; color: inherit; font-weight: 600; font-size: 15px; text-decoration: none; &:hover { border-color: #111827; }');
+        $catimg  = self::cls($s, 'w4e-catpill__img', 'width: 40px; height: 40px; border-radius: 999px; object-fit: cover; background: #f3f4f6;');
+        $cols    = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 0 48px; @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
+
+        $filter    = self::cls($s, 'w4e-filter', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 88px;');
+        $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: 10px; &:not(:last-child) { border-bottom: 1px solid #e6e7eb; padding-bottom: 20px; }');
+        $fheading  = self::cls($s, 'w4e-filter__heading', 'margin: 0; font-size: 16px; font-weight: 700;');
+        $fhint     = self::cls($s, 'w4e-filter__hint', 'margin: 0; font-size: 13px; color: #6b7280;');
+        $flist     = self::cls($s, 'w4e-filter__list', 'list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;');
+        $flink     = self::cls($s, 'w4e-filter__link', 'display: flex; justify-content: space-between; gap: 8px; color: #16181d; text-decoration: none; font-size: 14px; &:hover { text-decoration: underline; }');
+        $factive   = self::cls($s, 'w4e-filter__link--active', 'font-weight: 700;');
+        $fcount    = self::cls($s, 'w4e-filter__count', 'color: #9ca3af;');
+        $prices    = self::cls($s, 'w4e-filter__prices', 'display: flex; gap: 8px;');
+        $pricein   = self::cls($s, 'w4e-filter__price', 'width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid #e6e7eb; border-radius: 999px; font-size: 14px;');
+        $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
+        $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: 13px; color: #6b7280; text-align: center; text-decoration: underline;');
+
+        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 24px;');
+        $card    = self::cls($s, 'w4e-card', 'display: flex; flex-direction: column; gap: 4px;');
+        $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: #f0f0f1; border-radius: 14px; padding: 24px; margin-bottom: 8px;');
+        $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: contain; mix-blend-mode: multiply;');
+        $sale    = self::cls($s, 'w4e-card__sale', 'position: absolute; top: 12px; left: 12px; background: #d43a1f; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px;');
+        $link    = self::cls($s, 'w4e-card__link', 'color: inherit; text-decoration: none; &:hover { text-decoration: underline; }');
+        $name    = self::cls($s, 'w4e-card__name', 'font-size: 15px; font-weight: 500; margin: 0;');
+        $price   = self::cls($s, 'w4e-card__price', 'margin: 0; font-size: 18px; font-weight: 800;');
+        $btn     = self::cls($s, 'w4e-card__btn', 'align-self: flex-start; margin-top: 6px; font-size: 13px; padding: 8px 16px;');
         $button  = self::button_style($s);
+
+        $cat_link = static function ($active, $extra_style, $label) use ($flink, $factive, $fcount) {
+            $styles = $active ? [$flink, $factive] : [$flink];
+            $class  = 'w4e-filter__link' . ($active ? ' w4e-filter__link--active' : '');
+            return self::cond('c.is_active', $active ? 'isTruthy' : 'isFalsy', null, [
+                self::el('li', ['class' => ''], [], [
+                    self::el('a', ['class' => $class, 'href' => '{c.url}'], $styles, [
+                        self::txt('{c.name}'),
+                        self::text_el('span', '{c.count}', ['class' => 'w4e-filter__count'], [$fcount], 'Count'),
+                    ], 'Category link'),
+                ], 'Item'),
+            ], $label);
+        };
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-shop'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
-                self::el('div', ['class' => 'w4e-shopgrid products'], [$grid], [
-                    self::preset_loop(self::ensure_main_query_loop(), 'item', [
-                        self::el('article', ['class' => 'w4e-card product'], [$card], [
-                            self::el('div', ['class' => 'w4e-card__badge'], [$cardbdg], [
-                                self::cond('item.is_on_sale', 'isTruthy', null, [
-                                    self::text_el('span', '-{item.sale_percentage}%', ['class' => 'w4e-badge onsale'], [$badge], 'Sale badge'),
-                                ], 'item.is_on_sale'),
-                            ], 'Badge'),
-                            self::el('a', ['class' => 'w4e-card__link', 'href' => '{item.permalink.relative}'], [$link], [
-                                self::el('img', ['class' => 'w4e-card__img', 'src' => '{item.image.url}', 'alt' => '{item.title}'], [$img], [], 'Img'),
-                                self::text_el('h3', '{item.title}', ['class' => 'w4e-card__name woocommerce-loop-product__title'], [$name], 'Name'),
-                            ], 'Link'),
-                            self::text_el('div', '{item.price}', ['class' => 'w4e-card__price price'], [$price], 'Price'),
-                            self::text_el(
-                                'a',
-                                'Add to cart',
-                                [
-                                    'class'           => 'w4e-card__btn button product_type_simple add_to_cart_button ajax_add_to_cart',
-                                    'href'            => '?add-to-cart={item.id}',
-                                    'data-product_id' => '{item.id}',
-                                    'data-quantity'   => '1',
-                                    'rel'             => 'nofollow',
-                                ],
-                                [$btn, $button],
-                                'Add to cart'
-                            ),
-                        ], 'W4e Card'),
+
+                self::text_el('h1', '{archive.title}', ['class' => 'w4e-shop__title'], [$title], 'Title'),
+
+                // Category quick links, like the brand pills in the reference
+                // design — image + name, straight to the term archive.
+                self::el('div', ['class' => 'w4e-catbar'], [$catbar], [
+                    self::loop('options.shop_categories', 'c', [
+                        self::el('a', ['class' => 'w4e-catpill', 'href' => '{c.url}'], [$catpill], [
+                            self::el('img', ['class' => 'w4e-catpill__img', 'src' => '{c.image}', 'alt' => '{c.name}'], [$catimg], [], 'Img'),
+                            self::txt('{c.name}'),
+                        ], 'Category pill'),
                     ]),
+                ], 'Category bar'),
+
+                self::el('div', ['class' => 'w4e-shop-cols'], [$cols], [
+
+                    self::el('aside', ['class' => 'w4e-filter', 'aria-label' => 'Product filters'], [$filter], [
+                        self::el('div', ['class' => 'w4e-filter__group'], [$fgroup], [
+                            self::text_el('h3', 'Categories', ['class' => 'w4e-filter__heading'], [$fheading], 'Heading'),
+                            self::el('ul', ['class' => 'w4e-filter__list'], [$flist], [
+                                self::loop('options.shop_categories', 'c', [
+                                    $cat_link(true, $factive, 'c.is_active'),
+                                    $cat_link(false, '', '!c.is_active'),
+                                ]),
+                            ], 'Category list'),
+                        ], 'Categories'),
+                        self::el('div', ['class' => 'w4e-filter__group'], [$fgroup], [
+                            self::text_el('h3', 'Price', ['class' => 'w4e-filter__heading'], [$fheading], 'Heading'),
+                            self::text_el('p', 'Highest price: {options.shop_max_price}', ['class' => 'w4e-filter__hint'], [$fhint], 'Hint'),
+                            // Native Woo filtering: GET min_price/max_price to
+                            // the current archive URL (no action attribute).
+                            self::el('form', ['class' => 'w4e-filter__form', 'method' => 'get'], [], [
+                                self::el('div', ['class' => 'w4e-filter__prices'], [$prices], [
+                                    self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'min_price', 'value' => '{options.filter_min_price}', 'placeholder' => 'Min', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Min'),
+                                    self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'max_price', 'value' => '{options.filter_max_price}', 'placeholder' => 'Max', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Max'),
+                                ], 'Price inputs'),
+                                self::text_el('button', 'Apply', ['class' => 'w4e-filter__apply button', 'type' => 'submit'], [$fapply, $button], 'Apply'),
+                            ], 'Price form'),
+                            self::text_el('a', 'Reset filters', ['class' => 'w4e-filter__reset', 'href' => '{options.shop_url}'], [$freset], 'Reset'),
+                        ], 'Price'),
+                    ], 'Filter sidebar'),
+
+                    self::el('div', ['class' => 'w4e-shopgrid products'], [$grid], [
+                        self::preset_loop(self::ensure_main_query_loop(), 'item', [
+                            self::el('article', ['class' => 'w4e-card product'], [$card], [
+                                self::el('a', ['class' => 'w4e-card__media', 'href' => '{item.permalink.relative}'], [$media], [
+                                    self::cond('item.is_on_sale', 'isTruthy', null, [
+                                        self::text_el('span', 'Sale', ['class' => 'w4e-card__sale'], [$sale], 'Sale badge'),
+                                    ], 'item.is_on_sale'),
+                                    self::el('img', ['class' => 'w4e-card__img', 'src' => '{item.image.url}', 'alt' => '{item.title}'], [$img], [], 'Img'),
+                                ], 'Media'),
+                                self::el('a', ['class' => 'w4e-card__link', 'href' => '{item.permalink.relative}'], [$link], [
+                                    self::text_el('h3', '{item.title}', ['class' => 'w4e-card__name woocommerce-loop-product__title'], [$name], 'Name'),
+                                ], 'Link'),
+                                self::text_el('div', '{item.price}', ['class' => 'w4e-card__price price'], [$price], 'Price'),
+                                self::text_el(
+                                    'a',
+                                    'Add to cart',
+                                    [
+                                        'class'           => 'w4e-card__btn button product_type_simple add_to_cart_button ajax_add_to_cart',
+                                        'href'            => '?add-to-cart={item.id}',
+                                        'data-product_id' => '{item.id}',
+                                        'data-quantity'   => '1',
+                                        'rel'             => 'nofollow',
+                                    ],
+                                    [$btn, $button],
+                                    'Add to cart'
+                                ),
+                            ], 'W4e Card'),
+                        ]),
+                    ]),
+
                 ]),
             ]),
         ], 'W4e Shop Grid');
