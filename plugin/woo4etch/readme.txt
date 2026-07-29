@@ -84,7 +84,7 @@ Store & archive:
 * `[woo_catalog_ordering]` — sort-by dropdown
 * `[woo_pagination]` — product loop pagination
 * `[woo_product_search]` — product search form
-* `[woo_notices]` — queued WooCommerce notices
+* `[woo_notices format="plain"]` — queued WooCommerce notices; `plain` renders minimal `.w4e-notice` markup styleable in Etch (default: Woo's template markup)
 
 Conditional:
 
@@ -120,6 +120,15 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 * New: `[woo_product_attributes]` — the "Additional information" attributes table (visible attributes + weight/dimensions) as a shortcode. Needed because the woocommerce_product_additional_information hook expects the product as a do_action argument, which the hook island cannot pass.
 * New: `woo4etch/cart_item_payload` filter — adjust each cart-item payload (e.g. strip Germanized's gzd-* rows from `meta`) before it reaches `{options.cart_items}`.
 * New: `{this.is_sold_individually}` exposed in the product data bridge — hide the quantity input for one-per-order products via `{#if !this.is_sold_individually}`.
+* New: `[woo_notices format="plain"]` — Woo notices as minimal class-based markup (.w4e-notice + --error/--success/--notice), styleable in Etch. Default format unchanged.
+* New: `{options.shop_url}` / `{woo.shop.url}` — shop page URL for empty-cart "Return to shop" links.
+* New: "Woo notices" ready-made layout — the feedback region ([woo_notices format="plain"] in a styled .w4e-notices wrapper) as a standalone install/paste, for any layout that needs Woo feedback. The single-product and account layouts now include the same block (add-to-cart errors, login/address feedback); the cart layout already has it.
+* New: "Woo Notices" as a real Etch component — one click on the admin page installs the notices region as an Etch component (server-side: wp_block post + Etch component meta, styles merged like the pattern installer). Idempotent: reinstalling updates the existing component in place. Place instances from the builder's component library for one globally editable notices region.
+* Fix: the cart layout (one-click pattern + cart.json) now has an empty-cart state — previously coupon, totals and the checkout button rendered on an empty cart with no message — and outputs Woo notices via [woo_notices format="plain"], so "Cart updated." and coupon/security errors are visible instead of updates failing silently.
+* Fix: the notices region hides itself while empty (no reserved blank space); the builder canvas shows a sample notice so the region stays styleable.
+* Fix: cart cross-sells fall back to random catalog products when no Linked-Products cross-sells are maintained (disable: woo4etch/cross_sells_fallback filter), and the "You may also like" section disappears entirely when the list is empty.
+* New: Page health check on the admin page — resolves WooCommerce's cart/checkout/account page assignments and verifies the layout + notices elements exist there (page content and Etch templates are searched); missing elements can be inserted straight into the assigned page.
+* New: the ready-made layouts table shows whether an installed pattern is up to date or a newer version ships with the plugin, with a note on what Reinstall replaces (library pattern only — inserted copies and existing class styles are untouched).
 * Fix: the product-grid.json copy/paste artifact binds its archive loop to Etch's seeded `etch_main_query` preset instead of the installer-minted `w4e_main_query`, which does not exist on sites where the one-click installer never ran (a manual paste could render an empty archive). The one-click installer was unaffected.
 
 = 1.5.0-beta.6 =

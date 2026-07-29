@@ -21,6 +21,9 @@ if (!defined('ABSPATH') && PHP_SAPI !== 'cli') {
  */
 final class Woo4Etch_Layouts {
 
+    /** Option mapping layout slug => md5 of the layout build installed last. */
+    const INSTALLED_HASHES_OPTION = 'woo4etch_layout_hashes';
+
     /** Option mapping layout slug => installed wp_block post ID. */
     const INSTALLED_OPTION = 'woo4etch_installed_layouts';
 
@@ -70,6 +73,11 @@ final class Woo4Etch_Layouts {
                 'name'        => 'Thank-you / order received',
                 'description' => 'Order confirmation from {options.order}: notice, order overview (number, date, total, payment), line items loop. Shows only when an order is in context.',
                 'area'        => 'Thank-you',
+            ],
+            'notices' => [
+                'name'        => 'Woo notices — feedback messages',
+                'description' => 'Queued WooCommerce feedback ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup via [woo_notices format="plain"]. Already included in the cart, single-product and account layouts; insert this standalone version near the top of any other page layout — or use "Woo Notices as an Etch component" below to manage the region globally.',
+                'area'        => 'Global',
             ],
         ];
     }
@@ -156,8 +164,7 @@ final class Woo4Etch_Layouts {
             return new WP_Error('woo4etch_unknown_layout', __('Unknown layout.', 'woo4etch'));
         }
 
-        $map    = self::merge_styles($layout['styles']);
-        $blocks = [self::remap_style_ids($layout['block'], $map)];
+        $blocks = self::blocks_for_install($slug);
 
         $installed = (array) get_option(self::INSTALLED_OPTION, []);
         $post_id   = isset($installed[$slug]) ? (int) $installed[$slug] : 0;
@@ -189,7 +196,61 @@ final class Woo4Etch_Layouts {
         $installed[$slug] = $post_id;
         update_option(self::INSTALLED_OPTION, $installed);
 
+        // Record which build was installed so the admin UI can flag when the
+        // plugin ships a newer version of this layout.
+        $hashes        = (array) get_option(self::INSTALLED_HASHES_OPTION, []);
+        $hashes[$slug] = self::build_hash($slug);
+        update_option(self::INSTALLED_HASHES_OPTION, $hashes);
+
         return $post_id;
+    }
+
+    /**
+     * Deterministic fingerprint of a layout as currently shipped (pure
+     * function of the plugin code — clipboard_json is environment-free).
+     *
+     * @param string $slug Catalog key.
+     * @return string md5, empty when unknown.
+     */
+    public static function build_hash($slug) {
+        $json = self::clipboard_json($slug);
+        return $json === '' ? '' : md5($json);
+    }
+
+    /**
+     * Freshness of an installed pattern relative to the shipped layout.
+     *
+     * @param string $slug Catalog key.
+     * @return string 'not-installed' | 'current' | 'outdated' | 'unknown'
+     *                ('unknown' = installed before hash tracking existed).
+     */
+    public static function install_state($slug) {
+        if (self::installed_post_id($slug) <= 0) {
+            return 'not-installed';
+        }
+        $hashes = (array) get_option(self::INSTALLED_HASHES_OPTION, []);
+        if (empty($hashes[$slug])) {
+            return 'unknown';
+        }
+        return hash_equals((string) $hashes[$slug], self::build_hash($slug)) ? 'current' : 'outdated';
+    }
+
+    /**
+     * Merge a layout's styles into the site's Etch style system and return
+     * its block tree with the style references remapped accordingly — shared
+     * by the pattern installer above and the component installer
+     * (Woo4Etch_Components).
+     *
+     * @param string $slug Catalog key.
+     * @return array<int,array<string,mixed>>|null Block list, null when unknown.
+     */
+    public static function blocks_for_install($slug) {
+        $layout = self::get($slug);
+        if ($layout === null) {
+            return null;
+        }
+        $map = self::merge_styles($layout['styles']);
+        return [self::remap_style_ids($layout['block'], $map)];
     }
 
     /**
@@ -478,6 +539,39 @@ final class Woo4Etch_Layouts {
         return self::cls($styles, 'w4e-badge', 'display: inline-block; align-self: flex-start; background: #ff4d2d; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;');
     }
 
+    /**
+     * Shared Woo-notices region — [woo_notices format="plain"] wrapped in a
+     * styleable .w4e-notices element. The one block every page layout needs:
+     * without it, Woo feedback ("Cart updated.", coupon/form/security errors)
+     * is invisible and failed actions look like silent no-ops.
+     *
+     * Structurally identical in every layout on purpose: select any instance
+     * in Etch and "save as component" to manage it globally (Etch has no API
+     * for plugins to install components directly — see ETCH-FEATURE-REQUESTS.md).
+     * The element carries all notice style refs so the records survive with it.
+     */
+    private static function notices_block(array &$styles) {
+        $refs = [
+            // Hidden while empty ([woo_notices] returns '' when nothing is
+            // queued) so the wrapper never reserves space on quiet pages; in
+            // the builder the shortcode renders a sample notice instead.
+            self::cls($styles, 'w4e-notices', 'display: flex; flex-direction: column; gap: 10px; margin-block-end: 20px; &:not(:has(.w4e-notice)) { display: none; }'),
+            self::cls($styles, 'w4e-notice', 'padding: 12px 16px; border-radius: 8px; border: 1px solid #e5e5e5; background: #fafafa; font-size: 14px; line-height: 1.5;'),
+            self::cls($styles, 'w4e-notice--error', 'background: #fef2f2; border-color: #fecaca; color: #b91c1c;'),
+            self::cls($styles, 'w4e-notice--success', 'background: #f0fdf4; border-color: #bbf7d0; color: #166534;'),
+            self::cls($styles, 'w4e-notice--notice', 'background: #eff6ff; border-color: #bfdbfe; color: #1e40af;'),
+        ];
+        return self::el('div', ['class' => 'w4e-notices'], $refs, [
+            self::raw('[woo_notices format="plain"]', 'Woo notices'),
+        ], 'Notices');
+    }
+
+    /** Standalone "Woo notices" layout — just the shared block, insert anywhere. */
+    private static function layout_notices() {
+        $s = [];
+        return ['block' => self::notices_block($s), 'styles' => $s];
+    }
+
     /** Single product: gallery + buy box. */
     private static function layout_product_single() {
         $s = [];
@@ -522,6 +616,9 @@ final class Woo4Etch_Layouts {
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-product'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                // Add-to-cart feedback (qty limits, out-of-stock, required
+                // variation …) arrives as Woo notices on this page.
+                self::notices_block($s),
                 self::el('div', ['class' => 'w4e-product-layout'], [$layout], [
 
                     self::el('div', [
@@ -716,6 +813,9 @@ final class Woo4Etch_Layouts {
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-account woocommerce-account'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                // Login/register errors, "address saved", password changes —
+                // all account feedback arrives as Woo notices.
+                self::notices_block($s),
                 self::el('div', ['class' => 'w4e-account-layout'], [$layout], [
 
                     self::el('nav', ['class' => 'w4e-account-nav', 'aria-label' => 'Account navigation'], [$nav], [

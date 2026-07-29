@@ -23,6 +23,8 @@ final class Woo4Etch_Admin {
         add_action('admin_menu', [__CLASS__, 'register_menu'], 99);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
         add_action('admin_post_woo4etch_install_layout', [__CLASS__, 'handle_install_layout']);
+        add_action('admin_post_woo4etch_request_component', [__CLASS__, 'handle_request_component']);
+        add_action('admin_post_woo4etch_insert_into_page', [__CLASS__, 'handle_insert_into_page']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
         add_action('wp_ajax_woo4etch_install_layout', [__CLASS__, 'ajax_install_layout']);
     }
@@ -44,6 +46,52 @@ final class Woo4Etch_Admin {
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
         $redirect = add_query_arg('w4e_settings_saved', '1', remove_query_arg('w4e_settings_saved', $redirect));
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
+    /**
+     * admin-post handler: append a layout's blocks directly to the
+     * WooCommerce-assigned page (health check "insert" action).
+     */
+    public static function handle_insert_into_page() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_die(esc_html__('You do not have permission to do this.', 'woo4etch'));
+        }
+        $slug = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
+        $area = isset($_POST['area']) ? sanitize_key(wp_unslash($_POST['area'])) : '';
+        check_admin_referer('woo4etch_insert_into_page_' . $area . '_' . $slug);
+
+        $result = Woo4Etch_Health::insert_into_page($slug, $area);
+
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = remove_query_arg(['w4e_health_error', 'w4e_health_ok'], $redirect);
+        if (is_wp_error($result)) {
+            $redirect = add_query_arg('w4e_health_error', rawurlencode($result->get_error_message()), $redirect);
+        } else {
+            $redirect = add_query_arg('w4e_health_ok', rawurlencode($slug . ':' . $area), $redirect);
+        }
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
+    /**
+     * admin-post handler: install (or refresh) the "Woo Notices" Etch
+     * component (see class-woo4etch-components.php).
+     */
+    public static function handle_request_component() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_die(esc_html__('You do not have permission to do this.', 'woo4etch'));
+        }
+        check_admin_referer('woo4etch_request_component');
+
+        $result = Woo4Etch_Components::install();
+
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = remove_query_arg(['w4e_component_error'], $redirect);
+        if (is_wp_error($result)) {
+            $redirect = add_query_arg('w4e_component_error', rawurlencode($result->get_error_message()), $redirect);
+        }
         wp_safe_redirect($redirect);
         exit;
     }
@@ -278,6 +326,10 @@ final class Woo4Etch_Admin {
         <p class="woo4etch-intro">
             <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Install as pattern” adds them to Etch’s pattern library (as detached copies you can restyle freely; existing styles with the same selectors are reused, never overwritten). “Copy JSON” puts the layout on your clipboard — paste it straight onto the Etch canvas.', 'woo4etch'); ?>
         </p>
+        <p class="woo4etch-intro">
+            <strong><?php esc_html_e('What “Reinstall” touches:', 'woo4etch'); ?></strong>
+            <?php esc_html_e('it replaces the pattern in the library only — copies you already inserted into pages are untouched, and class styles with existing selectors are reused, never overwritten (your CSS edits survive). If you edited the library pattern itself, those edits are replaced.', 'woo4etch'); ?>
+        </p>
 
         <p>
             <button type="button"
@@ -305,7 +357,8 @@ final class Woo4Etch_Admin {
                     if ($json === '') {
                         continue;
                     }
-                    $is_installed = Woo4Etch_Layouts::installed_post_id($slug) > 0;
+                    $state        = Woo4Etch_Layouts::install_state($slug);
+                    $is_installed = ('not-installed' !== $state);
                     ?>
                     <tr>
                         <td><?php echo esc_html($meta['area']); ?></td>
@@ -329,8 +382,12 @@ final class Woo4Etch_Admin {
                                     data-copy-target="woo4etch-layout-<?php echo esc_attr($slug); ?>">
                                 <?php esc_html_e('Copy JSON', 'woo4etch'); ?>
                             </button>
-                            <?php if ($is_installed) : ?>
-                                <span class="woo4etch-installed" aria-label="<?php esc_attr_e('Installed', 'woo4etch'); ?>">✓</span>
+                            <?php if ('current' === $state) : ?>
+                                <span class="woo4etch-installed" title="<?php esc_attr_e('Installed — up to date with the plugin version.', 'woo4etch'); ?>">✓ <?php esc_html_e('Up to date', 'woo4etch'); ?></span>
+                            <?php elseif ('outdated' === $state) : ?>
+                                <strong class="woo4etch-outdated" title="<?php esc_attr_e('The plugin ships a newer version of this layout. Reinstall updates the library pattern; copies already inserted into pages are untouched, and existing class styles are never overwritten.', 'woo4etch'); ?>">⬆ <?php esc_html_e('Update available', 'woo4etch'); ?></strong>
+                            <?php elseif ('unknown' === $state) : ?>
+                                <span class="woo4etch-installed" title="<?php esc_attr_e('Installed before update tracking existed — reinstall once to start tracking.', 'woo4etch'); ?>">✓ <?php esc_html_e('Installed (version unknown)', 'woo4etch'); ?></span>
                             <?php endif; ?>
                             <textarea id="woo4etch-layout-<?php echo esc_attr($slug); ?>"
                                       readonly
@@ -341,6 +398,152 @@ final class Woo4Etch_Admin {
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <?php self::render_component_section(); ?>
+        <?php self::render_health_section(); ?>
+        <?php
+    }
+
+    /**
+     * Page health check: are the expected elements present on the pages
+     * WooCommerce is configured to use?
+     */
+    private static function render_health_section() {
+        $targets = Woo4Etch_Health::targets();
+        if (empty($targets)) {
+            return;
+        }
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flags.
+        $ok_flag    = isset($_GET['w4e_health_ok']) ? sanitize_text_field(wp_unslash($_GET['w4e_health_ok'])) : '';
+        $error_flag = isset($_GET['w4e_health_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_health_error'])) : '';
+        // phpcs:enable
+
+        $insert_button = static function ($slug, $area, $label) {
+            ?>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                <input type="hidden" name="action" value="woo4etch_insert_into_page">
+                <input type="hidden" name="layout" value="<?php echo esc_attr($slug); ?>">
+                <input type="hidden" name="area" value="<?php echo esc_attr($area); ?>">
+                <?php wp_nonce_field('woo4etch_insert_into_page_' . $area . '_' . $slug); ?>
+                <button type="submit" class="button button-small"><?php echo esc_html($label); ?></button>
+            </form>
+            <?php
+        };
+        ?>
+        <h3><?php esc_html_e('Page health check', 'woo4etch'); ?></h3>
+        <p class="woo4etch-intro">
+            <?php esc_html_e('Checks the pages WooCommerce is configured to use (WooCommerce → Settings → Advanced) for the elements each page needs — searched in the page content and in Etch templates. “Insert” appends the missing element directly to the assigned page (append-only; existing content is preserved). If the page is rendered by an Etch template, add the element to that template in the builder instead.', 'woo4etch'); ?>
+        </p>
+
+        <?php if ($ok_flag !== '') : ?>
+            <div class="notice notice-success inline"><p>
+                <?php
+                printf(
+                    /* translators: %s: "layout:area" that was inserted */
+                    esc_html__('Inserted (%s). Reload the page in the builder to arrange it.', 'woo4etch'),
+                    esc_html($ok_flag)
+                );
+                ?>
+            </p></div>
+        <?php endif; ?>
+        <?php if ($error_flag !== '') : ?>
+            <div class="notice notice-error inline"><p><?php echo esc_html($error_flag); ?></p></div>
+        <?php endif; ?>
+
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col" style="width:18%"><?php esc_html_e('Page', 'woo4etch'); ?></th>
+                    <th scope="col" style="width:27%"><?php esc_html_e('Assigned post', 'woo4etch'); ?></th>
+                    <th scope="col" style="width:25%"><?php esc_html_e('Layout', 'woo4etch'); ?></th>
+                    <th scope="col"><?php esc_html_e('Notices', 'woo4etch'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($targets as $area => $target) : ?>
+                    <?php
+                    $page = $target['page_id'] > 0 ? get_post($target['page_id']) : null;
+                    $layout_loc  = $page ? Woo4Etch_Health::locate($target['page_id'], $target['markers']) : ['found' => false, 'where' => ''];
+                    $notices_loc = $page ? Woo4Etch_Health::locate($target['page_id'], Woo4Etch_Health::NOTICES_MARKERS) : ['found' => false, 'where' => ''];
+                    ?>
+                    <tr>
+                        <td><strong><?php echo esc_html($target['label']); ?></strong></td>
+                        <td>
+                            <?php if ($page) : ?>
+                                <a href="<?php echo esc_url((string) get_edit_post_link($page->ID)); ?>"><?php echo esc_html($page->post_title !== '' ? $page->post_title : ('#' . $page->ID)); ?></a>
+                            <?php else : ?>
+                                <strong><?php esc_html_e('No page assigned!', 'woo4etch'); ?></strong>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!$page) : ?>
+                                —
+                            <?php elseif ($layout_loc['found']) : ?>
+                                <span class="woo4etch-installed">✓</span>
+                                <?php echo 'page' === $layout_loc['where'] ? esc_html__('found in page', 'woo4etch') : esc_html(sprintf(/* translators: %s: Etch template title */ __('found in template “%s”', 'woo4etch'), $layout_loc['where'])); ?>
+                            <?php else : ?>
+                                <strong><?php esc_html_e('missing', 'woo4etch'); ?></strong>
+                                <?php
+                                if ($target['layout'] !== '') {
+                                    $insert_button($target['layout'], $area, __('Insert layout', 'woo4etch'));
+                                }
+                                ?>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!$page || !$target['notices']) : ?>
+                                —
+                            <?php elseif ($notices_loc['found']) : ?>
+                                <span class="woo4etch-installed">✓</span>
+                                <?php echo 'page' === $notices_loc['where'] ? esc_html__('found in page', 'woo4etch') : esc_html(sprintf(/* translators: %s: Etch template title */ __('found in template “%s”', 'woo4etch'), $notices_loc['where'])); ?>
+                            <?php else : ?>
+                                <strong><?php esc_html_e('missing', 'woo4etch'); ?></strong>
+                                <?php $insert_button('notices', $area, __('Insert notices', 'woo4etch')); ?>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * "Woo Notices" as a real Etch component — one definition, instances
+     * everywhere, globally editable.
+     */
+    private static function render_component_section() {
+        $component_id = Woo4Etch_Components::installed_post_id();
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flag.
+        $error_flag = isset($_GET['w4e_component_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_component_error'])) : '';
+        // phpcs:enable
+        ?>
+        <h3><?php esc_html_e('Woo Notices as an Etch component', 'woo4etch'); ?></h3>
+        <p class="woo4etch-intro">
+            <?php esc_html_e('The notices region ships inline in the cart, single-product and account layouts. As an Etch component you manage it globally instead: one definition, instances everywhere. Insert it in the builder from the component library (“Woo Notices”), and optionally replace the inline notices blocks in the installed layouts with instances.', 'woo4etch'); ?>
+        </p>
+
+        <?php if ($error_flag !== '') : ?>
+            <div class="notice notice-error inline"><p><?php echo esc_html($error_flag); ?></p></div>
+        <?php endif; ?>
+
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+            <input type="hidden" name="action" value="woo4etch_request_component">
+            <?php wp_nonce_field('woo4etch_request_component'); ?>
+            <button type="submit" class="button <?php echo $component_id > 0 ? '' : 'button-primary'; ?>">
+                <?php $component_id > 0 ? esc_html_e('Reinstall component', 'woo4etch') : esc_html_e('Install component', 'woo4etch'); ?>
+            </button>
+        </form>
+        <?php if ($component_id > 0) : ?>
+            <span class="woo4etch-installed" aria-label="<?php esc_attr_e('Installed', 'woo4etch'); ?>">✓</span>
+            <?php
+            printf(
+                /* translators: %d: Etch component post id */
+                esc_html__('Installed (id %d).', 'woo4etch'),
+                (int) $component_id
+            );
+            ?>
+        <?php endif; ?>
         <?php
     }
 

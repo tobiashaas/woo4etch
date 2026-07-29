@@ -27,6 +27,8 @@ if (!defined('WOO4ETCH_ETCH_AFFILIATE_URL')) {
 
 require_once __DIR__ . '/includes/class-woo4etch-admin.php';
 require_once __DIR__ . '/includes/class-woo4etch-layouts.php';
+require_once __DIR__ . '/includes/class-woo4etch-components.php';
+require_once __DIR__ . '/includes/class-woo4etch-health.php';
 require_once __DIR__ . '/includes/class-woo4etch-woo-root.php';
 require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
@@ -526,9 +528,9 @@ final class Woo4Etch {
             'woo_notices' => [
                 'method'      => 'shortcode_notices',
                 'category'    => __('Store & archive', 'woo4etch'),
-                'attributes'  => '—',
-                'description' => __('Queued WooCommerce notices (cart, checkout).', 'woo4etch'),
-                'example'     => '[woo_notices]',
+                'attributes'  => 'format',
+                'description' => __('Queued WooCommerce notices (cart, checkout). format="plain" renders minimal class-based markup (.w4e-notice .w4e-notice--error/success/notice) styleable in Etch instead of Woo\'s template markup.', 'woo4etch'),
+                'example'     => '[woo_notices format="plain"]',
             ],
 
             /* ---- Conditional ---- */
@@ -1294,13 +1296,47 @@ final class Woo4Etch {
        Page-level shortcodes
        ============================================================ */
 
-    public static function shortcode_notices() {
+    public static function shortcode_notices($atts = []) {
+        $atts = shortcode_atts(['format' => 'woo'], $atts, 'woo_notices');
         if (!function_exists('wc_print_notices')) {
             return '';
         }
-        ob_start();
-        wc_print_notices();
-        return ob_get_clean();
+        if ('plain' !== $atts['format']) {
+            ob_start();
+            wc_print_notices();
+            return ob_get_clean();
+        }
+
+        // format="plain": Woo's notice templates assume Woo's stylesheets,
+        // which these builds often disable — emit minimal class-based markup
+        // instead so the notices can be styled in Etch:
+        //   .w4e-notice .w4e-notice--error|--success|--notice
+        // In the builder canvas a sample notice renders so the (frontend-wise
+        // empty-hidden) region stays visible and styleable while designing.
+        if (self::is_etch_builder()) {
+            return '<div class="w4e-notice w4e-notice--success" role="status">'
+                . esc_html__('Cart updated. (sample notice — only shown in the builder)', 'woo4etch') . '</div>';
+        }
+        $all = function_exists('wc_get_notices') ? wc_get_notices() : [];
+        if (empty($all)) {
+            return '';
+        }
+        wc_clear_notices();
+        $out = '';
+        foreach (['error', 'success', 'notice'] as $type) {
+            foreach ((array) ($all[$type] ?? []) as $notice) {
+                // Woo >= 3.9 queues ['notice' => ..., 'data' => ...]; older code paths plain strings.
+                $message = is_array($notice) ? (string) ($notice['notice'] ?? '') : (string) $notice;
+                if ('' === trim($message)) {
+                    continue;
+                }
+                $safe = function_exists('wc_kses_notice') ? wc_kses_notice($message) : wp_kses_post($message);
+                $out .= '<div class="w4e-notice w4e-notice--' . esc_attr($type) . '"'
+                    . ('error' === $type ? ' role="alert"' : ' role="status"') . '>'
+                    . $safe . '</div>';
+            }
+        }
+        return $out;
     }
 
     public static function shortcode_breadcrumb($atts) {
@@ -2298,7 +2334,8 @@ final class Woo4Etch {
      *   {options.cart_items}     — array; each: key, id, name, sku, quantity,
      *                              price, subtotal, permalink, image, remove_url, on_sale
      *   {options.cart_count} {options.cart_subtotal} {options.cart_total}
-     *   {options.cart_url} {options.checkout_url} {options.cart_is_empty}
+     *   {options.cart_url} {options.checkout_url} {options.shop_url}
+     *   {options.cart_is_empty}
      *
      * In the Etch builder canvas (no shopping session) it returns sample rows so
      * the loop previews. Disable: add_filter('woo4etch/expose_cart_data','__return_false').
@@ -2345,6 +2382,8 @@ final class Woo4Etch {
 
         $data['cart_url']     = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '';
         $data['checkout_url'] = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '';
+        // For empty-cart states: "Return to shop" target.
+        $data['shop_url']     = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : '';
         // Lets you build a working cart FORM entirely in Etch (qty update + coupon):
         // <input type="hidden" name="woocommerce-cart-nonce" value="{options.cart_nonce}">
         $data['cart_nonce']   = wp_create_nonce('woocommerce-cart');
@@ -2446,27 +2485,59 @@ final class Woo4Etch {
     private static function cart_cross_sells($cart, $size, $builder) {
         $out = [];
 
+        $payload = static function (WC_Product $p) use ($size) {
+            $img_id = $p->get_image_id();
+            $img    = $img_id ? wp_get_attachment_image_url($img_id, $size) : '';
+            if (!$img && function_exists('wc_placeholder_img_src')) {
+                $img = wc_placeholder_img_src($size);
+            }
+            return [
+                'id'              => $p->get_id(),
+                'name'            => $p->get_name(),
+                'price'           => self::plain(wc_price(wc_get_price_to_display($p))),
+                'image'           => (string) $img,
+                'permalink'       => get_permalink($p->get_id()),
+                'add_to_cart_url' => $p->add_to_cart_url(),
+                'on_sale'         => $p->is_on_sale(),
+            ];
+        };
+
+        $limit = (int) apply_filters('woo4etch/cross_sells_limit', 4);
+
         if ($cart instanceof WC_Cart) {
             $ids = (array) apply_filters('woocommerce_cross_sells_total', $cart->get_cross_sells());
-            foreach (array_slice($ids, 0, (int) apply_filters('woo4etch/cross_sells_limit', 4)) as $pid) {
+            foreach (array_slice($ids, 0, $limit) as $pid) {
                 $p = wc_get_product($pid);
                 if (!$p instanceof WC_Product || !$p->is_visible()) {
                     continue;
                 }
-                $img_id = $p->get_image_id();
-                $img    = $img_id ? wp_get_attachment_image_url($img_id, $size) : '';
-                if (!$img && function_exists('wc_placeholder_img_src')) {
-                    $img = wc_placeholder_img_src($size);
+                $out[] = $payload($p);
+            }
+
+            // No cross-sells maintained on the cart's products (Woo: product →
+            // Linked Products) → fall back to random visible products so the
+            // "You may also like" section isn't empty on real shops. Disable:
+            // add_filter('woo4etch/cross_sells_fallback', '__return_false');
+            if (empty($out) && !$cart->is_empty() && apply_filters('woo4etch/cross_sells_fallback', true)) {
+                $exclude = [];
+                foreach ($cart->get_cart() as $cart_item) {
+                    $prod = $cart_item['data'] ?? null;
+                    if ($prod instanceof WC_Product) {
+                        $exclude[] = $prod->get_parent_id() ? $prod->get_parent_id() : $prod->get_id();
+                    }
                 }
-                $out[] = [
-                    'id'              => $p->get_id(),
-                    'name'            => $p->get_name(),
-                    'price'           => self::plain(wc_price(wc_get_price_to_display($p))),
-                    'image'           => (string) $img,
-                    'permalink'       => get_permalink($p->get_id()),
-                    'add_to_cart_url' => $p->add_to_cart_url(),
-                    'on_sale'         => $p->is_on_sale(),
-                ];
+                $random = wc_get_products([
+                    'status'     => 'publish',
+                    'limit'      => $limit,
+                    'orderby'    => 'rand',
+                    'exclude'    => array_unique($exclude),
+                    'visibility' => 'catalog',
+                ]);
+                foreach ($random as $p) {
+                    if ($p instanceof WC_Product) {
+                        $out[] = $payload($p);
+                    }
+                }
             }
         }
 
