@@ -801,7 +801,9 @@ final class Woo4Etch_Layouts {
                             self::text_el('p', 'Highest price: {options.shop_max_price}', ['class' => 'w4e-filter__hint'], [$fhint], 'Hint'),
                             // Native Woo filtering: GET min_price/max_price to
                             // the current archive URL (no action attribute).
-                            self::el('form', ['class' => 'w4e-filter__form', 'method' => 'get'], [], [
+                            // data-w4e-price-max feeds the dual-range slider
+                            // enhancement (assets/price-slider.js).
+                            self::el('form', ['class' => 'w4e-filter__form', 'method' => 'get', 'data-w4e-price-max' => '{options.shop_max_price_raw}'], [], [
                                 self::el('div', ['class' => 'w4e-filter__prices'], [$prices], [
                                     self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'min_price', 'value' => '{options.filter_min_price}', 'placeholder' => 'Min', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Min'),
                                     self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'max_price', 'value' => '{options.filter_max_price}', 'placeholder' => 'Max', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Max'),

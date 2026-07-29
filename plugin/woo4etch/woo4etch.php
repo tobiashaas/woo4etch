@@ -761,6 +761,11 @@ final class Woo4Etch {
 
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_swatches_script']);
 
+        // Price-filter slider: dual-handle range enhancement for min_price/
+        // max_price forms on shop archives (assets/price-slider.js).
+        // Disable: add_filter('woo4etch/enqueue_price_slider', '__return_false');
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_price_slider_script']);
+
         // Optional zero-markup variation UX: native attribute <select>s become
         // pill buttons, .quantity inputs get a −/+ stepper (assets/pills.js).
         // Driven by the admin checkbox (Woo4Etch → Settings) or the filter:
@@ -862,6 +867,31 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Price-filter slider (assets/price-slider.js): dual-handle range slider
+     * for forms carrying min_price/max_price inputs — WooCommerce's native
+     * price filter params. Enqueued on product archives; the script no-ops
+     * when no such form is on the page.
+     */
+    public static function enqueue_price_slider_script() {
+        $enqueue = (function_exists('is_shop') && is_shop())
+            || (function_exists('is_product_taxonomy') && is_product_taxonomy());
+        if (!apply_filters('woo4etch/enqueue_price_slider', $enqueue)) {
+            return;
+        }
+        wp_enqueue_script(
+            'woo4etch-price-slider',
+            plugins_url('assets/price-slider.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+        wp_localize_script('woo4etch-price-slider', 'w4ePriceSliderI18n', [
+            'min' => __('Minimum price', 'woo4etch'),
+            'max' => __('Maximum price', 'woo4etch'),
+        ]);
     }
 
     /**
@@ -2804,7 +2834,8 @@ final class Woo4Etch {
         if ($on_archive || $builder) {
             global $wpdb;
             $max = $wpdb->get_var("SELECT MAX(max_price) FROM {$wpdb->wc_product_meta_lookup}");
-            $data['shop_max_price'] = $max ? self::plain(wc_price(ceil((float) $max))) : '';
+            $data['shop_max_price']     = $max ? self::plain(wc_price(ceil((float) $max))) : '';
+            $data['shop_max_price_raw'] = $max ? (string) (int) ceil((float) $max) : '';
             // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Woo's own public filter params.
             $data['filter_min_price'] = isset($_GET['min_price']) ? (string) absint(wp_unslash($_GET['min_price'])) : '';
             $data['filter_max_price'] = isset($_GET['max_price']) ? (string) absint(wp_unslash($_GET['max_price'])) : '';
