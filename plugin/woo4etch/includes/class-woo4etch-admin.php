@@ -43,6 +43,7 @@ final class Woo4Etch_Admin {
         $settings = (array) get_option('woo4etch_settings', []);
         $settings['disable_woo_styles']     = !empty($_POST['disable_woo_styles']);
         $settings['enable_gallery_scripts'] = !empty($_POST['enable_gallery_scripts']);
+        $settings['enable_pills']           = !empty($_POST['enable_pills']);
         update_option('woo4etch_settings', $settings);
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
@@ -290,6 +291,7 @@ final class Woo4Etch_Admin {
         $settings = (array) get_option('woo4etch_settings', []);
         $disabled_styles = !empty($settings['disable_woo_styles']);
         $gallery_scripts = !empty($settings['enable_gallery_scripts']);
+        $pills           = !empty($settings['enable_pills']);
         ?>
         <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
 
@@ -322,6 +324,18 @@ final class Woo4Etch_Admin {
                         </label>
                         <p class="description">
                             <?php esc_html_e('Loads WooCommerce\'s own zoom, PhotoSwipe lightbox and FlexSlider scripts on single product pages — including on block themes like Etch\'s, where WooCommerce itself never loads them. Your gallery markup must use the Woo gallery classes for the scripts to pick it up: the easiest way is the [woo_gallery mode="woo"] shortcode; the single-product template docs show a hand-written Etch variant. Developers can fine-tune via the woo4etch/gallery_features filter.', 'woo4etch'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Variation pills & quantity stepper', 'woo4etch'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="enable_pills" value="1" <?php checked($pills); ?>>
+                            <?php esc_html_e('Turn variation dropdowns into pill buttons and quantity inputs into a −/+ stepper', 'woo4etch'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Progressive enhancement on single product pages, no extra markup needed: the native attribute dropdowns become accessible pill buttons and every quantity field gets minus/plus buttons. WooCommerce\'s variation logic stays in charge — a pill click sets the native select, so price, stock and availability keep updating exactly as before. Styling uses your design tokens (--primary, --space-*, --radius) with plain fallbacks and can be overridden via the .w4e-pill / .w4e-qty classes. For hand-built swatch markup use the always-on swatches bridge (data-w4e-swatch) instead — one or the other per form. Developers: woo4etch/enqueue_pills filter.', 'woo4etch'); ?>
                         </p>
                     </td>
                 </tr>

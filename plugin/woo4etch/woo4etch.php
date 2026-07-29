@@ -741,6 +741,12 @@ final class Woo4Etch {
 
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_swatches_script']);
 
+        // Optional zero-markup variation UX: native attribute <select>s become
+        // pill buttons, .quantity inputs get a −/+ stepper (assets/pills.js).
+        // Driven by the admin checkbox (Woo4Etch → Settings) or the filter:
+        //   add_filter('woo4etch/enqueue_pills', '__return_true');
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_pills_script']);
+
         // Woo's gallery JS (zoom/lightbox/slider) never loads on block themes,
         // even with the wc-product-gallery-* supports declared — WooCommerce
         // only enqueues the bundle for classic themes. Close that gap.
@@ -836,6 +842,38 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Pills widget (assets/pills.js): progressive enhancement that turns the
+     * native attribute <select>s into pill buttons and wraps .quantity inputs
+     * in a −/+ stepper. Woo's variation JS stays leading — a pill click sets
+     * the select and dispatches its change event. The inverse of swatches.js
+     * (hand-built markup → native select); both bridge into the same event.
+     *
+     * Off by default; enable per checkbox (Woo4Etch → Settings) or filter:
+     *   add_filter('woo4etch/enqueue_pills', '__return_true');
+     */
+    public static function enqueue_pills_script() {
+        $settings = (array) get_option('woo4etch_settings', []);
+        $enqueue  = !empty($settings['enable_pills'])
+            && function_exists('is_product') && is_product();
+        if (!apply_filters('woo4etch/enqueue_pills', $enqueue)) {
+            return;
+        }
+        wp_enqueue_script(
+            'woo4etch-pills',
+            plugins_url('assets/pills.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+        wp_localize_script('woo4etch-pills', 'w4ePillsI18n', [
+            /* translators: %s: attribute label (e.g. "Size") */
+            'selectLabel' => __('Choose %s', 'woo4etch'),
+            'decrease'    => __('Decrease quantity', 'woo4etch'),
+            'increase'    => __('Increase quantity', 'woo4etch'),
+        ]);
     }
 
     /**
