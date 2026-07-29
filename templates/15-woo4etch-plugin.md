@@ -304,8 +304,28 @@ Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_
 [woo_catalog_ordering]    → sort-by dropdown
 [woo_pagination]          → product loop pagination
 [woo_product_search]      → product-only search form
-[woo_notices]
+[woo_notices]             → queued Woo notices (Woo's own template markup)
+[woo_notices format="plain"]
+                          → same notices as minimal class-based markup
+                            (.w4e-notice .w4e-notice--error/--success/--notice)
+                            — styleable in Etch; use this when Woo's default
+                            styles are disabled
 ```
+
+> **Every page layout needs a notices region** — "Cart updated.", coupon, login
+> and security errors all arrive as Woo notices; without an output they fail
+> *silently*. The ready-made layouts (cart, single product, account) include a
+> `.w4e-notices` block, and **Ready-made layouts → Woo notices** installs it
+> standalone for any other layout.
+>
+> **As a component:** on the Woo4Etch admin page, *"Woo Notices as an Etch
+> component"* installs the region as a real Etch component (one click,
+> server-side: a `wp_block` post with Etch's component meta, styles merged
+> into the style system — the same mechanism the Bricks2Etch migrator uses
+> for its bundled components). Insert instances from the component library
+> ("Woo Notices"), and optionally replace the inline notices blocks in the
+> installed layouts with instances for one globally editable region.
+> Reinstalling updates the definition in place.
 
 `[woo_result_count]`, `[woo_catalog_ordering]`, and `[woo_pagination]` read the current loop, so place them on a shop/archive template where the main product query runs.
 
@@ -500,8 +520,10 @@ Available keys:
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.cross_sells}` | array for "You may also like" — the cart products' *Linked Products → Cross-sells*; when none are maintained, random catalog products fill in (disable: `woo4etch/cross_sells_fallback`, count: `woo4etch/cross_sells_limit`) |
+| `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
 | `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |
-| `{options.cart_is_empty}` | boolean |
+| `{options.cart_is_empty}` | boolean — wrap the cart form in a `!options.cart_is_empty` condition and show an empty-cart message in the inverse condition (otherwise coupon/summary/checkout render on an empty cart) |
 
 It renders the **real cart** on the frontend, and **sample rows in the Etch builder canvas** so the loop previews while you design. Remove works via `{item.remove_url}`.
 
@@ -576,6 +598,7 @@ Woo4Etch therefore also registers the same data under its own **`woo`** root —
 | `{woo.cart.count}` / `{woo.cart.subtotal}` / `{woo.cart.total}` / `{woo.cart.is_empty}` | `{options.cart_count}` / `…cart_subtotal` / `…cart_total` / `…cart_is_empty` |
 | `{woo.cart.url}` / `{woo.cart.nonce}` / `{woo.cart.cross_sells}` | `{options.cart_url}` / `…cart_nonce` / `…cross_sells` |
 | `{woo.checkout.url}` | `{options.checkout_url}` |
+| `{woo.shop.url}` | `{options.shop_url}` |
 | `{woo.account.menu}` / `{woo.account.endpoint}` / `{woo.account.orders}` | `{options.account_menu}` / `…account_endpoint` / `…account_orders` |
 | `{woo.order}` | `{options.order}` |
 

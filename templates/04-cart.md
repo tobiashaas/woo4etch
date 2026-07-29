@@ -26,6 +26,24 @@ In WooCommerce settings, switch the cart page to the **classic shortcode**:
 <main id="main" class="site-main woocommerce">
   <h1 class="page-title">Cart</h1>
 
+  <!-- Woo feedback ("Cart updated.", coupon + security errors). Without a
+       notices output, a failed update looks like nothing happened.
+       format="plain" renders minimal .w4e-notice markup styleable in Etch
+       (Woo4Etch plugin — see 15-woo4etch-plugin.md). -->
+  [woo_notices format="plain"]
+
+  <!-- Empty-cart state. {options.cart_is_empty} / {options.shop_url} come
+       from the Woo4Etch cart bridge (15-woo4etch-plugin.md). Without this
+       branch, coupon, totals and the checkout button render on an empty cart. -->
+  {#if options.cart_is_empty}
+  <p class="cart-empty woocommerce-info">Your cart is currently empty.</p>
+  <p class="return-to-shop">
+    <a class="button wc-backward" href="{options.shop_url}">Return to shop</a>
+  </p>
+  {/if}
+
+  {#if !options.cart_is_empty}
+
   <!-- Hook: woocommerce_before_cart -->
 
   <form class="woocommerce-cart-form"
@@ -195,6 +213,8 @@ In WooCommerce settings, switch the cart page to the **classic shortcode**:
     </div>
   </div>
 
+  {/if}
+
   <!-- Hook: woocommerce_after_cart -->
 </main>
 ```
@@ -356,6 +376,8 @@ jQuery(function ($) {
 
 ## Common mistakes
 
+- **No notices output** → every cart action fails *silently*. "Cart updated.", coupon errors, and the nonce error ("security check failed") all arrive as Woo notices — without `[woo_notices]` in the layout an update that does nothing and an update that was rejected look identical. Add the notices block first when debugging "update cart does nothing".
+- **No empty-cart branch** → coupon field, totals, and the checkout button render even when the cart is empty; only the item rows disappear. Wrap the form + collaterals in `{#if !options.cart_is_empty}` and show the empty message in the inverse condition (see the markup above).
 - Duplicate `<h1>` on the cart page — Gutenberg's `wp-block-post-title` renders above your Etch layout. Remove it with the `render_block` snippet in the PHP layer above.
 - `name="cart[<key>][qty]"` replaced by custom names → update doesn't process quantities.
 - Cart nonce missing or stale → update rejected with "security check failed".
@@ -370,5 +392,7 @@ jQuery(function ($) {
 - Apply coupon → discount row appears, total decreases.
 - Remove item → row disappears, mini-cart counter decreases.
 - DevTools → Network: update submit includes `woocommerce-cart-nonce` as a form field.
+- "Update cart" appears to do nothing → check in the same Network request that the POST body contains `update_cart` (non-empty value), a real `cart[<hash>][qty]` field (the `<hash>` interpolated, not a literal `{item.key}`), and the nonce — then check the response: a `302` to the cart URL means Woo processed it; a `200` re-render without notices means the nonce or field names didn't reach the handler.
+- After update/coupon: a notice appears (requires the `[woo_notices]` block in the layout).
 - Mobile: table is responsive, `data-title` values appear as mobile labels.
 - With empty cart: "Your cart is empty" message + link back to shop.

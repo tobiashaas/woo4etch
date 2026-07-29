@@ -48,9 +48,11 @@ $out_dir = __DIR__ . '/../templates/etch-copy';
 $written = [];
 
 foreach (array_keys(Woo4Etch_Layouts::catalog()) as $slug) {
-    if ($slug === 'cart') {
-        continue; // cart.json is the hand-tuned original; the plugin bundles a copy.
-    }
+    // cart included: its SOURCE stays the hand-tuned plugin/woo4etch/layouts/
+    // cart.json, but the shipped copy/paste artifact must be the processed
+    // build (bind_class_styles etc.) — same as every other layout, and the
+    // CI drift guard then covers it. (Previously skipped, which let the two
+    // copies drift apart repeatedly.)
     $json = Woo4Etch_Layouts::clipboard_json($slug);
     if ($json === '') {
         fwrite(STDERR, "FAILED: {$slug}\n");

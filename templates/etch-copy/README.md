@@ -34,7 +34,7 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 
 | File | Area | Built from |
 |---|---|---|
-| [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, and "You may also like" cross-sells. | Etch Dynamic Keys + the Woo4Etch cart bridge. 100% Etch elements (no shortcodes) so it renders and is editable in the builder. |
+| [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, "You may also like" cross-sells (in stock only), Woo notices, and an empty-cart state ("Your cart is currently empty" + Return to shop). | Etch Dynamic Keys + the Woo4Etch cart bridge. Etch elements throughout; one Raw-HTML block carries `[woo_notices format="plain"]` for the update/coupon feedback. |
 | [`product-single.json`](./product-single.json) | **Single product** — featured image + gallery loop, title, `{this.price}` with `-{this.sale_percentage}%` badge, stock label, working add-to-cart form (simple products), SKU. | Product bridge (`{this.*}`) + `{this.gallery_images}`. |
 | [`product-grid.json`](./product-grid.json) | **Shop archive** — heading, category slider, working filter sidebar (category counts, price min/max form — the plugin enhances it into a dual-handle slider), product cards with sale pill and AJAX add-to-cart. | Product bridge (`{item.*}`) on the main archive query + shop bridge (`{options.shop_categories}`, `{options.shop_max_price}`, …). See the loop-preset note below. |
 | [`category.json`](./category.json) | **Category archive** — term title, editable SEO intro copy (placeholder text), term description via `{term.description}`, then the same filter sidebar + grid. Paste into a `taxonomy-product_cat` template; duplicate per category for bespoke pages. | Shop bridge + Etch's native `{term.*}`/`{archive.*}` context ([`03-product-archive.md`](../03-product-archive.md#category-archive-pages-seo)). |
@@ -64,7 +64,24 @@ preset at install time.
   the hidden `woocommerce-cart-nonce` (`{options.cart_nonce}`) — quantity update and
   coupons work via a classic submit, no AJAX needed.
 - Summary: `{options.cart_subtotal}` / `{options.cart_total}` + a checkout link.
-- Cross-sells: `{#loop options.cross_sells as cs}`.
+- Cross-sells: `{#loop options.cross_sells as cs}` — fed from the cart products'
+  *Linked Products → Cross-sells*; when none are maintained, random in-stock
+  catalog products fill in (`woo4etch/cross_sells_fallback` to disable).
+  Out-of-stock products are never offered. The whole section sits in a
+  condition and disappears when the list is empty.
+- **Notices:** a Raw-HTML block with `[woo_notices format="plain"]` under the title —
+  without it, Woo's feedback ("Cart updated", coupon or security errors) is
+  invisible and failed updates *look* like nothing happened. The `plain` format
+  renders `.w4e-notice` / `.w4e-notice--error|--success|--notice` markup with
+  shipped styles, editable in Etch's style panel. The same block ships in the
+  single-product and account layouts and standalone as
+  [`notices.json`](./notices.json) — or as a real Etch **component**: the
+  notices row on the Woo4Etch admin page installs "Woo Notices" with one
+  click, so the region becomes one globally editable definition with instances.
+- **Empty-cart state:** the form + cross-sells sit in a `!options.cart_is_empty`
+  condition; the inverse condition shows "Your cart is currently empty" with a
+  Return-to-shop button (`{options.shop_url}`). Without this branch, coupon,
+  totals and the checkout button would render even with zero items.
 
 **Trade-off:** because the items are a dynamic-data loop (so they're editable in the
 builder), WooCommerce's per-item cart **hooks** don't fire — third-party cart
