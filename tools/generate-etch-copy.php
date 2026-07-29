@@ -17,6 +17,33 @@ if (PHP_SAPI !== 'cli') {
 // which would otherwise be undefined here and in CI.
 require __DIR__ . '/../tests/php/bootstrap.php';
 
+/*
+ * The paste artifacts are static: any loopId they carry must exist on the
+ * TARGET site, not just here at generation time (issue #13). In a clean
+ * environment ensure_main_query_loop() would fall back to minting
+ * `w4e_main_query` — an id that only exists after the one-click installer
+ * ran, so a manual paste would bind the shop-archive loop to a missing
+ * preset. Seed the option store with Etch's own seeded main-query preset
+ * (id `etch_main_query`, present on Etch installs) so the resolver reuses
+ * that id and the artifact stays portable. Shape mirrors Etch's default.
+ */
+update_option('etch_loops', [
+    'etch_main_query' => [
+        'name'   => 'Main Query',
+        'key'    => 'mainQuery',
+        'global' => true,
+        'config' => [
+            'type' => 'main-query',
+            'args' => [
+                'posts_per_page' => '$count ?? 10',
+                'orderby'        => "\$orderby ?? 'date'",
+                'order'          => "\$order ?? 'DESC'",
+                'offset'         => '$offset ?? 0',
+            ],
+        ],
+    ],
+]);
+
 $out_dir = __DIR__ . '/../templates/etch-copy';
 $written = [];
 

@@ -34,10 +34,21 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 |---|---|---|
 | [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, and "You may also like" cross-sells. | Etch Dynamic Keys + the Woo4Etch cart bridge. 100% Etch elements (no shortcodes) so it renders and is editable in the builder. |
 | [`product-single.json`](./product-single.json) | **Single product** — featured image + gallery loop, title, `{this.price}` with `-{this.sale_percentage}%` badge, stock label, working add-to-cart form (simple products), SKU. | Product bridge (`{this.*}`) + `{this.gallery_images}`. |
-| [`product-grid.json`](./product-grid.json) | **Shop archive** — product cards over `mainQuery`: image, sale badge, title, price, AJAX add-to-cart button. | Product bridge (`{item.*}`) on the main archive query. |
+| [`product-grid.json`](./product-grid.json) | **Shop archive** — product cards over `mainQuery`: image, sale badge, title, price, AJAX add-to-cart button. | Product bridge (`{item.*}`) on the main archive query. See the loop-preset note below. |
 | [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with `{options.cart_count}`; the count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
 | [`account.json`](./account.json) | **My Account** — nav from `{options.account_menu}`, dashboard + orders views switched via `{options.account_endpoint}`, all other endpoints via `[woo_account_content]`. | Account bridge + endpoint conditions ([`07-account.md`](../07-account.md#how-endpoints-work-read-this-first)). |
 | [`thank-you.json`](./thank-you.json) | **Thank-you / order received** — notice, order overview (number, date, total, payment), line-items loop; renders only when `{options.order}` is populated. | Order bridge ([`08-thank-you.md`](../08-thank-you.md)). |
+
+### About the shop-archive snippet (loop preset)
+
+The archive loop in `product-grid.json` is a **query loop**, and query loops in
+Etch only work through a loop *preset* — the pasted block therefore references a
+preset by id: `etch_main_query`, the Main Query preset Etch seeds every install
+with. If your install's preset has a different id (deleted and recreated, or
+renamed), the pasted loop points at nothing and the archive renders empty. Fix:
+select the loop block in the builder and re-bind it to your Main Query preset.
+The one-click installer doesn't have this caveat — it resolves the site's actual
+preset at install time.
 
 ### About the cart snippet
 
