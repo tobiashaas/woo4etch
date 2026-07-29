@@ -96,6 +96,17 @@ The **Woo notices** row additionally offers **Install as component**: the notice
 
 The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens. Mini-cart has no automatic target (it lives in your site header) — paste it there.
 
+## Third-party WooCommerce plugins
+
+Hand-written Etch layouts change *where markup comes from*, not Woo's server behaviour — most plugins keep working, but they integrate through four different seams with different outcomes (all verified against real plugins):
+
+1. **Classic hook output — works via the hook islands.** Plugins that `add_action` on Woo's standard hooks render wherever you place the matching island. Verified with **WooCommerce Germanized**: unit price, tax/shipping notices and delivery time all render inside `<div data-w4e-hook="woocommerce_single_product_summary" data-w4e-skip-defaults="1" data-w4e-product="{this.id}">` (the ready-made single-product layout ships this "summary extras" island). Note the plugin disables WooCommerce's block-hook compatibility layer (`woo4etch/disable_block_hook_compatibility`), because it would strip classic-hook callbacks on block themes before the islands can fire them.
+2. **Checkout / payment / legal — untouched.** Checkout stays native Woo (shortcode or block), so payment gateways (verified: **Mollie**, 4 methods) and legal machinery (verified: **Germanized** checkbox + "Buy Now" button) work exactly as on any site. Same for emails and order processing.
+3. **The blockified-detection trap.** Some plugins detect block themes and then inject via `woocommerce/*` **block render filters** instead of classic hooks — hand-written Etch layouts contain no Woo blocks, so nothing appears (typical detection: no `woocommerce/legacy-template` block in the template → assume blockified). Verified with **YITH Wishlist**: the button silently didn't render. Escape hatch: virtually all of these plugins offer a **shortcode or a placement setting** — set YITH's button position to "shortcode" and drop `[yith_wcwl_add_to_wishlist]` into your layout where you want it (shortcodes run everywhere in Etch). Explicit placement fits this approach anyway.
+4. **Same-territory UI plugins.** A dedicated variation-swatch plugin owns the attribute selects; running the Woo4Etch pills on top would double the UI. `pills.js` detects foreign swatch UIs (e.g. **Variation Swatches for WooCommerce**) and backs off automatically for those selects — the quantity stepper keeps working. If you use such a plugin site-wide, simply leave the pills setting off.
+
+Rule of thumb: if a plugin's output is missing, first place its **shortcode** in the layout; if it has none, place a hook island (`data-w4e-hook`) where its `add_action` target fires.
+
 ## Product fields as Etch dynamic data
 
 On `product` posts, Woo4Etch enriches Etch's post data (the same seam Etch's own integration uses for `gallery_images`), so the most-needed product fields are **real Dynamic Keys** — they render live in the builder canvas and need no shortcode. In a Single template use `{this.*}`; inside a loop use `{item.*}`.

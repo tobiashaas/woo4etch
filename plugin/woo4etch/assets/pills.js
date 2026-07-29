@@ -61,9 +61,32 @@
         return (label && label.textContent.trim()) || select.id || select.name;
     }
 
+    /**
+     * True when another variation-UI plugin already owns this select
+     * (dedicated swatch plugins replace the native selects themselves —
+     * doubling the UI would confuse buyers and Woo's variation JS).
+     * Known marker: Variation Swatches for WooCommerce adds
+     * `.woo-variation-raw-select` / a `.variable-items-wrapper` sibling;
+     * generic fallback: the select is already hidden by someone else.
+     */
+    function ownedElsewhere(select) {
+        if (select.classList.contains('woo-variation-raw-select')) return true;
+        var cell = select.closest('td, .value, .variations') || select.parentElement;
+        if (cell && cell.querySelector('.variable-items-wrapper')) return true;
+        var style = window.getComputedStyle(select);
+        return !select.hasAttribute('data-w4e-pills') && (style.display === 'none' || style.visibility === 'hidden');
+    }
+
+    function teardownPills(select) {
+        var next = select.nextElementSibling;
+        if (next && next.classList.contains('w4e-pills')) next.remove();
+        select.removeAttribute('data-w4e-pills');
+    }
+
     function buildPills(form) {
         form.querySelectorAll('.variations select[name^="attribute_"]').forEach(function (select) {
             if (select.hasAttribute('data-w4e-pills')) return;
+            if (ownedElsewhere(select)) return;
             select.setAttribute('data-w4e-pills', '1');
             var wrap = document.createElement('div');
             wrap.className = 'w4e-pills';
@@ -141,4 +164,18 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
+
+    // Late-loading swatch plugins can replace the selects AFTER we built
+    // pills (both hook DOMContentLoaded; order is enqueue luck). Sweep once
+    // shortly after: where another UI appeared, remove ours — theirs wins.
+    setTimeout(function () {
+        document.querySelectorAll('select[data-w4e-pills]').forEach(function (select) {
+            select.removeAttribute('data-w4e-pills'); // let ownedElsewhere see the plugin's hiding
+            if (ownedElsewhere(select)) {
+                teardownPills(select);
+            } else {
+                select.setAttribute('data-w4e-pills', '1');
+            }
+        });
+    }, 600);
 })();

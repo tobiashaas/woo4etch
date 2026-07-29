@@ -117,6 +117,7 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* Fix: pills.js backs off when a dedicated variation-swatch plugin owns the attribute selects (detected via marker classes + hidden state, with a deferred sweep for late-loading plugins) — no doubled UI; the quantity stepper keeps working. Third-party integration seams documented in the plugin guide (hook islands ✓ Germanized, checkout/payment untouched ✓ Mollie, blockified-detection trap → plugin shortcode ✓ YITH, swatch plugins → pills yield).
 * Fix: the cart layout's "Update cart" button stayed disabled forever — Woo's cart.js only re-enables it on changes inside .woocommerce-cart-form .cart_item, a contract class the layout rows didn't carry. Rows now ship cart_item; documented in the cart template.
 * Fix: cross-sells exclude out-of-stock / non-purchasable products — in maintained Linked-Products lists and in the random-catalog fallback.
 * New: the quantity stepper (pills.js) also builds on the cart page's line-item quantity fields; stepping re-enables Woo's update button.
