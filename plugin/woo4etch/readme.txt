@@ -117,6 +117,9 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* Fix: the cart layout's "Update cart" button stayed disabled forever — Woo's cart.js only re-enables it on changes inside .woocommerce-cart-form .cart_item, a contract class the layout rows didn't carry. Rows now ship cart_item; documented in the cart template.
+* Fix: cross-sells exclude out-of-stock / non-purchasable products — in maintained Linked-Products lists and in the random-catalog fallback.
+* New: the quantity stepper (pills.js) also builds on the cart page's line-item quantity fields; stepping re-enables Woo's update button.
 * Fix: account layout shows WooCommerce's login/register form to guests instead of an empty dashboard — new bridge key {options.is_logged_in} / {woo.account.is_logged_in} (true in the builder), shipped layout gated on it.
 * Fix: the quantity stepper (pills.js) now targets input[name="quantity"] inside form.cart — it silently didn't build on hand-built forms without Woo's classic .quantity/.qty classes; the shipped product layout also carries the classic markup now.
 * Fix: plugin updates no longer clobber a shipped, improved customizations.php skeleton. The upgrader hooks couldn't distinguish "user edited the file" from "the update ships an improved skeleton" and restored the old skeleton over the new one for users who never edited it. Preservation now keys off the shipped skeleton's fingerprint: only user-edited files are carried across updates.

@@ -867,7 +867,8 @@ final class Woo4Etch {
     public static function enqueue_pills_script() {
         $settings = (array) get_option('woo4etch_settings', []);
         $enqueue  = !empty($settings['enable_pills'])
-            && function_exists('is_product') && is_product();
+            && function_exists('is_product')
+            && (is_product() || (function_exists('is_cart') && is_cart()));
         if (!apply_filters('woo4etch/enqueue_pills', $enqueue)) {
             return;
         }
@@ -2569,11 +2570,20 @@ final class Woo4Etch {
 
         $limit = (int) apply_filters('woo4etch/cross_sells_limit', 4);
 
+        // Never suggest what can't be bought: out-of-stock (no backorders)
+        // or otherwise non-purchasable products are excluded in both paths.
+        $sellable = static function ($p) {
+            return $p instanceof WC_Product && $p->is_visible() && $p->is_in_stock() && $p->is_purchasable();
+        };
+
         if ($cart instanceof WC_Cart) {
             $ids = (array) apply_filters('woocommerce_cross_sells_total', $cart->get_cross_sells());
-            foreach (array_slice($ids, 0, $limit) as $pid) {
+            foreach ($ids as $pid) {
+                if (count($out) >= $limit) {
+                    break;
+                }
                 $p = wc_get_product($pid);
-                if (!$p instanceof WC_Product || !$p->is_visible()) {
+                if (!$sellable($p)) {
                     continue;
                 }
                 $out[] = $payload($p);
@@ -2592,14 +2602,18 @@ final class Woo4Etch {
                     }
                 }
                 $random = wc_get_products([
-                    'status'     => 'publish',
-                    'limit'      => $limit,
-                    'orderby'    => 'rand',
-                    'exclude'    => array_unique($exclude),
-                    'visibility' => 'catalog',
+                    'status'       => 'publish',
+                    'limit'        => $limit * 2, // headroom: stock is re-checked below
+                    'orderby'      => 'rand',
+                    'exclude'      => array_unique($exclude),
+                    'visibility'   => 'catalog',
+                    'stock_status' => 'instock',
                 ]);
                 foreach ($random as $p) {
-                    if ($p instanceof WC_Product) {
+                    if (count($out) >= $limit) {
+                        break;
+                    }
+                    if ($sellable($p)) {
                         $out[] = $payload($p);
                     }
                 }

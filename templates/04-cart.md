@@ -202,6 +202,7 @@ In WooCommerce settings, switch the cart page to the **classic shortcode**:
 | Element | Required | Why |
 |---|---|---|
 | `<form class="woocommerce-cart-form">` | yes | Woo looks for this form to process updates |
+| `.cart_item` on every line-item row | yes | Woo's cart.js **disables the update button until an input inside `.woocommerce-cart-form .cart_item` fires a change** — without this class on your rows, "Update cart" stays disabled forever |
 | `name="cart[<key>][qty]"` on the quantity input | yes | Server key pattern for update |
 | `name="apply_coupon"` on the coupon button | yes | Woo recognises the coupon submit |
 | `name="update_cart"` on the update button | yes | Triggers the quantity update |

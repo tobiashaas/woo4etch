@@ -97,9 +97,10 @@
     }
 
     function buildStepper(scope) {
-        // name="quantity" is the Woo contract every form carries; the classic
-        // .quantity/.qty classes are optional in hand-built Etch forms.
-        scope.querySelectorAll('input[name="quantity"]').forEach(function (input) {
+        // name="quantity" (product forms) and cart[<key>][qty] (cart rows) are
+        // the Woo contract names every form carries; the classic .quantity/.qty
+        // classes are optional in hand-built Etch forms.
+        scope.querySelectorAll('input[name="quantity"], input[name^="cart["]').forEach(function (input) {
             if (input.closest('.w4e-qty')) return;
             if (input.type === 'hidden') return; // sold-individually renders a hidden qty
             if (input.type !== 'number' && input.type !== 'text') return;
@@ -128,6 +129,13 @@
         injectCss();
         document.querySelectorAll('form.cart').forEach(function (form) {
             buildPills(form);
+            buildStepper(form);
+        });
+        // Cart page: same stepper on the line-item quantity fields. The
+        // bubbled change event also re-enables Woo's disabled-until-change
+        // "Update cart" button (its listener: .woocommerce-cart-form
+        // .cart_item :input).
+        document.querySelectorAll('form.woocommerce-cart-form').forEach(function (form) {
             buildStepper(form);
         });
     }
