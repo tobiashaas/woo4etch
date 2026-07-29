@@ -45,6 +45,11 @@ final class Woo4Etch_Layouts {
                 'description' => 'Featured image + gallery loop in Woo\'s gallery markup (zoom/lightbox/slider work when the gallery scripts are enabled in Settings), title, formatted price with sale badge, stock label, type-aware add-to-cart (hand-built form for simple products, Woo\'s native form for variable/grouped/external — variations fully working), SKU. Uses {this.*} product keys.',
                 'area'        => 'Single product',
             ],
+            'category' => [
+                'name'        => 'Category archive — SEO intro + filtered grid',
+                'description' => 'Category page template: term title, an editable intro copy block (placeholder text — write category-specific SEO copy), the term description from Products → Categories, then the same working filter sidebar + product grid as the shop. Installs into taxonomy-product_cat (all categories); duplicate as taxonomy-product_cat-{slug} in the editor for per-category pages.',
+                'area'        => 'Category',
+            ],
             'product-grid' => [
                 'name'        => 'Shop archive — product grid',
                 'description' => 'Product cards over the main archive query: image, sale badge, title, price, AJAX add-to-cart button. Uses {item.*} product keys.',
@@ -723,13 +728,88 @@ final class Woo4Etch_Layouts {
 
         $section = self::cls($s, 'w4e-shop', '');
         $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
-        // Category slider: a horizontally snapping strip of round image cards
-        // (CSS scroll-snap — swipeable on touch, no JS, thin scrollbar on
-        // desktop). Edge-fades hint at more content.
+
+        $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-shop'], ['etch-section-style', $section], [
+            self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                self::text_el('h1', '{archive.title}', ['class' => 'w4e-shop__title'], [$title], 'Title'),
+                self::category_slider($s),
+                self::archive_columns($s),
+            ]),
+        ], 'W4e Shop Grid');
+
+        return ['block' => $block, 'styles' => self::with_base_styles($s)];
+    }
+
+    /**
+     * Category archive: the SEO-focused variant of the shop layout — term
+     * title, an editable intro copy block (placeholder text: write real,
+     * category-specific copy here), the term description maintained under
+     * Products → Categories, then the same filter sidebar + product grid.
+     *
+     * Installs into the `taxonomy-product_cat` template (all categories).
+     * For per-category copy beyond the term description, duplicate the
+     * template in the editor as `taxonomy-product_cat-{slug}` — WordPress's
+     * template hierarchy picks the specific one automatically.
+     */
+    private static function layout_category() {
+        $s = [];
+
+        $section = self::cls($s, 'w4e-category', '');
+        $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
+        $intro   = self::cls($s, 'w4e-category__intro', 'max-width: 68ch; margin: 0 0 28px; display: flex; flex-direction: column; gap: 12px; & p { margin: 0; color: #374151; font-size: 16px; line-height: 1.65; }');
+
+        $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-category'], ['etch-section-style', $section], [
+            self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                self::text_el('h1', '{archive.title}', ['class' => 'w4e-shop__title'], [$title], 'Title'),
+                self::el('div', ['class' => 'w4e-category__intro'], [$intro], [
+                    // Placeholder copy — replace with real category copy (this
+                    // is the SEO text block; it renders on every category
+                    // unless you fork a per-category template).
+                    self::text_el('p', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo lacus at porta congue. Integer euismod, nibh sit amet dignissim tincidunt, augue urna luctus arcu, non varius nunc nibh id ligula. Curabitur nec justo vitae magna faucibus efficitur.', ['class' => ''], [], 'Intro copy'),
+                    self::text_el('p', 'Suspendisse potenti. Aliquam erat volutpat — vivamus pretium, sapien sed dictum egestas, purus lacus tristique justo, in convallis nulla est in ligula.', ['class' => ''], [], 'Intro copy 2'),
+                    // The term description from Products → Categories (may
+                    // contain HTML). Empty when none is maintained.
+                    self::raw('{options.archive_description}', 'Term description'),
+                ], 'SEO intro'),
+                self::archive_columns($s),
+            ]),
+        ], 'W4e Category');
+
+        return ['block' => $block, 'styles' => self::with_base_styles($s)];
+    }
+
+    /**
+     * Category slider: a horizontally snapping strip of round image cards
+     * (CSS scroll-snap — swipeable on touch, no JS, thin scrollbar on
+     * desktop; edge-fade hints at more content). Shared block builder.
+     *
+     * @param array<string,array<string,mixed>> $s Style map, extended in place.
+     * @return array<string,mixed>
+     */
+    private static function category_slider(array &$s) {
         $catbar  = self::cls($s, 'w4e-catslider', 'display: flex; gap: 20px; margin: 0 0 28px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 4px 12px; scrollbar-width: thin; scrollbar-color: #d1d5db transparent; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);');
         $catpill = self::cls($s, 'w4e-catslide', 'scroll-snap-align: start; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 112px; max-width: 160px; color: inherit; font-weight: 600; font-size: 14px; text-align: center; text-decoration: none; overflow-wrap: anywhere; &:hover .w4e-catslide__img { border-color: #111827; transform: translateY(-2px); }');
         $catimg  = self::cls($s, 'w4e-catslide__img', 'width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: #f0f0f1; border: 1px solid #e6e7eb; transition: .15s;');
-        $cols    = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 0 48px; @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
+
+        return self::el('div', ['class' => 'w4e-catslider'], [$catbar], [
+            self::loop('options.shop_categories', 'c', [
+                self::el('a', ['class' => 'w4e-catslide', 'href' => '{c.url}'], [$catpill], [
+                    self::el('img', ['class' => 'w4e-catslide__img', 'src' => '{c.image}', 'alt' => '{c.name}'], [$catimg], [], 'Img'),
+                    self::txt('{c.name}'),
+                ], 'Category slide'),
+            ]),
+        ], 'Category slider');
+    }
+
+    /**
+     * Filter sidebar + product grid columns — the working core of the
+     * archive layouts, shared by the shop grid and the category template.
+     *
+     * @param array<string,array<string,mixed>> $s Style map, extended in place.
+     * @return array<string,mixed>
+     */
+    private static function archive_columns(array &$s) {
+        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 0 48px; @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
 
         $filter    = self::cls($s, 'w4e-filter', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 88px;');
         $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: 10px; &:not(:last-child) { border-bottom: 1px solid #e6e7eb; padding-bottom: 20px; }');
@@ -768,23 +848,7 @@ final class Woo4Etch_Layouts {
             ], $label);
         };
 
-        $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-shop'], ['etch-section-style', $section], [
-            self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
-
-                self::text_el('h1', '{archive.title}', ['class' => 'w4e-shop__title'], [$title], 'Title'),
-
-                // Category slider — round image cards, straight to the term
-                // archive; swipe/scroll horizontally when there are many.
-                self::el('div', ['class' => 'w4e-catslider'], [$catbar], [
-                    self::loop('options.shop_categories', 'c', [
-                        self::el('a', ['class' => 'w4e-catslide', 'href' => '{c.url}'], [$catpill], [
-                            self::el('img', ['class' => 'w4e-catslide__img', 'src' => '{c.image}', 'alt' => '{c.name}'], [$catimg], [], 'Img'),
-                            self::txt('{c.name}'),
-                        ], 'Category slide'),
-                    ]),
-                ], 'Category slider'),
-
-                self::el('div', ['class' => 'w4e-shop-cols'], [$cols], [
+        return self::el('div', ['class' => 'w4e-shop-cols'], [$cols], [
 
                     self::el('aside', ['class' => 'w4e-filter', 'aria-label' => 'Product filters'], [$filter], [
                         self::el('div', ['class' => 'w4e-filter__group'], [$fgroup], [
@@ -844,11 +908,7 @@ final class Woo4Etch_Layouts {
                         ]),
                     ]),
 
-                ]),
-            ]),
-        ], 'W4e Shop Grid');
-
-        return ['block' => $block, 'styles' => self::with_base_styles($s)];
+        ]);
     }
 
     /**

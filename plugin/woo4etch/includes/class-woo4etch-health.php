@@ -140,8 +140,15 @@ final class Woo4Etch_Health {
                 return [
                     'kind'          => 'template',
                     'template_slug' => 'archive-product',
-                    'label'         => __('Product archive template (archive-product)', 'woo4etch'),
+                    'label'         => __('Product archive template (archive-product — also renders category pages until a taxonomy-product_cat template exists)', 'woo4etch'),
                     'markers'       => ['w4e-shop'],
+                ];
+            case 'category':
+                return [
+                    'kind'          => 'template',
+                    'template_slug' => 'taxonomy-product_cat',
+                    'label'         => __('Category archive template (taxonomy-product_cat)', 'woo4etch'),
+                    'markers'       => ['w4e-category'],
                 ];
             case 'product-single':
                 return [

@@ -117,6 +117,8 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 == Changelog ==
 
 = Unreleased =
+* New: "Category archive" layout — installs into taxonomy-product_cat: term title, editable SEO intro copy (placeholder), term description ({options.archive_description}), filter sidebar + grid. Duplicate as taxonomy-product_cat-{slug} for per-category pages.
+* Fix: the native archive filters (min_price/filter_*) now also apply on category/tag pages — taxonomy archives leave post_type empty, which the secondary-query bridge previously required to be 'product'.
 * New: dual-range price slider (assets/price-slider.js) — progressive enhancement for min_price/max_price filter forms on product archives: two-handle slider synced with the number fields, native GET submission, bound from {options.shop_max_price_raw}. Disable via woo4etch/enqueue_price_slider.
 * New: the mini-cart layout is a full hover/focus dropdown — item rows, subtotal, view-cart/checkout buttons, and a "Your cart is empty." message instead of an empty box. Pure CSS (:hover/:focus-within), no JS.
 * New: category slider on the shop archive — horizontally snapping round image cards linking to the term archives (CSS scroll-snap, swipeable).

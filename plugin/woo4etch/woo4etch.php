@@ -2836,14 +2836,28 @@ final class Woo4Etch {
             $max = $wpdb->get_var("SELECT MAX(max_price) FROM {$wpdb->wc_product_meta_lookup}");
             $data['shop_max_price']     = $max ? self::plain(wc_price(ceil((float) $max))) : '';
             $data['shop_max_price_raw'] = $max ? (string) (int) ceil((float) $max) : '';
+
+            // Term description for category/tag archives (may contain HTML —
+            // render via a Raw HTML block). Sample copy in the builder so the
+            // block stays visible while designing.
+            $description = '';
+            if (function_exists('is_product_taxonomy') && is_product_taxonomy()) {
+                $qo          = get_queried_object();
+                $description = $qo instanceof WP_Term ? term_description($qo) : '';
+            } elseif ($builder) {
+                $description = '<p>' . esc_html__('Sample category description — maintained under Products → Categories, or replace this block with your own copy.', 'woo4etch') . '</p>';
+            }
+            $data['archive_description'] = (string) $description;
             // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Woo's own public filter params.
             $data['filter_min_price'] = isset($_GET['min_price']) ? (string) absint(wp_unslash($_GET['min_price'])) : '';
             $data['filter_max_price'] = isset($_GET['max_price']) ? (string) absint(wp_unslash($_GET['max_price'])) : '';
             // phpcs:enable
         } else {
-            $data['shop_max_price']   = '';
-            $data['filter_min_price'] = '';
-            $data['filter_max_price'] = '';
+            $data['shop_max_price']       = '';
+            $data['shop_max_price_raw']   = '';
+            $data['filter_min_price']     = '';
+            $data['filter_max_price']     = '';
+            $data['archive_description']  = '';
         }
 
         return apply_filters('woo4etch/shop_data', $data);
@@ -2867,7 +2881,24 @@ final class Woo4Etch {
             return false;
         }
         $post_type = $query->get('post_type');
-        return 'product' === $post_type || (is_array($post_type) && in_array('product', $post_type, true));
+        if ('product' === $post_type || (is_array($post_type) && in_array('product', $post_type, true))) {
+            return true;
+        }
+        // Taxonomy archives leave post_type empty (the taxonomy implies it) —
+        // accept such queries only when they reference a product taxonomy,
+        // which the cloned main query on a term archive does.
+        if ('' === $post_type || null === $post_type || 'any' === $post_type) {
+            if ($query->get('product_cat') || $query->get('product_tag')) {
+                return true;
+            }
+            foreach ((array) $query->get('tax_query') as $clause) {
+                if (is_array($clause) && isset($clause['taxonomy'])
+                    && ('product_cat' === $clause['taxonomy'] || 'product_tag' === $clause['taxonomy'] || 0 === strpos((string) $clause['taxonomy'], 'pa_'))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

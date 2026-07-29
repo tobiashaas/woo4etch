@@ -141,7 +141,21 @@ WooCommerce filters product archives through plain **GET parameters**; a hand-wr
 
 **Attribute checkboxes** — a second GET form whose checkboxes are named `filter_<attribute-slug>` (one checked value per name wins; for multi-select OR, comma-join the values with a few lines of JS, or simply render each term as a **link** carrying the parameter). Term lists come from an Etch `wp-terms` loop over `pa_<attribute>`. Note the "brand" filter in typical designs is exactly this: a `pa_brand`-style attribute + `filter_brand` links.
 
-The ready-made product-grid layout ships the heading + category pills + sidebar (categories, price form) pre-wired.
+The ready-made product-grid layout ships the heading + category slider + sidebar (categories, price form) pre-wired.
+
+## Category archive pages (SEO)
+
+**Without any extra template, category pages already work**: WordPress's template hierarchy renders them through `archive-product`, so the shop layout appears with the term name as `{archive.title}`, the term's products in the grid, and the sidebar highlighting the active category.
+
+For **category-specific pages** (SEO copy per category), the plugin ships a dedicated **"Category archive" layout** that installs into `taxonomy-product_cat` — from then on all category pages use it instead of the shop template. It adds above the filter/grid:
+
+- an editable **intro copy block** (ships with placeholder text — replace it with real category copy),
+- the **term description** maintained under Products → Categories, rendered as Raw HTML via the `{options.archive_description}` bridge key (empty when none is set; sample text in the builder).
+
+For copy that differs per category you have two layers:
+
+1. **Term descriptions** (Products → Categories) — one template, per-term content, zero duplication. Enough for most SEO needs.
+2. **Per-category templates** — duplicate `taxonomy-product_cat` in the editor as `taxonomy-product_cat-{slug}` (e.g. `taxonomy-product_cat-wein`) and write bespoke copy/sections; the hierarchy picks the specific template automatically.
 
 ## Required classes / attributes
 

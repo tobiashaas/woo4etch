@@ -134,11 +134,13 @@ final class Woo4Etch_Woo_Root {
                 'url' => isset($cart['checkout_url']) ? $cart['checkout_url'] : '',
             ],
             'shop' => [
-                'url'              => isset($cart['shop_url']) ? $cart['shop_url'] : '',
-                'categories'       => isset($shop['shop_categories']) ? $shop['shop_categories'] : [],
-                'max_price'        => isset($shop['shop_max_price']) ? $shop['shop_max_price'] : '',
-                'filter_min_price' => isset($shop['filter_min_price']) ? $shop['filter_min_price'] : '',
-                'filter_max_price' => isset($shop['filter_max_price']) ? $shop['filter_max_price'] : '',
+                'url'                 => isset($cart['shop_url']) ? $cart['shop_url'] : '',
+                'categories'          => isset($shop['shop_categories']) ? $shop['shop_categories'] : [],
+                'max_price'           => isset($shop['shop_max_price']) ? $shop['shop_max_price'] : '',
+                'max_price_raw'       => isset($shop['shop_max_price_raw']) ? $shop['shop_max_price_raw'] : '',
+                'filter_min_price'    => isset($shop['filter_min_price']) ? $shop['filter_min_price'] : '',
+                'filter_max_price'    => isset($shop['filter_max_price']) ? $shop['filter_max_price'] : '',
+                'archive_description' => isset($shop['archive_description']) ? $shop['archive_description'] : '',
             ],
             'account' => [
                 'is_logged_in' => isset($account['is_logged_in']) ? $account['is_logged_in'] : false,
