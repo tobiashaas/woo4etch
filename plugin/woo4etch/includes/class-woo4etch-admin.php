@@ -26,6 +26,53 @@ final class Woo4Etch_Admin {
         add_action('admin_post_woo4etch_insert_into_page', [__CLASS__, 'handle_insert_into_page']);
         add_action('admin_post_woo4etch_push_layout', [__CLASS__, 'handle_push_layout']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
+        add_action('admin_init', [__CLASS__, 'cleanup_legacy_patterns']);
+    }
+
+    /**
+     * One-time cleanup after the "Install as pattern" route was removed
+     * (1.5.0 betas): trash the library patterns the old installer created and
+     * drop its tracking options. Guarded by the tracking option itself, so
+     * this is a single cheap get_option() on sites that never had patterns —
+     * and runs exactly once where they exist.
+     *
+     * Patterns are trashed, not force-deleted: a user who edited one can
+     * still restore it from the trash. Inserted copies on pages were always
+     * detached and are untouched.
+     */
+    public static function cleanup_legacy_patterns() {
+        $installed = get_option('woo4etch_installed_layouts', null);
+        if (null === $installed) {
+            return;
+        }
+
+        foreach ((array) $installed as $post_id) {
+            $post = get_post((int) $post_id);
+            if ($post && 'wp_block' === $post->post_type && strpos($post->post_title, 'Woo4Etch — ') === 0) {
+                wp_trash_post($post->ID);
+            }
+        }
+
+        delete_option('woo4etch_installed_layouts');
+        delete_option('woo4etch_layout_hashes');
+        delete_option('woo4etch_layout_content_hashes');
+
+        // The pattern-library category, if nothing else uses it anymore.
+        $term = get_term_by('name', 'Woo4Etch', 'wp_pattern_category');
+        if ($term && !is_wp_error($term)) {
+            $still_used = get_posts([
+                'post_type'      => 'wp_block',
+                'post_status'    => 'publish',
+                'posts_per_page' => 1,
+                'fields'         => 'ids',
+                'tax_query'      => [
+                    ['taxonomy' => 'wp_pattern_category', 'field' => 'term_id', 'terms' => $term->term_id],
+                ],
+            ]);
+            if (!$still_used) {
+                wp_delete_term($term->term_id, 'wp_pattern_category');
+            }
+        }
     }
 
     /**
@@ -333,11 +380,17 @@ final class Woo4Etch_Admin {
                         <td>
                             <?php if (!empty($push['available'])) : ?>
                                 <?php if ($push['present']) : ?>
-                                    <span class="woo4etch-installed" title="<?php echo esc_attr(sprintf(
-                                        /* translators: %s: target page/template label */
-                                        __('Found on: %s. Edit it in the Etch builder.', 'woo4etch'),
+                                    <?php $present_label = '✓ ' . sprintf(
+                                        /* translators: %s: target page/template name */
+                                        __('On “%s”', 'woo4etch'),
                                         $push['where']
-                                    )); ?>">✓ <?php esc_html_e('On its page', 'woo4etch'); ?></span>
+                                    ); ?>
+                                    <?php if (!empty($push['edit_url'])) : ?>
+                                        <a class="woo4etch-installed" href="<?php echo esc_url($push['edit_url']); ?>"
+                                           title="<?php esc_attr_e('Open in the editor to arrange it (Etch picks it up from there).', 'woo4etch'); ?>"><?php echo esc_html($present_label); ?></a>
+                                    <?php else : ?>
+                                        <span class="woo4etch-installed"><?php echo esc_html($present_label); ?></span>
+                                    <?php endif; ?>
                                 <?php else : ?>
                                     <form method="post"
                                           action="<?php echo esc_url(admin_url('admin-post.php')); ?>"

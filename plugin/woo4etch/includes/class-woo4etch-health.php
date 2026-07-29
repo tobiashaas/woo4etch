@@ -165,19 +165,22 @@ final class Woo4Etch_Health {
      * Target + presence info for the admin UI.
      *
      * @param string $slug Layout catalog key.
-     * @return array{available: bool, label: string, present: bool, where: string, target_exists: bool}
+     * @return array{available: bool, label: string, present: bool, where: string, target_exists: bool, edit_url: string}
      */
     public static function push_status($slug) {
         $target = self::push_target($slug);
         if ($target === null) {
-            return ['available' => false, 'label' => '', 'present' => false, 'where' => '', 'target_exists' => false];
+            return ['available' => false, 'label' => '', 'present' => false, 'where' => '', 'target_exists' => false, 'edit_url' => ''];
         }
 
-        $post = null;
+        $post     = null;
+        $edit_url = '';
         if ('page' === $target['kind']) {
-            $post = $target['page_id'] > 0 ? get_post($target['page_id']) : null;
+            $post     = $target['page_id'] > 0 ? get_post($target['page_id']) : null;
+            $edit_url = $post ? (string) get_edit_post_link($post->ID, 'raw') : '';
         } else {
-            $post = self::find_template($target['template_slug']);
+            $post     = self::find_template($target['template_slug']);
+            $edit_url = $post ? admin_url('site-editor.php?postId=' . rawurlencode(get_stylesheet() . '//' . $target['template_slug']) . '&postType=wp_template&canvas=edit') : '';
         }
 
         return [
@@ -186,6 +189,7 @@ final class Woo4Etch_Health {
             'present'       => $post ? self::content_has((string) $post->post_content, $target['markers']) : false,
             'where'         => $post ? ('page' === $target['kind'] ? get_the_title($post) : $target['template_slug']) : '',
             'target_exists' => (bool) $post,
+            'edit_url'      => $edit_url,
         ];
     }
 
