@@ -132,6 +132,9 @@ final class Woo4Etch_Woo_Root {
             'checkout' => [
                 'url' => isset($cart['checkout_url']) ? $cart['checkout_url'] : '',
             ],
+            'shop' => [
+                'url' => isset($cart['shop_url']) ? $cart['shop_url'] : '',
+            ],
             'account' => [
                 'menu'     => isset($account['account_menu']) ? $account['account_menu'] : [],
                 'endpoint' => isset($account['account_endpoint']) ? $account['account_endpoint'] : '',

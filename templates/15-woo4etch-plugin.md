@@ -287,7 +287,12 @@ Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_
 [woo_catalog_ordering]    → sort-by dropdown
 [woo_pagination]          → product loop pagination
 [woo_product_search]      → product-only search form
-[woo_notices]
+[woo_notices]             → queued Woo notices (Woo's own template markup)
+[woo_notices format="plain"]
+                          → same notices as minimal class-based markup
+                            (.w4e-notice .w4e-notice--error/--success/--notice)
+                            — styleable in Etch; use this when Woo's default
+                            styles are disabled
 ```
 
 `[woo_result_count]`, `[woo_catalog_ordering]`, and `[woo_pagination]` read the current loop, so place them on a shop/archive template where the main product query runs.
@@ -483,8 +488,9 @@ Available keys:
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
 | `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |
-| `{options.cart_is_empty}` | boolean |
+| `{options.cart_is_empty}` | boolean — wrap the cart form in a `!options.cart_is_empty` condition and show an empty-cart message in the inverse condition (otherwise coupon/summary/checkout render on an empty cart) |
 
 It renders the **real cart** on the frontend, and **sample rows in the Etch builder canvas** so the loop previews while you design. Remove works via `{item.remove_url}`.
 
@@ -559,6 +565,7 @@ Woo4Etch therefore also registers the same data under its own **`woo`** root —
 | `{woo.cart.count}` / `{woo.cart.subtotal}` / `{woo.cart.total}` / `{woo.cart.is_empty}` | `{options.cart_count}` / `…cart_subtotal` / `…cart_total` / `…cart_is_empty` |
 | `{woo.cart.url}` / `{woo.cart.nonce}` / `{woo.cart.cross_sells}` | `{options.cart_url}` / `…cart_nonce` / `…cross_sells` |
 | `{woo.checkout.url}` | `{options.checkout_url}` |
+| `{woo.shop.url}` | `{options.shop_url}` |
 | `{woo.account.menu}` / `{woo.account.endpoint}` / `{woo.account.orders}` | `{options.account_menu}` / `…account_endpoint` / `…account_orders` |
 | `{woo.order}` | `{options.order}` |
 

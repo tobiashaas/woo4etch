@@ -32,7 +32,7 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 
 | File | Area | Built from |
 |---|---|---|
-| [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, and "You may also like" cross-sells. | Etch Dynamic Keys + the Woo4Etch cart bridge. 100% Etch elements (no shortcodes) so it renders and is editable in the builder. |
+| [`cart.json`](./cart.json) | **Cart** — items loop, quantity update, coupon, remove, subtotal/total, checkout, "You may also like" cross-sells, Woo notices, and an empty-cart state ("Your cart is currently empty" + Return to shop). | Etch Dynamic Keys + the Woo4Etch cart bridge. Etch elements throughout; one Raw-HTML block carries `[woo_notices format="plain"]` for the update/coupon feedback. |
 | [`product-single.json`](./product-single.json) | **Single product** — featured image + gallery loop, title, `{this.price}` with `-{this.sale_percentage}%` badge, stock label, working add-to-cart form (simple products), SKU. | Product bridge (`{this.*}`) + `{this.gallery_images}`. |
 | [`product-grid.json`](./product-grid.json) | **Shop archive** — product cards over `mainQuery`: image, sale badge, title, price, AJAX add-to-cart button. | Product bridge (`{item.*}`) on the main archive query. See the loop-preset note below. |
 | [`mini-cart.json`](./mini-cart.json) | **Header mini-cart** — cart link with `{options.cart_count}`; the count span carries `mini-cart-count` for the fragment snippet ([`05-mini-cart.md`](../05-mini-cart.md)). | Cart bridge. |
@@ -61,6 +61,15 @@ preset at install time.
   coupons work via a classic submit, no AJAX needed.
 - Summary: `{options.cart_subtotal}` / `{options.cart_total}` + a checkout link.
 - Cross-sells: `{#loop options.cross_sells as cs}`.
+- **Notices:** a Raw-HTML block with `[woo_notices format="plain"]` under the title —
+  without it, Woo's feedback ("Cart updated", coupon or security errors) is
+  invisible and failed updates *look* like nothing happened. The `plain` format
+  renders `.w4e-notice` / `.w4e-notice--error|--success|--notice` markup with
+  shipped styles, editable in Etch's style panel.
+- **Empty-cart state:** the form + cross-sells sit in a `!options.cart_is_empty`
+  condition; the inverse condition shows "Your cart is currently empty" with a
+  Return-to-shop button (`{options.shop_url}`). Before this, coupon, totals and
+  the checkout button rendered even with zero items.
 
 **Trade-off:** because the items are a dynamic-data loop (so they're editable in the
 builder), WooCommerce's per-item cart **hooks** don't fire — third-party cart

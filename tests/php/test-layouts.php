@@ -155,6 +155,14 @@ function w4e_test_layouts() {
         w4e_check($excerpt_raw, 'short description rendered via etch/raw-html ({this.excerpt})');
     }
 
+    /* ---- The hand-tuned cart layout ships twice — keep the copies identical ---- */
+    w4e_section('Bundled cart.json matches templates/etch-copy/cart.json');
+    w4e_check(
+        (string) file_get_contents(WOO4ETCH_REPO_ROOT . '/plugin/woo4etch/layouts/cart.json')
+            === (string) file_get_contents(WOO4ETCH_REPO_ROOT . '/templates/etch-copy/cart.json'),
+        'plugin/woo4etch/layouts/cart.json is byte-identical to templates/etch-copy/cart.json'
+    );
+
     /* ---- Shipped copy/paste artifacts: same loop invariant ---- */
     w4e_section('Committed etch-copy/*.json artifacts');
     $files = glob(WOO4ETCH_REPO_ROOT . '/templates/etch-copy/*.json');
