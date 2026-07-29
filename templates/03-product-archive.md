@@ -150,7 +150,7 @@ The ready-made product-grid layout ships the heading + category slider + sidebar
 For **category-specific pages** (SEO copy per category), the plugin ships a dedicated **"Category archive" layout** that installs into `taxonomy-product_cat` — from then on all category pages use it instead of the shop template. It adds above the filter/grid:
 
 - an editable **intro copy block** (ships with placeholder text — replace it with real category copy),
-- the **term description** maintained under Products → Categories, rendered as Raw HTML via the `{options.archive_description}` bridge key (empty when none is set; sample text in the builder).
+- the **term description** maintained under Products → Categories — Etch exposes the queried term natively as `{term.*}` on taxonomy archives; the layout renders `{term.description}` as a Raw HTML block (descriptions may contain markup, which a text element would escape). Empty when none is set.
 
 For copy that differs per category you have two layers:
 

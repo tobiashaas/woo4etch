@@ -767,9 +767,11 @@ final class Woo4Etch_Layouts {
                     // unless you fork a per-category template).
                     self::text_el('p', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo lacus at porta congue. Integer euismod, nibh sit amet dignissim tincidunt, augue urna luctus arcu, non varius nunc nibh id ligula. Curabitur nec justo vitae magna faucibus efficitur.', ['class' => ''], [], 'Intro copy'),
                     self::text_el('p', 'Suspendisse potenti. Aliquam erat volutpat — vivamus pretium, sapien sed dictum egestas, purus lacus tristique justo, in convallis nulla est in ligula.', ['class' => ''], [], 'Intro copy 2'),
-                    // The term description from Products → Categories (may
-                    // contain HTML). Empty when none is maintained.
-                    self::raw('{options.archive_description}', 'Term description'),
+                    // The term description from Products → Categories — Etch
+                    // exposes the queried term natively as {term.*} on
+                    // taxonomy archives. Raw HTML block: descriptions may
+                    // contain markup, which etch/text would escape.
+                    self::raw('{term.description}', 'Term description'),
                 ], 'SEO intro'),
                 self::archive_columns($s),
             ]),

@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.5.0-beta.6
+ * Version:           1.6.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -188,7 +188,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.5.0-beta.6';
+    const VERSION = '1.6.0';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -2836,28 +2836,15 @@ final class Woo4Etch {
             $max = $wpdb->get_var("SELECT MAX(max_price) FROM {$wpdb->wc_product_meta_lookup}");
             $data['shop_max_price']     = $max ? self::plain(wc_price(ceil((float) $max))) : '';
             $data['shop_max_price_raw'] = $max ? (string) (int) ceil((float) $max) : '';
-
-            // Term description for category/tag archives (may contain HTML —
-            // render via a Raw HTML block). Sample copy in the builder so the
-            // block stays visible while designing.
-            $description = '';
-            if (function_exists('is_product_taxonomy') && is_product_taxonomy()) {
-                $qo          = get_queried_object();
-                $description = $qo instanceof WP_Term ? term_description($qo) : '';
-            } elseif ($builder) {
-                $description = '<p>' . esc_html__('Sample category description — maintained under Products → Categories, or replace this block with your own copy.', 'woo4etch') . '</p>';
-            }
-            $data['archive_description'] = (string) $description;
             // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Woo's own public filter params.
             $data['filter_min_price'] = isset($_GET['min_price']) ? (string) absint(wp_unslash($_GET['min_price'])) : '';
             $data['filter_max_price'] = isset($_GET['max_price']) ? (string) absint(wp_unslash($_GET['max_price'])) : '';
             // phpcs:enable
         } else {
-            $data['shop_max_price']       = '';
-            $data['shop_max_price_raw']   = '';
-            $data['filter_min_price']     = '';
-            $data['filter_max_price']     = '';
-            $data['archive_description']  = '';
+            $data['shop_max_price']     = '';
+            $data['shop_max_price_raw'] = '';
+            $data['filter_min_price']   = '';
+            $data['filter_max_price']   = '';
         }
 
         return apply_filters('woo4etch/shop_data', $data);

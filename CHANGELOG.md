@@ -5,13 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
-## [Unreleased]
+## [1.6.0] — 2026-07-30
 
-Findings from a production build (Caracciolo Olivenöl staging — Etch 1.6.2, WooCommerce block theme, Germanized, Mollie).
+First full release after the 1.5.0 beta series — sites on 1.4.x are offered this update (it includes everything from betas 1–6 below). Findings from a production build and a full E2E test round (Caracciolo Olivenöl staging — Etch 1.6.4, WooCommerce block theme, Germanized, Mollie — plus wp-env with Germanized, YITH Wishlist and Variation Swatches).
 
 ### Added
 
-- **"Category archive" layout for SEO category pages.** Installs into `taxonomy-product_cat`: term title, an editable intro copy block (placeholder text — write category-specific copy), the term description from Products → Categories (new bridge key `{options.archive_description}`, Raw HTML, builder sample), then the same filter sidebar + grid as the shop (shared block builders). Per-category pages: duplicate as `taxonomy-product_cat-{slug}` in the editor — the hierarchy picks it up automatically. Template 03 documents the pattern. Note: category pages worked before via `archive-product` fallback; this adds the copy layer.
+- **"Category archive" layout for SEO category pages.** Installs into `taxonomy-product_cat`: term title, an editable intro copy block (placeholder text — write category-specific copy), the term description from Products → Categories via Etch's native `{term.description}` key (Raw HTML block — descriptions may contain markup), then the same filter sidebar + grid as the shop (shared block builders). Per-category pages: duplicate as `taxonomy-product_cat-{slug}` in the editor — the hierarchy picks it up automatically. Template 03 documents the pattern. Note: category pages worked before via `archive-product` fallback; this adds the copy layer.
 - **Dual-range price slider (`assets/price-slider.js`).** Progressive enhancement on product archives: any form carrying WooCommerce's `min_price`/`max_price` inputs gets a two-handle range slider (overlapping native range inputs, highlighted active segment, keyboard-accessible, grab cursors) inserted above the fields — slider and number fields stay in sync both ways, handles restore from the URL after filtering, submission stays the plain native GET. Upper bound from `data-w4e-price-max` (new bridge key `{options.shop_max_price_raw}`, bound by the shipped layout) with a graceful fallback. Token-based styling with plain fallbacks; disable via `woo4etch/enqueue_price_slider`.
 - **Mini-cart layout is now a full hover/focus dropdown with a proper empty state.** The header mini-cart grew from a bare link into link + count + dropdown panel: item rows (image, name, qty × price, line subtotal), subtotal row, view-cart/checkout buttons — and when the cart is empty, a "Your cart is empty." message instead of an empty box with orphaned action buttons. Pure CSS reveal (`:hover` + `:focus-within`, keyboard-accessible, no JS).
 - **Category slider on the shop archive** — the category quick links are a horizontally snapping strip of round image cards (CSS scroll-snap, swipeable on touch, right edge-fade hints at more; long single-word category names wrap instead of clipping) linking to the term archives.
@@ -222,6 +222,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.6.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.0
 [1.4.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.1
 [1.4.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.0
 [1.3.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.3.0
