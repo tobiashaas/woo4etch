@@ -133,15 +133,7 @@ a{color:inherit;text-decoration:none}
 .w4e-crosscard__btn{margin:auto 14px 14px;text-align:center}
 
 /* Mini-cart (header dropdown) */
-.w4e-cartwrap{position:relative}
-.w4e-minicart{position:absolute;right:0;top:calc(100% + 12px);width:320px;background:#fff;border:1px solid var(--w4e-line);border-radius:var(--w4e-radius);box-shadow:0 12px 30px rgba(0,0,0,.12);padding:14px;opacity:0;visibility:hidden;transform:translateY(6px);transition:.15s;z-index:30}
-.w4e-cartwrap:hover .w4e-minicart{opacity:1;visibility:visible;transform:none}
-.w4e-minirow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--w4e-line);font-size:14px;font-weight:400}
-.w4e-minirow:last-child{border-bottom:0}
-.w4e-minirow__img{width:40px;height:40px;object-fit:cover;border-radius:6px;background:#f3f4f6}
-.w4e-minirow__sub{font-weight:700}
-.w4e-minicart__foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
-.w4e-minicart__total{font-weight:800}
+/* mini-cart styles now ship with the Woo4Etch mini-cart layout (style records) */
 
 /* My Account */
 .w4e-account-layout{display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:start;padding-block:8px 24px}

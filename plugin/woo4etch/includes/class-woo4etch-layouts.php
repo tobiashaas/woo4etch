@@ -51,8 +51,8 @@ final class Woo4Etch_Layouts {
                 'area'        => 'Archive',
             ],
             'mini-cart' => [
-                'name'        => 'Header mini-cart link',
-                'description' => 'Cart link with live item count ({options.cart_count}); the count span carries the mini-cart-count class used by the fragment snippet.',
+                'name'        => 'Header mini-cart (link + dropdown)',
+                'description' => 'Cart link with live item count plus a hover/focus dropdown: item rows, subtotal, view-cart/checkout buttons — and a friendly message instead of an empty box when the cart is empty. Pure CSS reveal (keyboard-accessible via :focus-within); the count span carries the mini-cart-count class used by the fragment snippet.',
                 'area'        => 'Header',
             ],
             'account' => [
@@ -723,9 +723,12 @@ final class Woo4Etch_Layouts {
 
         $section = self::cls($s, 'w4e-shop', '');
         $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
-        $catbar  = self::cls($s, 'w4e-catbar', 'display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 24px;');
-        $catpill = self::cls($s, 'w4e-catpill', 'display: inline-flex; align-items: center; gap: 10px; padding: 8px 20px 8px 8px; background: #fff; border: 1px solid #e6e7eb; border-radius: 999px; color: inherit; font-weight: 600; font-size: 15px; text-decoration: none; &:hover { border-color: #111827; }');
-        $catimg  = self::cls($s, 'w4e-catpill__img', 'width: 40px; height: 40px; border-radius: 999px; object-fit: cover; background: #f3f4f6;');
+        // Category slider: a horizontally snapping strip of round image cards
+        // (CSS scroll-snap — swipeable on touch, no JS, thin scrollbar on
+        // desktop). Edge-fades hint at more content.
+        $catbar  = self::cls($s, 'w4e-catslider', 'display: flex; gap: 20px; margin: 0 0 28px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 4px 12px; scrollbar-width: thin; scrollbar-color: #d1d5db transparent; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);');
+        $catpill = self::cls($s, 'w4e-catslide', 'scroll-snap-align: start; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 112px; max-width: 160px; color: inherit; font-weight: 600; font-size: 14px; text-align: center; text-decoration: none; overflow-wrap: anywhere; &:hover .w4e-catslide__img { border-color: #111827; transform: translateY(-2px); }');
+        $catimg  = self::cls($s, 'w4e-catslide__img', 'width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: #f0f0f1; border: 1px solid #e6e7eb; transition: .15s;');
         $cols    = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 0 48px; @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
 
         $filter    = self::cls($s, 'w4e-filter', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 88px;');
@@ -770,16 +773,16 @@ final class Woo4Etch_Layouts {
 
                 self::text_el('h1', '{archive.title}', ['class' => 'w4e-shop__title'], [$title], 'Title'),
 
-                // Category quick links, like the brand pills in the reference
-                // design — image + name, straight to the term archive.
-                self::el('div', ['class' => 'w4e-catbar'], [$catbar], [
+                // Category slider — round image cards, straight to the term
+                // archive; swipe/scroll horizontally when there are many.
+                self::el('div', ['class' => 'w4e-catslider'], [$catbar], [
                     self::loop('options.shop_categories', 'c', [
-                        self::el('a', ['class' => 'w4e-catpill', 'href' => '{c.url}'], [$catpill], [
-                            self::el('img', ['class' => 'w4e-catpill__img', 'src' => '{c.image}', 'alt' => '{c.name}'], [$catimg], [], 'Img'),
+                        self::el('a', ['class' => 'w4e-catslide', 'href' => '{c.url}'], [$catpill], [
+                            self::el('img', ['class' => 'w4e-catslide__img', 'src' => '{c.image}', 'alt' => '{c.name}'], [$catimg], [], 'Img'),
                             self::txt('{c.name}'),
-                        ], 'Category pill'),
+                        ], 'Category slide'),
                     ]),
-                ], 'Category bar'),
+                ], 'Category slider'),
 
                 self::el('div', ['class' => 'w4e-shop-cols'], [$cols], [
 
@@ -846,19 +849,63 @@ final class Woo4Etch_Layouts {
         return ['block' => $block, 'styles' => self::with_base_styles($s)];
     }
 
-    /** Header mini-cart link with live count span. */
+    /**
+     * Header mini-cart: link with live count + hover/focus dropdown panel.
+     * The panel never shows an empty box — an empty cart gets a message
+     * instead of orphaned action buttons. Pure CSS reveal (hover +
+     * :focus-within, so it is keyboard-accessible); no JS.
+     */
     private static function layout_mini_cart() {
         $s = [];
 
-        $wrap  = self::cls($s, 'w4e-minicart', 'display: inline-flex;');
-        $link  = self::cls($s, 'w4e-minicart__link', 'display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid #e6e7eb; border-radius: 999px; color: inherit; font-weight: 600; font-size: 14px;');
+        $wrap  = self::cls($s, 'w4e-minicart', 'position: relative; display: inline-flex; &:hover .w4e-minicart__panel, &:focus-within .w4e-minicart__panel { opacity: 1; visibility: visible; transform: none; }');
+        $link  = self::cls($s, 'w4e-minicart__link', 'display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid #e6e7eb; border-radius: 999px; color: inherit; font-weight: 600; font-size: 14px; text-decoration: none;');
         $count = self::cls($s, 'w4e-minicart__count', 'display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #111827; color: #fff; font-size: 12px; font-weight: 700;');
+        $panel = self::cls($s, 'w4e-minicart__panel', 'position: absolute; right: 0; top: calc(100% + 10px); width: 320px; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; box-shadow: 0 12px 30px rgba(0, 0, 0, .12); padding: 16px; display: flex; flex-direction: column; gap: 12px; opacity: 0; visibility: hidden; transform: translateY(6px); transition: .15s; z-index: 40;');
+        $empty = self::cls($s, 'w4e-minicart__empty', 'margin: 0; padding: 8px 0; text-align: center; color: #6b7280; font-size: 14px;');
+        $items = self::cls($s, 'w4e-minicart__items', 'display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow: auto;');
+        $row   = self::cls($s, 'w4e-minirow', 'display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center;');
+        $rimg  = self::cls($s, 'w4e-minirow__img', 'width: 48px; height: 48px; object-fit: cover; border-radius: 8px; background: #f3f4f6;');
+        $rname = self::cls($s, 'w4e-minirow__name', 'font-size: 13px; font-weight: 600; margin: 0;');
+        $rqty  = self::cls($s, 'w4e-minirow__qty', 'font-size: 12px; color: #6b7280;');
+        $rsub  = self::cls($s, 'w4e-minirow__sub', 'font-size: 13px; font-weight: 700; white-space: nowrap;');
+        $total = self::cls($s, 'w4e-minicart__total', 'display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; border-top: 1px solid #e6e7eb; padding-top: 10px;');
+        $acts  = self::cls($s, 'w4e-minicart__actions', 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px;');
+        $view  = self::cls($s, 'w4e-minicart__view', 'display: inline-block; text-align: center; padding: 11px 12px; border: 1px solid #e6e7eb; border-radius: 10px; color: inherit; font-weight: 600; font-size: 14px; text-decoration: none;');
+        $button = self::button_style($s);
 
         $block = self::el('div', ['class' => 'w4e-minicart'], [$wrap], [
             self::el('a', ['class' => 'w4e-minicart__link', 'href' => '{options.cart_url}'], [$link], [
                 self::txt('Cart'),
                 self::text_el('span', '{options.cart_count}', ['class' => 'w4e-minicart__count mini-cart-count'], [$count], 'Count'),
             ], 'Cart link'),
+            self::el('div', ['class' => 'w4e-minicart__panel'], [$panel], [
+                self::cond('options.cart_is_empty', 'isTruthy', null, [
+                    self::text_el('p', 'Your cart is empty.', ['class' => 'w4e-minicart__empty'], [$empty], 'Empty message'),
+                ], 'options.cart_is_empty'),
+                self::cond('options.cart_is_empty', 'isFalsy', null, [
+                    self::el('div', ['class' => 'w4e-minicart__items'], [$items], [
+                        self::loop('options.cart_items', 'mi', [
+                            self::el('div', ['class' => 'w4e-minirow'], [$row], [
+                                self::el('img', ['class' => 'w4e-minirow__img', 'src' => '{mi.image}', 'alt' => '{mi.name}'], [$rimg], [], 'Img'),
+                                self::el('div', ['class' => ''], [], [
+                                    self::text_el('p', '{mi.name}', ['class' => 'w4e-minirow__name'], [$rname], 'Name'),
+                                    self::text_el('span', '{mi.quantity} × {mi.price}', ['class' => 'w4e-minirow__qty'], [$rqty], 'Qty'),
+                                ], 'Info'),
+                                self::text_el('span', '{mi.subtotal}', ['class' => 'w4e-minirow__sub'], [$rsub], 'Sub'),
+                            ], 'Row'),
+                        ]),
+                    ], 'Items'),
+                    self::el('div', ['class' => 'w4e-minicart__total'], [$total], [
+                        self::text_el('span', 'Subtotal', ['class' => ''], [], 'Label'),
+                        self::text_el('span', '{options.cart_subtotal}', ['class' => ''], [], 'Value'),
+                    ], 'Total'),
+                    self::el('div', ['class' => 'w4e-minicart__actions'], [$acts], [
+                        self::text_el('a', 'View cart', ['class' => 'w4e-minicart__view', 'href' => '{options.cart_url}'], [$view], 'View cart'),
+                        self::text_el('a', 'Checkout', ['class' => 'w4e-minicart__checkout button', 'href' => '{options.checkout_url}'], [$button], 'Checkout'),
+                    ], 'Actions'),
+                ], '!options.cart_is_empty'),
+            ], 'Panel'),
         ], 'W4e Mini-cart');
 
         return ['block' => $block, 'styles' => $s];
