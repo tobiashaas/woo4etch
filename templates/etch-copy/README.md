@@ -61,7 +61,10 @@ preset at install time.
   the hidden `woocommerce-cart-nonce` (`{options.cart_nonce}`) — quantity update and
   coupons work via a classic submit, no AJAX needed.
 - Summary: `{options.cart_subtotal}` / `{options.cart_total}` + a checkout link.
-- Cross-sells: `{#loop options.cross_sells as cs}`.
+- Cross-sells: `{#loop options.cross_sells as cs}` — fed from the cart products'
+  *Linked Products → Cross-sells*; when none are maintained, random catalog
+  products fill in (`woo4etch/cross_sells_fallback` to disable). The whole
+  section sits in a condition and disappears when the list is empty.
 - **Notices:** a Raw-HTML block with `[woo_notices format="plain"]` under the title —
   without it, Woo's feedback ("Cart updated", coupon or security errors) is
   invisible and failed updates *look* like nothing happened. The `plain` format

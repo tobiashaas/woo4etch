@@ -503,6 +503,7 @@ Available keys:
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.cross_sells}` | array for "You may also like" — the cart products' *Linked Products → Cross-sells*; when none are maintained, random catalog products fill in (disable: `woo4etch/cross_sells_fallback`, count: `woo4etch/cross_sells_limit`) |
 | `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
 | `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |
 | `{options.cart_is_empty}` | boolean — wrap the cart form in a `!options.cart_is_empty` condition and show an empty-cart message in the inverse condition (otherwise coupon/summary/checkout render on an empty cart) |

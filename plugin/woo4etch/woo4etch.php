@@ -28,6 +28,7 @@ if (!defined('WOO4ETCH_ETCH_AFFILIATE_URL')) {
 require_once __DIR__ . '/includes/class-woo4etch-admin.php';
 require_once __DIR__ . '/includes/class-woo4etch-layouts.php';
 require_once __DIR__ . '/includes/class-woo4etch-components.php';
+require_once __DIR__ . '/includes/class-woo4etch-health.php';
 require_once __DIR__ . '/includes/class-woo4etch-woo-root.php';
 require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
@@ -1310,6 +1311,12 @@ final class Woo4Etch {
         // which these builds often disable — emit minimal class-based markup
         // instead so the notices can be styled in Etch:
         //   .w4e-notice .w4e-notice--error|--success|--notice
+        // In the builder canvas a sample notice renders so the (frontend-wise
+        // empty-hidden) region stays visible and styleable while designing.
+        if (self::is_etch_builder()) {
+            return '<div class="w4e-notice w4e-notice--success" role="status">'
+                . esc_html__('Cart updated. (sample notice — only shown in the builder)', 'woo4etch') . '</div>';
+        }
         $all = function_exists('wc_get_notices') ? wc_get_notices() : [];
         if (empty($all)) {
             return '';
@@ -2478,27 +2485,59 @@ final class Woo4Etch {
     private static function cart_cross_sells($cart, $size, $builder) {
         $out = [];
 
+        $payload = static function (WC_Product $p) use ($size) {
+            $img_id = $p->get_image_id();
+            $img    = $img_id ? wp_get_attachment_image_url($img_id, $size) : '';
+            if (!$img && function_exists('wc_placeholder_img_src')) {
+                $img = wc_placeholder_img_src($size);
+            }
+            return [
+                'id'              => $p->get_id(),
+                'name'            => $p->get_name(),
+                'price'           => self::plain(wc_price(wc_get_price_to_display($p))),
+                'image'           => (string) $img,
+                'permalink'       => get_permalink($p->get_id()),
+                'add_to_cart_url' => $p->add_to_cart_url(),
+                'on_sale'         => $p->is_on_sale(),
+            ];
+        };
+
+        $limit = (int) apply_filters('woo4etch/cross_sells_limit', 4);
+
         if ($cart instanceof WC_Cart) {
             $ids = (array) apply_filters('woocommerce_cross_sells_total', $cart->get_cross_sells());
-            foreach (array_slice($ids, 0, (int) apply_filters('woo4etch/cross_sells_limit', 4)) as $pid) {
+            foreach (array_slice($ids, 0, $limit) as $pid) {
                 $p = wc_get_product($pid);
                 if (!$p instanceof WC_Product || !$p->is_visible()) {
                     continue;
                 }
-                $img_id = $p->get_image_id();
-                $img    = $img_id ? wp_get_attachment_image_url($img_id, $size) : '';
-                if (!$img && function_exists('wc_placeholder_img_src')) {
-                    $img = wc_placeholder_img_src($size);
+                $out[] = $payload($p);
+            }
+
+            // No cross-sells maintained on the cart's products (Woo: product →
+            // Linked Products) → fall back to random visible products so the
+            // "You may also like" section isn't empty on real shops. Disable:
+            // add_filter('woo4etch/cross_sells_fallback', '__return_false');
+            if (empty($out) && !$cart->is_empty() && apply_filters('woo4etch/cross_sells_fallback', true)) {
+                $exclude = [];
+                foreach ($cart->get_cart() as $cart_item) {
+                    $prod = $cart_item['data'] ?? null;
+                    if ($prod instanceof WC_Product) {
+                        $exclude[] = $prod->get_parent_id() ? $prod->get_parent_id() : $prod->get_id();
+                    }
                 }
-                $out[] = [
-                    'id'              => $p->get_id(),
-                    'name'            => $p->get_name(),
-                    'price'           => self::plain(wc_price(wc_get_price_to_display($p))),
-                    'image'           => (string) $img,
-                    'permalink'       => get_permalink($p->get_id()),
-                    'add_to_cart_url' => $p->add_to_cart_url(),
-                    'on_sale'         => $p->is_on_sale(),
-                ];
+                $random = wc_get_products([
+                    'status'     => 'publish',
+                    'limit'      => $limit,
+                    'orderby'    => 'rand',
+                    'exclude'    => array_unique($exclude),
+                    'visibility' => 'catalog',
+                ]);
+                foreach ($random as $p) {
+                    if ($p instanceof WC_Product) {
+                        $out[] = $payload($p);
+                    }
+                }
             }
         }
 
