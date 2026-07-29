@@ -32,6 +32,10 @@
         + '.w4e-range input[type="range"]:focus-visible::-moz-range-thumb{outline:2px solid var(--primary,#111827);outline-offset:2px;}';
 
     function injectCss() {
+        // With Etch active the slider styles ship as an Etch class record
+        // (nested in the price form's record, editable in the builder) — the
+        // inline CSS below is only the fallback for non-Etch installs.
+        if (i18n.stylesInEtch) return;
         if (document.getElementById('w4e-price-slider-css')) return;
         var s = document.createElement('style');
         s.id = 'w4e-price-slider-css';

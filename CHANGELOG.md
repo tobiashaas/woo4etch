@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [1.6.1] — 2026-07-30
+
+### Fixed
+
+- **Widget styling now lives IN Etch — never as a plugin stylesheet.** 1.6.0 shipped the pills/quantity-stepper and price-slider CSS as JS-injected stylesheets and the gallery companion as `assets/gallery.css` — all of it outside Etch, invisible in the builder's style panel and fighting the user's class edits. The CSS moved into the layouts' **Etch class records** as nested rules: pills/stepper/variations-reset under `.w4e-product-info`, the cart stepper under `.w4e-cartrow`, the range slider under `.w4e-filter__form`; the gallery set already lived in `.w4e-gal`, so `assets/gallery.css` is removed (`woo4etch/enqueue_gallery_css` gone with it). The records render exactly with the blocks (Etch tree-shakes unreferenced class records — verified against the Etch source), are editable per class in the builder, and — bonus — their `var(--primary, …)` token fallbacks now resolve real ACSS variables in site context. The scripts keep their inline CSS only as a fallback for installs without Etch (localized `stylesInEtch` flag).
+
 ## [1.6.0] — 2026-07-30
 
 First full release after the 1.5.0 beta series — sites on 1.4.x are offered this update (it includes everything from betas 1–6 below). Findings from a production build and a full E2E test round (Caracciolo Olivenöl staging — Etch 1.6.4, WooCommerce block theme, Germanized, Mollie — plus wp-env with Germanized, YITH Wishlist and Variation Swatches).
@@ -222,6 +228,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.6.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.1
 [1.6.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.0
 [1.4.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.1
 [1.4.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.4.0

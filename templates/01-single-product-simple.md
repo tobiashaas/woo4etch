@@ -228,7 +228,7 @@ Caveats:
   ```
 
 - In the hand-written variant `data-thumb="{image.url}"` points at the full-size file — fine for small galleries, but the thumbnail strip then downloads full images. `[woo_gallery mode="woo"]` uses the registered `woocommerce_gallery_thumbnail` size instead; prefer it for image-heavy products.
-- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. With **Disable WooCommerce default styles** checked, the plugin ships a replacement automatically: **`assets/gallery.css`** is enqueued together with the gallery scripts (Woo4Etch 1.6.0+; disable via `add_filter('woo4etch/enqueue_gallery_css', '__return_false')`). It's the production-proven set (issue #20) — worth knowing what it guards even if you restyle it:
+- Slider and zoom-trigger styling (`.flex-control-thumbs`, the 🔍 button) lives in WooCommerce's stylesheets. With **Disable WooCommerce default styles** checked you provide the replacement **as Etch class CSS** — never as a separate stylesheet, which would sit outside Etch and fight your builder edits. The ready-made single-product layout already carries the full set nested in its `w4e-gal` class record (open the class in Etch's style panel to adjust it). For a hand-written gallery, put the production-proven set (issue #20) on your own gallery wrapper class as nested rules:
 
   ```css
   /* belt-and-braces against the inline opacity:0 — late/failed JS init must not leave the gallery invisible */
@@ -248,7 +248,7 @@ Caveats:
   .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }
   ```
 
-  The shipped file also carries `--columns-2/3/5` grid variants matching `data-columns`, and uses design tokens with plain fallbacks throughout — override any of it from Etch (all rules are low-specificity class selectors). If the gallery column lives in a CSS grid, keep its track `minmax(0, …)` *and* the `min-inline-size: 0` guard — the classic grid-blowout pair.
+  Match the `grid-template-columns: repeat(4, …)` count to your `data-columns` value (add per-column variants if you use different counts per product). The set uses design tokens with plain fallbacks — swap them for your own. If the gallery column lives in a CSS grid, keep its track `minmax(0, …)` *and* the `min-inline-size: 0` guard — the classic grid-blowout pair.
 
   PhotoSwipe brings its own stylesheet either way (separate handle, unaffected by the checkbox).
 - Want only some effects? Pick features individually via the filter instead of the checkbox:

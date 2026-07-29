@@ -46,6 +46,11 @@
         + '.w4e-qty__btn:hover{background:var(--base,#e8e9ec);}';
 
     function injectCss() {
+        // With Etch active the widget styles ship as Etch class records
+        // (nested in the layouts' style records, editable in the builder) —
+        // injecting a stylesheet would fight the user's Etch edits. The
+        // inline CSS below is only the fallback for non-Etch installs.
+        if (i18n.stylesInEtch) return;
         if (document.getElementById('w4e-pills-css')) return;
         var s = document.createElement('style');
         s.id = 'w4e-pills-css';

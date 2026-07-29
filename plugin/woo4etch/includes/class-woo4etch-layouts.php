@@ -584,7 +584,31 @@ final class Woo4Etch_Layouts {
             . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }'
             . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: #fff; border: 1px solid var(--border-color-light, #e5e7eb); border-radius: 999px; }'
         );
-        $info     = self::cls($s, 'w4e-product-info', 'display: flex; flex-direction: column; gap: 14px;');
+        // The buy-box container also carries the styles for the runtime UI
+        // pills.js builds inside it (variation pills, quantity stepper,
+        // variations-table reset) — nested here instead of a plugin
+        // stylesheet, so they live as an Etch class record: visible and
+        // editable in the builder's style panel, rendered exactly when the
+        // block is on the page. Token-based with plain fallbacks.
+        $info     = self::cls(
+            $s,
+            'w4e-product-info',
+            'display: flex; flex-direction: column; gap: 14px;'
+            . ' & .w4e-pills { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }'
+            . ' & .w4e-pill { font-family: var(--text-font-family, inherit); font-size: var(--text-s, 15px); font-weight: 500; color: var(--text-dark, #16181d); background: var(--base-ultra-light, #f6f6f7); border: 1px solid var(--base-light, #d9dbe0); border-radius: calc(var(--radius, 10px) / 2); padding: calc(var(--space-xs, 8px) / 1.5) var(--space-s, 14px); cursor: pointer; }'
+            . ' & .w4e-pill:hover { border-color: var(--primary, #111827); }'
+            . ' & .w4e-pill.is-selected { background: var(--primary, #111827); border-color: var(--primary, #111827); color: #fff; }'
+            . ' & .w4e-pill:focus-visible { outline: 2px solid var(--primary, #111827); outline-offset: 2px; }'
+            . ' & .variations select[data-w4e-pills] { position: absolute; inline-size: 1px; block-size: 1px; clip-path: inset(50%); overflow: hidden; }'
+            . ' & .variations, & .variations tbody, & .variations tr, & .variations th, & .variations td { display: block; padding: 0; border: 0; }'
+            . ' & .variations tr { margin-block-end: var(--space-s, 14px); }'
+            . ' & .variations th.label { margin-block-end: calc(var(--space-xs, 8px) / 2); font-size: var(--text-xs, 13px); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dark, #16181d); }'
+            . ' & .reset_variations { font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); }'
+            . ' & .w4e-qty { display: inline-flex; align-items: stretch; border: 1px solid var(--base-light, #d9dbe0); border-radius: var(--radius, 10px); overflow: hidden; background: var(--base-ultra-light, #f6f6f7); }'
+            . ' & .w4e-qty input.qty, & .w4e-qty input[name="quantity"] { border: 0; border-radius: 0; text-align: center; inline-size: 3.5rem; background: transparent; }'
+            . ' & .w4e-qty__btn { border: 0; background: transparent; color: var(--text-dark, #16181d); font-size: var(--text-m, 17px); font-weight: 600; inline-size: 2.4rem; cursor: pointer; }'
+            . ' & .w4e-qty__btn:hover { background: var(--base, #e8e9ec); }'
+        );
         $title    = self::cls($s, 'w4e-product__title', 'font-size: 32px; letter-spacing: -.02em; margin: 0;');
         $pricerow = self::cls($s, 'w4e-product__pricerow', 'display: flex; align-items: center; gap: 12px;');
         $price    = self::cls($s, 'w4e-product__price', 'font-size: 24px; font-weight: 800;');
@@ -821,6 +845,21 @@ final class Woo4Etch_Layouts {
         $flink     = self::cls($s, 'w4e-filter__link', 'display: flex; justify-content: space-between; gap: 8px; color: #16181d; text-decoration: none; font-size: 14px; &:hover { text-decoration: underline; }');
         $factive   = self::cls($s, 'w4e-filter__link--active', 'font-weight: 700;');
         $fcount    = self::cls($s, 'w4e-filter__count', 'color: #9ca3af;');
+        // The price form record carries the styles for the dual-range slider
+        // price-slider.js builds inside it — as an Etch class record, not a
+        // plugin stylesheet, so it renders with the block and is editable in
+        // the builder's style panel.
+        $fform     = self::cls(
+            $s,
+            'w4e-filter__form',
+            '& .w4e-range { position: relative; height: 28px; margin: 6px 2px 2px; }'
+            . ' & .w4e-range__track { position: absolute; inset-inline: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--base-light, #e6e7eb); }'
+            . ' & .w4e-range__fill { position: absolute; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--primary, #111827); }'
+            . ' & .w4e-range input[type="range"] { position: absolute; inset-inline: 0; top: 0; width: 100%; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; pointer-events: none; }'
+            . ' & .w4e-range input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 999px; background: #fff; border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
+            . ' & .w4e-range input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 999px; background: #fff; border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
+            . ' & .w4e-range input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--primary, #111827); outline-offset: 2px; }'
+        );
         $prices    = self::cls($s, 'w4e-filter__prices', 'display: flex; gap: 8px;');
         $pricein   = self::cls($s, 'w4e-filter__price', 'width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid #e6e7eb; border-radius: 999px; font-size: 14px;');
         $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
@@ -869,7 +908,7 @@ final class Woo4Etch_Layouts {
                             // the current archive URL (no action attribute).
                             // data-w4e-price-max feeds the dual-range slider
                             // enhancement (assets/price-slider.js).
-                            self::el('form', ['class' => 'w4e-filter__form', 'method' => 'get', 'data-w4e-price-max' => '{options.shop_max_price_raw}'], [], [
+                            self::el('form', ['class' => 'w4e-filter__form', 'method' => 'get', 'data-w4e-price-max' => '{options.shop_max_price_raw}'], [$fform], [
                                 self::el('div', ['class' => 'w4e-filter__prices'], [$prices], [
                                     self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'min_price', 'value' => '{options.filter_min_price}', 'placeholder' => 'Min', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Min'),
                                     self::el('input', ['class' => 'w4e-filter__price', 'type' => 'number', 'name' => 'max_price', 'value' => '{options.filter_max_price}', 'placeholder' => 'Max', 'min' => '0', 'inputmode' => 'numeric'], [$pricein], [], 'Max'),

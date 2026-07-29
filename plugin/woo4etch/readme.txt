@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -105,7 +105,7 @@ Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editab
 = Frontend enhancements =
 
 * Variation pills + quantity stepper (Settings checkbox): native attribute selects become pill buttons, quantity fields get −/+ steppers — on product pages and cart rows. Yields automatically to dedicated swatch plugins.
-* WooCommerce gallery scripts (Settings checkbox) + companion CSS: zoom, lightbox and thumbnail slider on hand-written Etch gallery markup — including block themes, where WooCommerce itself never loads them.
+* WooCommerce gallery scripts (Settings checkbox): zoom, lightbox and thumbnail slider on hand-written Etch gallery markup — including block themes, where WooCommerce itself never loads them. The gallery styling ships inside the layout's Etch class record (editable in the builder), not as a plugin stylesheet.
 * Price-range slider on archives: min_price/max_price filter forms are enhanced into a dual-handle slider; filtering stays native WooCommerce.
 * Archive filters for Etch loops: WooCommerce applies ?min_price / ?filter_<attribute> to the main query only — the plugin re-applies them to Etch's main-query loop on shop, category and tag pages.
 
@@ -128,6 +128,9 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.6.1 =
+* Fix: widget styling now lives IN Etch, not in plugin stylesheets. The pills/quantity-stepper and price-slider CSS moved from JS-injected stylesheets into the layouts' Etch class records (nested rules on .w4e-product-info, .w4e-cartrow and .w4e-filter__form — visible and editable in the builder's style panel, rendered exactly with the blocks). assets/gallery.css removed: the gallery styling already ships inside the layout's w4e-gal class record. The scripts keep a small inline fallback only for installs without Etch. Bonus: because the rules now render in site context, their var(--primary, …)-style token fallbacks pick up ACSS variables automatically where present.
 
 = 1.6.0 =
 * New: "Category archive" layout — installs into taxonomy-product_cat: term title, editable SEO intro copy (placeholder), term description via Etch's native {term.description}, filter sidebar + grid. Duplicate as taxonomy-product_cat-{slug} for per-category pages.

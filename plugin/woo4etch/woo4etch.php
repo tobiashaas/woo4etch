@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.6.0
+ * Version:           1.6.1
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -188,7 +188,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.6.0';
+    const VERSION = '1.6.1';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -891,6 +891,8 @@ final class Woo4Etch {
         wp_localize_script('woo4etch-price-slider', 'w4ePriceSliderI18n', [
             'min' => __('Minimum price', 'woo4etch'),
             'max' => __('Maximum price', 'woo4etch'),
+            // See enqueue_pills_script(): styles live as Etch records.
+            'stylesInEtch' => defined('ETCH_PLUGIN_FILE'),
         ]);
     }
 
@@ -924,6 +926,10 @@ final class Woo4Etch {
             'selectLabel' => __('Choose %s', 'woo4etch'),
             'decrease'    => __('Decrease quantity', 'woo4etch'),
             'increase'    => __('Increase quantity', 'woo4etch'),
+            // With Etch active the widget styles live as Etch class records
+            // (nested in the layouts' records — editable in the builder);
+            // the script then must NOT inject its fallback stylesheet.
+            'stylesInEtch' => defined('ETCH_PLUGIN_FILE'),
         ]);
     }
 
@@ -1114,22 +1120,14 @@ final class Woo4Etch {
             wp_enqueue_script('wc-single-product');
         }
 
-        // Companion CSS for the gallery DOM the scripts produce (FlexSlider
-        // viewport, thumbnail strip, lightbox trigger) — WooCommerce's own
-        // stylesheets would cover this, but these builds typically disable
-        // them ("Disable WooCommerce default styles"), leaving the gallery
-        // unstyled and, worse, collapsible (viewport measured at 0) or
-        // invisible (inline opacity:0 with late/failed JS init). Tokens with
-        // plain fallbacks; disable:
-        //   add_filter('woo4etch/enqueue_gallery_css', '__return_false');
-        if (apply_filters('woo4etch/enqueue_gallery_css', true)) {
-            wp_enqueue_style(
-                'woo4etch-gallery',
-                plugins_url('assets/gallery.css', __FILE__),
-                [],
-                self::VERSION
-            );
-        }
+        // No companion stylesheet here on purpose: the gallery styling
+        // (FlexSlider viewport, thumbnail grid, lightbox trigger, the
+        // opacity/collapse guards) ships as an Etch class record — nested in
+        // the ready-made layout's .w4e-gal record, visible and editable in
+        // the builder's style panel. A plugin stylesheet would sit outside
+        // Etch and fight the user's class edits. For hand-written galleries
+        // outside the layout, copy the documented CSS onto your own gallery
+        // class in Etch (templates/01, gallery variant).
     }
 
     /* ============================================================
