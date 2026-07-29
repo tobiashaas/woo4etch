@@ -71,6 +71,11 @@ final class Woo4Etch_Layouts {
                 'description' => 'Order confirmation from {options.order}: notice, order overview (number, date, total, payment), line items loop. Shows only when an order is in context.',
                 'area'        => 'Thank-you',
             ],
+            'notices' => [
+                'name'        => 'Woo notices — feedback messages',
+                'description' => 'Queued WooCommerce feedback ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup via [woo_notices format="plain"]. Already included in the cart, single-product and account layouts; insert this standalone version near the top of any other page layout. Tip: select it in Etch and save it as a component to manage the notices region globally.',
+                'area'        => 'Global',
+            ],
         ];
     }
 
@@ -478,6 +483,36 @@ final class Woo4Etch_Layouts {
         return self::cls($styles, 'w4e-badge', 'display: inline-block; align-self: flex-start; background: #ff4d2d; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;');
     }
 
+    /**
+     * Shared Woo-notices region — [woo_notices format="plain"] wrapped in a
+     * styleable .w4e-notices element. The one block every page layout needs:
+     * without it, Woo feedback ("Cart updated.", coupon/form/security errors)
+     * is invisible and failed actions look like silent no-ops.
+     *
+     * Structurally identical in every layout on purpose: select any instance
+     * in Etch and "save as component" to manage it globally (Etch has no API
+     * for plugins to install components directly — see ETCH-FEATURE-REQUESTS.md).
+     * The element carries all notice style refs so the records survive with it.
+     */
+    private static function notices_block(array &$styles) {
+        $refs = [
+            self::cls($styles, 'w4e-notices', 'display: flex; flex-direction: column; gap: 10px; margin-block-end: 20px;'),
+            self::cls($styles, 'w4e-notice', 'padding: 12px 16px; border-radius: 8px; border: 1px solid #e5e5e5; background: #fafafa; font-size: 14px; line-height: 1.5;'),
+            self::cls($styles, 'w4e-notice--error', 'background: #fef2f2; border-color: #fecaca; color: #b91c1c;'),
+            self::cls($styles, 'w4e-notice--success', 'background: #f0fdf4; border-color: #bbf7d0; color: #166534;'),
+            self::cls($styles, 'w4e-notice--notice', 'background: #eff6ff; border-color: #bfdbfe; color: #1e40af;'),
+        ];
+        return self::el('div', ['class' => 'w4e-notices'], $refs, [
+            self::raw('[woo_notices format="plain"]', 'Woo notices'),
+        ], 'Notices');
+    }
+
+    /** Standalone "Woo notices" layout — just the shared block, insert anywhere. */
+    private static function layout_notices() {
+        $s = [];
+        return ['block' => self::notices_block($s), 'styles' => $s];
+    }
+
     /** Single product: gallery + buy box. */
     private static function layout_product_single() {
         $s = [];
@@ -522,6 +557,9 @@ final class Woo4Etch_Layouts {
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-product'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                // Add-to-cart feedback (qty limits, out-of-stock, required
+                // variation …) arrives as Woo notices on this page.
+                self::notices_block($s),
                 self::el('div', ['class' => 'w4e-product-layout'], [$layout], [
 
                     self::el('div', [
@@ -716,6 +754,9 @@ final class Woo4Etch_Layouts {
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-account woocommerce-account'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                // Login/register errors, "address saved", password changes —
+                // all account feedback arrives as Woo notices.
+                self::notices_block($s),
                 self::el('div', ['class' => 'w4e-account-layout'], [$layout], [
 
                     self::el('nav', ['class' => 'w4e-account-nav', 'aria-label' => 'Account navigation'], [$nav], [

@@ -16,6 +16,7 @@ Findings from a production build (Caracciolo Olivenöl staging — Etch 1.6.2, W
 - **`{this.is_sold_individually}`** exposed in the product data bridge, matching its sibling booleans (`is_purchasable`, `is_featured`, …) — lets layouts hide the quantity input for one-per-order products via `{#if !this.is_sold_individually}`. The `[woo_if]` shortcode already supported `sold_individually`; this brings the Etch context to parity. (#15, thanks @zackpyle)
 - **`[woo_notices format="plain"]`** — renders queued Woo notices as minimal class-based markup (`.w4e-notice` + `--error/--success/--notice` modifiers) instead of Woo's template markup, so the notices can be styled in Etch (Woo's own notice templates assume Woo's stylesheets, which these builds often disable). Default format unchanged.
 - **`{options.shop_url}`** (and `{woo.shop.url}`) — shop page URL, for the "Return to shop" link of empty-cart states.
+- **"Woo notices" ready-made layout** — the feedback region (`[woo_notices format="plain"]` in a styled `.w4e-notices` wrapper) as a standalone install/paste (`notices.json`), and the **single-product and account layouts now include the same block** (add-to-cart errors on the product page; login/register/address feedback on the account page — all Woo notices). The block is structurally identical everywhere so one instance can be saved as an Etch **component** and manage the region globally; Etch has no API for plugins to install components directly (tracked in `ETCH-FEATURE-REQUESTS.md`), so the layouts inline it.
 
 ### Fixed
 

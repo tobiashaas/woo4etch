@@ -295,6 +295,15 @@ Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_
                             styles are disabled
 ```
 
+> **Every page layout needs a notices region** — "Cart updated.", coupon, login
+> and security errors all arrive as Woo notices; without an output they fail
+> *silently*. The ready-made layouts (cart, single product, account) include a
+> `.w4e-notices` block, and **Ready-made layouts → Woo notices** installs it
+> standalone for any other layout. The block is structurally identical
+> everywhere on purpose: select one instance in Etch and **save it as a
+> component** to control the region globally (a plugin cannot install Etch
+> components — no API; see `ETCH-FEATURE-REQUESTS.md`).
+
 `[woo_result_count]`, `[woo_catalog_ordering]`, and `[woo_pagination]` read the current loop, so place them on a shop/archive template where the main product query runs.
 
 ### Conditional rendering
