@@ -83,26 +83,34 @@ foreach ($pages as $key => $url) {
 
 /* ---- Layout markers appear in the rendered output where installed ---- */
 
+// push_status() counts native Woo markup (cart block/shortcode) as "present"
+// too — for the render assertion only the w4e layout counts, so probe the
+// target's CONTENT for the w4e marker first and skip when the area is covered
+// natively (fresh installs ship Woo's own cart/account blocks).
 $marker_map = [
-    'cart'         => ['page' => 'cart', 'markers' => ['w4e-cart']],
-    'account'      => ['page' => 'myaccount', 'markers' => ['w4e-account']],
-    'product-grid' => ['page' => 'shop', 'markers' => ['w4e-shop']],
+    'cart'         => ['page' => 'cart', 'marker' => 'w4e-cart'],
+    'account'      => ['page' => 'myaccount', 'marker' => 'w4e-account'],
+    'product-grid' => ['page' => 'shop', 'marker' => 'w4e-shop'],
 ];
 foreach ($marker_map as $slug => $spec) {
-    $status = Woo4Etch_Health::push_status($slug);
-    if (empty($status['present'])) {
-        w4e_it_skip("{$slug}: layout not at its target on this site");
+    $target  = Woo4Etch_Health::push_target($slug);
+    $content = '';
+    if ($target && 'page' === $target['kind']) {
+        $post    = $target['page_id'] > 0 ? get_post($target['page_id']) : null;
+        $content = $post ? (string) $post->post_content : '';
+    } elseif ($target) {
+        $post    = Woo4Etch_Health::find_template($target['template_slug']);
+        $content = $post ? (string) $post->post_content : '';
+    }
+    if ($content === '' || strpos($content, $spec['marker']) === false) {
+        w4e_it_skip("{$slug}: w4e layout not at its target on this site (native Woo markup or empty)");
         continue;
     }
-    $body  = isset($bodies[$spec['page']]) ? $bodies[$spec['page']] : '';
-    $found = false;
-    foreach ($spec['markers'] as $marker) {
-        if ($body !== '' && strpos($body, $marker) !== false) {
-            $found = true;
-            break;
-        }
-    }
-    w4e_it($found, "{$slug}: layout marker renders on the {$spec['page']} page");
+    $body = isset($bodies[$spec['page']]) ? $bodies[$spec['page']] : '';
+    w4e_it(
+        $body !== '' && strpos($body, $spec['marker']) !== false,
+        "{$slug}: layout marker renders on the {$spec['page']} page"
+    );
 }
 
 /* ---- Single product: the Woo add-to-cart contract renders ---- */
