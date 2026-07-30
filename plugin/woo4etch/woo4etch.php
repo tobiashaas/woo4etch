@@ -673,6 +673,13 @@ final class Woo4Etch {
                 'description' => __('Order details table (thank-you / view-order). Falls back to the current order; explicit order_id needs ownership, the order key, or shop-manager rights.', 'woo4etch'),
                 'example'     => '[woo_order_details]',
             ],
+            'woo_checkout_block' => [
+                'method'      => 'shortcode_checkout_block',
+                'category'    => __('Cart', 'woo4etch'),
+                'attributes'  => '—',
+                'description' => __('Embeds WooCommerce\'s native Checkout BLOCK inside an Etch layout: full native protections (card-testing rate limiting via WooCommerce → Settings → Advanced → Features) and every gateway\'s official client integration. Trade-off: the markup inside the block is WooCommerce\'s — customize via the Additional Checkout Fields API, block attributes and CSS, while Etch owns everything around it. The classic [woocommerce_checkout] remains the full-markup-control route.', 'woo4etch'),
+                'example'     => '[woo_checkout_block]',
+            ],
 
             /* ---- Store & archive (extended) ---- */
             'woo_product_search' => [
@@ -912,6 +919,50 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * [woo_checkout_block] — embed WooCommerce's native Checkout BLOCK inside
+     * an Etch layout (issue #26, spike-verified). The bare self-closing block
+     * renders empty (it is a container whose render() outputs the inner
+     * blocks), so the full inner tree is resolved from, in order:
+     *
+     * 1. the WooCommerce-assigned checkout page, when it carries the block
+     *    (keeps any block-attribute customization the user made there),
+     * 2. WooCommerce's own default checkout block content (WC_Install).
+     *
+     * Verified in wp-env: the block hydrates on any page (its render()
+     * enqueues the scripts), a full purchase completes, and the native
+     * card-testing rate limiting (Advanced → Features) engages on the
+     * Store API endpoint the block posts to — 3 attempts / 60 s with
+     * RateLimit-* headers, admin users exempt by Woo's own design.
+     */
+    public static function shortcode_checkout_block() {
+        if (!function_exists('WC') || !class_exists('WC_Install')) {
+            return '';
+        }
+
+        $content = '';
+        $page    = get_post(wc_get_page_id('checkout'));
+        if ($page && has_block('woocommerce/checkout', $page)) {
+            foreach (parse_blocks($page->post_content) as $block) {
+                if ('woocommerce/checkout' === ($block['blockName'] ?? '')) {
+                    $content = serialize_block($block);
+                    break;
+                }
+            }
+        }
+        if ('' === $content) {
+            try {
+                $method = new ReflectionMethod('WC_Install', 'get_checkout_block_content');
+                $method->setAccessible(true);
+                $content = (string) $method->invoke(null);
+            } catch (ReflectionException $e) {
+                $content = '<!-- wp:woocommerce/checkout /-->';
+            }
+        }
+
+        return do_blocks($content);
     }
 
     /**

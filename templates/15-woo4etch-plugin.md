@@ -278,6 +278,10 @@ The gallery shortcode mirrors the `gallery_images` Dynamic Key (see [`00-README.
 [woo_coupon_form]            → "Have a coupon?" + apply form
 [woo_shipping_calculator]    → cart shipping calculator
 [woo_cross_sells]            → cross-sell products
+[woo_checkout_block]         → embed the native Checkout BLOCK in an Etch
+                               layout: native protections + official gateway
+                               integrations; markup inside is Woo's
+                               (see 06-checkout.md, option ladder)
 ```
 
 ### Account

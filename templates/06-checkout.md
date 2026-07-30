@@ -373,6 +373,18 @@ add_filter('woocommerce_checkout_fields', function ($fields) {
 });
 ```
 
+## Which checkout? The option ladder
+
+Three routes, ordered by markup control vs. native protection (spike-verified in wp-env, issue #26):
+
+| Option | Markup control | Native Woo protection | When |
+|---|---|---|---|
+| **A) Classic shortcode checkout** (this template) | **Full** — every element is your Etch HTML | None natively — enable **Woo4Etch → Settings → Checkout rate limiting** (see Security below) | You want the checkout to look exactly like the rest of your Etch build |
+| **B) `[woo_checkout_block]`** — the native Checkout **block** embedded in your Etch layout | Around the block: full Etch. Inside: WooCommerce's markup — customize via the [Additional Checkout Fields API](https://developer.woocommerce.com/docs/block-development/extensible-blocks/cart-and-checkout-blocks/additional-checkout-fields/), block attributes (`showOrderNotes` …) and CSS (stable, class-rich markup) | **Full native card-testing rate limiting** (Advanced → Features; verified: 3/60 s with `RateLimit-*` headers on the Store API endpoint) + every gateway's official client integration (Stripe Elements, Mollie components, express payments) | You value gateway compatibility and native protections over pixel-level control of the form itself |
+| **C) Headless Store API checkout** | Full | Store API rate limiting | Only for redirect/hosted-gateway-or-COD stores — client-side tokenizing gateways (Stripe Elements & co.) only ship block integrations. Not documented here; open an issue if you need it |
+
+`[woo_checkout_block]` resolves the block's inner tree from your assigned checkout page when it carries the block (keeping your block-attribute customization), falling back to WooCommerce's default checkout block content. Verified end-to-end: hydrates on any page inside Etch markup, completes a purchase, and redirects to your Woo4Etch thank-you layout.
+
 ## Security — card-testing attacks & rate limiting
 
 **WooCommerce's native checkout rate limiting does not protect this page.** The toggle under *WooCommerce → Settings → Advanced → Features* (WC 9.6+, with client fingerprinting since 9.8) only guards the **Checkout block's** Store API path (`POST /wc/store/v1/checkout`). The classic shortcode checkout this template uses submits through `?wc-ajax=checkout` — which has **no native rate limiting at all**. Card-testing bots hammering that endpoint reach your payment gateway unthrottled.

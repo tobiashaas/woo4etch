@@ -65,6 +65,7 @@ Cart:
 * `[woo_coupon_form]` — apply-coupon form
 * `[woo_shipping_calculator]` — cart shipping calculator
 * `[woo_cross_sells]` — cross-sell products
+* `[woo_checkout_block]` — embed WooCommerce's native Checkout BLOCK inside an Etch layout: full native protections (incl. card-testing rate limiting) and every gateway's official client integration; customize via the Additional Checkout Fields API + CSS while Etch owns the surroundings
 
 Account:
 
