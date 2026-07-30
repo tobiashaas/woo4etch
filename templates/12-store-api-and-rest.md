@@ -143,6 +143,13 @@ document.addEventListener('woo4etch:cart-updated', (e) => { /* … */ });
 The layer also triggers jQuery `wc_fragment_refresh` when `wc-cart-fragments`
 is present, so fragment-based third-party mini-carts resync.
 
+**Checkout (1.8.0+):** the same layer upgrades a hand-built checkout form
+marked `data-w4e-checkout` — `update-customer` on address edits,
+`select-shipping-rate`, and order placement via `POST /wc/store/v1/checkout`
+(native checkout rate limiting applies) for redirect/offline gateways, with
+`[data-w4e-checkout-region]` swaps and an always-sent Germanized checkbox
+extension. Full reference: [`06-checkout.md`](./06-checkout.md#option-a--the-store-api-checkout-woo4etch-180).
+
 ### Store API rate limiting
 
 WooCommerce ships a rate limiter for these endpoints (off by default;

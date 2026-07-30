@@ -98,8 +98,16 @@
         });
     }
 
+    // Cart regions on any page, checkout regions on the A+ checkout —
+    // both are swapped with freshly server-rendered HTML after writes.
+    var REGION_SELECTOR = '[data-w4e-cart-region], [data-w4e-checkout-region]';
+
+    function regionAttr(el) {
+        return el.hasAttribute('data-w4e-cart-region') ? 'data-w4e-cart-region' : 'data-w4e-checkout-region';
+    }
+
     function regionElements() {
-        var marked = document.querySelectorAll('[data-w4e-cart-region]');
+        var marked = document.querySelectorAll(REGION_SELECTOR);
         if (marked.length) return Array.prototype.slice.call(marked);
         return Array.prototype.slice.call(document.querySelectorAll('.w4e-cart, .w4e-minicart'));
     }
@@ -109,11 +117,12 @@
             .then(function (res) { return res.text(); })
             .then(function (html) {
                 var doc = new DOMParser().parseFromString(html, 'text/html');
-                var marked = document.querySelectorAll('[data-w4e-cart-region]');
+                var marked = document.querySelectorAll(REGION_SELECTOR);
                 if (marked.length) {
                     marked.forEach(function (el) {
-                        var key = el.getAttribute('data-w4e-cart-region');
-                        var next = doc.querySelector('[data-w4e-cart-region="' + (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
+                        var attr = regionAttr(el);
+                        var key = el.getAttribute(attr);
+                        var next = doc.querySelector('[' + attr + '="' + (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
                         if (next) el.replaceWith(next);
                     });
                 } else {
@@ -257,5 +266,125 @@
                 notice(i18n.added || 'Added to your cart.', 'success');
             });
         }).catch(fail);
+    });
+
+    /* ---------------- Store API checkout (A+, issue #27) ---------------- */
+    /*
+     * Opt-in via <form ... data-w4e-checkout> in the layout — the classic
+     * shortcode checkout (wc-checkout.js) is never touched. The form keeps
+     * working as a classic ?wc-ajax=checkout POST without JS or for gateways
+     * outside the allowlist; with the layer active, address edits recalc
+     * shipping/totals live (update-customer), rate picks go through
+     * select-shipping-rate, and the order is placed via POST /checkout —
+     * which puts the hand-built checkout under Woo's native checkout rate
+     * limiting. Redirect/offline gateways only: the response's
+     * payment_result.redirect_url is followed (Mollie hosted, PayPal,
+     * COD/invoice → order-received).
+     */
+
+    var ADDRESS_FIELDS = ['first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'phone'];
+
+    function gatewayAllowed(id) {
+        var list = cfg.checkoutGateways || [];
+        for (var i = 0; i < list.length; i++) {
+            var p = list[i];
+            if (p.slice(-1) === '*' ? id.indexOf(p.slice(0, -1)) === 0 : id === p) return true;
+        }
+        return false;
+    }
+
+    function readAddress(form, prefix, withEmail) {
+        var out = {};
+        ADDRESS_FIELDS.forEach(function (f) {
+            var el = form.querySelector('[name="' + prefix + '_' + f + '"]');
+            if (el) out[f] = el.value;
+        });
+        if (withEmail) {
+            var email = form.querySelector('[name="billing_email"]');
+            if (email) out.email = email.value;
+        }
+        return out;
+    }
+
+    function readAddresses(form) {
+        var billing  = readAddress(form, 'billing', true);
+        var shipDiff = form.querySelector('[name="ship_to_different_address"]');
+        var shipping = (shipDiff && shipDiff.checked) ? readAddress(form, 'shipping', false) : readAddress(form, 'billing', false);
+        return { billing_address: billing, shipping_address: shipping };
+    }
+
+    var customerTimer = null;
+
+    document.addEventListener('change', function (e) {
+        var form = e.target.closest ? e.target.closest('form[data-w4e-checkout]') : null;
+        if (!form || busy) return;
+
+        // Shipping rate picked → select-shipping-rate, totals re-render.
+        if (/^shipping_method/.test(e.target.name || '')) {
+            setBusy(true);
+            api('/cart/select-shipping-rate', 'POST', { package_id: 0, rate_id: e.target.value })
+                .then(afterWrite).catch(fail);
+            return;
+        }
+
+        // Address-relevant fields → update-customer (debounced): Woo
+        // recalculates shipping rates + totals server-side.
+        if (/^(billing|shipping)_(country|state|postcode|city|address_1)$|^ship_to_different_address$/.test(e.target.name || '')) {
+            window.clearTimeout(customerTimer);
+            customerTimer = window.setTimeout(function () {
+                setBusy(true);
+                api('/cart/update-customer', 'POST', readAddresses(form)).then(afterWrite).catch(fail);
+            }, 600);
+        }
+    });
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form.hasAttribute || !form.hasAttribute('data-w4e-checkout') || busy) return;
+
+        var picked  = form.querySelector('[name="payment_method"]:checked');
+        var gateway = picked ? picked.value : '';
+        if (!gatewayAllowed(gateway)) return; // classic submit stays the path
+
+        e.preventDefault();
+        setBusy(true);
+
+        var payload = readAddresses(form);
+        payload.payment_method = gateway;
+        var note = form.querySelector('[name="order_comments"]');
+        if (note && note.value) payload.customer_note = note.value;
+
+        // Germanized legal checkboxes: their Store API validation is skipped
+        // entirely when this key is absent — send it ALWAYS while Germanized
+        // is active. Inputs carry data-w4e-checkbox="<id>" (rendered from
+        // {options.checkout.checkboxes}); a checkbox missing from the layout
+        // counts as unchecked, so required boxes surface as a visible error
+        // instead of being silently skipped.
+        if (cfg.gzd) {
+            var boxes = [];
+            form.querySelectorAll('[data-w4e-checkbox]').forEach(function (el) {
+                boxes.push({ id: el.getAttribute('data-w4e-checkbox'), checked: !!el.checked });
+            });
+            payload.extensions = { 'woocommerce-germanized': { checkboxes: boxes } };
+        }
+
+        api('/checkout', 'POST', payload)
+            .then(function (res) {
+                var redirect = res && res.payment_result && res.payment_result.redirect_url;
+                if (redirect) {
+                    window.location.assign(redirect);
+                    return;
+                }
+                // No redirect target — should not happen for allowlisted
+                // gateways; fall back to a visible error, order state is
+                // recoverable via the account/order pages.
+                setBusy(false);
+                notice(i18n.error || 'Something went wrong.', 'error');
+            })
+            .catch(function (err) {
+                // Swap first (totals/validation state may have moved), THEN
+                // show the error — the notices region can live inside a region.
+                refreshRegions().then(function () { fail(err); });
+            });
     });
 })();

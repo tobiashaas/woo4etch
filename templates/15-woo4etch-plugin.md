@@ -87,6 +87,7 @@ These ship with the plugin and never output HTML — they only support your own 
 | **Price-range slider** | a form containing `min_price` + `max_price` inputs on a product archive (WooCommerce's native filter params) — enhanced into a dual-handle slider synced with the fields; bound from `data-w4e-price-max` (see [`03-product-archive.md`](./03-product-archive.md#filter-sidebar--native-woocommerce-filtering-no-plugin)) | `woo4etch/enqueue_price_slider` (default: shop/taxonomy archives) |
 | **Archive filters for Etch loops** | WooCommerce's native `?min_price` / `?filter_<attribute>` params — Woo applies them to the main query only; the plugin re-applies them to Etch's main-query loop (a secondary query) on shop/category/tag pages | `woo4etch/filter_secondary_product_queries` (default: on) |
 | **Store API cart interactions** | the classic Woo names your markup already carries: `form.cart` submits, `cart[<key>][qty]` inputs, `?remove_item=` / `?remove_coupon=` links, `apply_coupon` buttons; mark live-updating blocks with `data-w4e-cart-region="<name>"` (fallback: `.w4e-cart`, `.w4e-minicart`); listen to `woo4etch:cart-updated` for custom reactions | Settings checkbox (default: on) |
+| **Store API checkout (A+)** (1.8.0+) | `data-w4e-checkout` on your hand-built checkout form — address edits recalc shipping/totals live (`update-customer`), rate picks via `select-shipping-rate`, order placed via `POST /wc/store/v1/checkout` (native rate limiting applies); `[data-w4e-checkout-region]` blocks re-render after writes; legal checkboxes via `data-w4e-checkbox="<id>"`; redirect/offline gateways only — others submit classically (see [`06-checkout.md`](./06-checkout.md#option-a--the-store-api-checkout-woo4etch-180)) | same setting; gateway allowlist: `woo4etch/store_api_checkout_gateways` |
 
 ## Ready-made layouts (one-click page install)
 
@@ -534,6 +535,7 @@ Available keys:
 | `{options.cart_discount}` | formatted total discount, `''` when no coupon is active (1.7.0+) |
 | `{options.cart_shipping_total}` | formatted shipping total, `''` when nothing in the cart ships (1.7.0+) |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
+| `{options.checkout}` | checkout bridge (1.8.0+): `payment_methods` (`id, title, description, icon`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (Germanized legal checkboxes for THIS cart: `id, label, error, required`), `needs_shipping`, `nonce` (classic-fallback nonce) — the whole checkout form becomes hand-written Etch loops; see [`06-checkout.md`](./06-checkout.md#option-a--the-store-api-checkout-woo4etch-180) |
 | `{options.cross_sells}` | array for "You may also like" — the cart products' *Linked Products → Cross-sells*; when none are maintained, random catalog products fill in (disable: `woo4etch/cross_sells_fallback`, count: `woo4etch/cross_sells_limit`) |
 | `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
 | `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |

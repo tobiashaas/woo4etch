@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.7.0
+ * Version:           1.8.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -224,7 +224,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.7.0';
+    const VERSION = '1.8.0';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -245,6 +245,7 @@ final class Woo4Etch {
         // and thank-you pages can be built as pure Etch loops with full HTML control.
         // Disable individually: woo4etch/expose_cart_data, woo4etch/expose_account_data.
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_cart_data']);
+        add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_checkout_data']);
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_account_order_data']);
         add_filter('etch/dynamic_data/option', [__CLASS__, 'expose_shop_data']);
 
@@ -956,6 +957,27 @@ final class Woo4Etch {
         wp_localize_script('woo4etch-store-api', 'w4eStoreApi', [
             'restUrl' => esc_url_raw(rest_url('wc/store/v1')),
             'nonce'   => wp_create_nonce('wc_store_api'),
+            /*
+             * Store API checkout (issue #27): gateways safe to place the order
+             * through POST /wc/store/v1/checkout — redirect/offline flows whose
+             * payment_result carries a redirect_url. Anything needing client-side
+             * tokenization (inline card fields) is NOT listed and keeps the
+             * classic submit. `*` suffix = prefix match.
+             */
+            'checkoutGateways' => apply_filters('woo4etch/store_api_checkout_gateways', [
+                'bacs',
+                'cheque',
+                'cod',
+                'invoice',
+                'mollie_wc_gateway_*',
+            ]),
+            /*
+             * Germanized guard: its Store API checkbox validation is skipped
+             * entirely when the request lacks the extensions key — the
+             * checkout module therefore ALWAYS sends it while Germanized is
+             * active (verified against the plugin source).
+             */
+            'gzd'     => class_exists('WC_GZD_Legal_Checkbox_Manager'),
             'i18n'    => [
                 'added'         => __('Added to your cart.', 'woo4etch'),
                 'couponApplied' => __('Coupon code applied successfully.', 'woo4etch'),
@@ -2784,6 +2806,165 @@ final class Woo4Etch {
             ], $code);
         }
         return $out;
+    }
+
+    /**
+     * Checkout data for the Store API checkout (issue #27) as Etch dynamic
+     * data — so payment methods, shipping rates and legal checkboxes are
+     * hand-written Etch loops, never injected markup. Hooked to
+     * `etch/dynamic_data/option`.
+     *
+     * Exposes {options.checkout}:
+     *   payment_methods — array; each: id, title, description, icon (HTML)
+     *   shipping_rates  — array; each: id, package, label, price, selected
+     *   checkboxes      — array (Germanized legal checkboxes when active);
+     *                     each: id, label (HTML), error
+     *   needs_shipping  — bool
+     *   nonce           — classic checkout nonce (for the no-JS fallback form)
+     *
+     * Disable: add_filter('woo4etch/expose_checkout_data','__return_false').
+     * Reshape: add_filter('woo4etch/checkout_data', fn($d) => $d).
+     *
+     * @param array<string,mixed> $data Existing option data.
+     * @return array<string,mixed>
+     */
+    public static function expose_checkout_data($data) {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        if (!apply_filters('woo4etch/expose_checkout_data', true)) {
+            return $data;
+        }
+
+        static $checkout = null;
+        if ($checkout !== null) {
+            $data['checkout'] = $checkout;
+            return $data;
+        }
+
+        if (self::is_etch_builder()) {
+            $checkout = self::sample_checkout_data();
+            $data['checkout'] = $checkout;
+            return $data;
+        }
+
+        $cart  = (function_exists('WC') && WC()) ? WC()->cart : null;
+        $empty = [
+            'payment_methods' => [],
+            'shipping_rates'  => [],
+            'checkboxes'      => [],
+            'needs_shipping'  => false,
+            'nonce'           => '',
+        ];
+        if (!$cart instanceof WC_Cart || $cart->is_empty() || !WC()->session) {
+            $checkout = $empty;
+            $data['checkout'] = $checkout;
+            return $data;
+        }
+
+        $methods = [];
+        if (WC()->payment_gateways()) {
+            foreach (WC()->payment_gateways()->get_available_payment_gateways() as $gateway) {
+                $methods[] = [
+                    'id'          => $gateway->id,
+                    'title'       => $gateway->get_title(),
+                    'description' => wp_kses_post(wpautop(wptexturize((string) $gateway->get_description()))),
+                    'icon'        => wp_kses_post((string) $gateway->get_icon()),
+                ];
+            }
+        }
+
+        $rates          = [];
+        $needs_shipping = $cart->needs_shipping();
+        if ($needs_shipping) {
+            if (!WC()->shipping()->get_packages()) {
+                $cart->calculate_shipping();
+            }
+            $chosen    = (array) WC()->session->get('chosen_shipping_methods');
+            $incl_tax  = 'incl' === $cart->get_tax_price_display_mode();
+            foreach (WC()->shipping()->get_packages() as $i => $package) {
+                foreach ($package['rates'] as $rate) {
+                    $cost = (float) $rate->get_cost();
+                    if ($incl_tax) {
+                        $cost += array_sum(array_map('floatval', (array) $rate->get_taxes()));
+                    }
+                    $rates[] = [
+                        'id'       => $rate->get_id(),
+                        'package'  => $i,
+                        'label'    => $rate->get_label(),
+                        'price'    => self::plain(wc_price($cost)),
+                        'selected' => in_array($rate->get_id(), $chosen, true),
+                    ];
+                }
+            }
+        }
+
+        $checkout = apply_filters('woo4etch/checkout_data', [
+            'payment_methods' => $methods,
+            'shipping_rates'  => $rates,
+            'checkboxes'      => self::checkout_checkboxes(),
+            'needs_shipping'  => $needs_shipping,
+            // For the no-JS fallback: a hand-built form posting classically to
+            // ?wc-ajax=checkout needs this as woocommerce-process-checkout-nonce.
+            'nonce'           => wp_create_nonce('woocommerce-process_checkout'),
+        ]);
+        $data['checkout'] = $checkout;
+        return $data;
+    }
+
+    /**
+     * Germanized legal checkboxes for the current checkout, using the same
+     * manager call the plugin's own blocks integration uses (locations
+     * checkout, render context — only checkboxes that apply to THIS cart).
+     * Empty when Germanized isn't active.
+     *
+     * @return array<int,array<string,string>>
+     */
+    private static function checkout_checkboxes() {
+        if (!class_exists('WC_GZD_Legal_Checkbox_Manager')) {
+            return [];
+        }
+        $manager = \WC_GZD_Legal_Checkbox_Manager::instance();
+        // Same relevance filtering as Germanized's own blocks integration
+        // (is_printable + its force-print filter), so both paths show the
+        // identical set for the current cart.
+        $force = apply_filters('woocommerce_gzd_checkout_block_checkboxes_force_print_checkboxes', ['privacy']);
+        $out   = [];
+        foreach ($manager->get_checkboxes(['locations' => 'checkout', 'sort' => true], 'render') as $id => $checkbox) {
+            if (method_exists($checkbox, 'is_printable') && !$checkbox->is_printable() && !in_array((string) $id, (array) $force, true)) {
+                continue;
+            }
+            $out[] = [
+                'id'       => (string) $id,
+                'label'    => wp_kses_post((string) $checkbox->get_label()),
+                'error'    => self::plain((string) $checkbox->get_error_message()),
+                'required' => method_exists($checkbox, 'is_mandatory') ? (bool) $checkbox->is_mandatory() : true,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Sample checkout data for the Etch builder canvas preview.
+     *
+     * @return array<string,mixed>
+     */
+    private static function sample_checkout_data() {
+        return apply_filters('woo4etch/checkout_sample_data', [
+            'payment_methods' => [
+                ['id' => 'sample_card', 'title' => __('Card', 'woo4etch'), 'description' => __('Pay securely by card.', 'woo4etch'), 'icon' => ''],
+                ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => ''],
+            ],
+            'shipping_rates'  => [
+                ['id' => 'flat_rate:1', 'package' => 0, 'label' => __('Standard shipping', 'woo4etch'), 'price' => self::plain(wc_price(4.9)), 'selected' => true],
+                ['id' => 'flat_rate:2', 'package' => 0, 'label' => __('Express', 'woo4etch'), 'price' => self::plain(wc_price(12.9)), 'selected' => false],
+            ],
+            'checkboxes'      => [
+                ['id' => 'terms', 'label' => __('I agree to the terms and conditions.', 'woo4etch'), 'error' => __('Please accept the terms and conditions.', 'woo4etch')],
+            ],
+            'needs_shipping'  => true,
+            'nonce'           => '',
+        ]);
     }
 
     /**

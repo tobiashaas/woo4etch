@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -108,6 +108,7 @@ All shipped styles are written as Automatic.css tokens with plain fallbacks (var
 = Frontend enhancements =
 
 * Store API cart interactions (Settings checkbox, on by default): add-to-cart submits, cart quantity changes, coupon apply/remove and item removal go through WooCommerce's Store API (/wc/store/v1/cart/*) without page reloads — Woo's own validation, stock checks and error messages included. Reads stay server-rendered: after every write the marked [data-w4e-cart-region] elements re-render as your own Etch HTML, so any hand-built layout live-updates without a markup convention. Forms with third-party extra fields (product add-ons etc.) keep the classic POST; everything degrades to the classic flow without JS.
+* Store API checkout (1.8.0+, same setting): mark your hand-built checkout form with data-w4e-checkout — live shipping/totals recalculation on address edits, shipping-rate selection, and order placement through WooCommerce's natively rate-limited Store API checkout endpoint, for redirect/offline gateways (Mollie, PayPal, COD, invoice, bank transfer). Full markup control and native protections at the same time.
 * Variation pills + quantity stepper (Settings checkbox): native attribute selects become pill buttons, quantity fields get −/+ steppers — on product pages and cart rows. Yields automatically to dedicated swatch plugins.
 * WooCommerce gallery scripts (Settings checkbox): zoom, lightbox and thumbnail slider on hand-written Etch gallery markup — including block themes, where WooCommerce itself never loads them. The gallery styling ships inside the layout's Etch class record (editable in the builder), not as a plugin stylesheet.
 * Price-range slider on archives: min_price/max_price filter forms are enhanced into a dual-handle slider; filtering stays native WooCommerce.
@@ -140,6 +141,12 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.8.0 =
+* New: Store API checkout ("option A+") — add data-w4e-checkout to your hand-built checkout form and the layer upgrades it in place: address edits recalculate shipping/totals live (cart/update-customer), shipping picks go through select-shipping-rate, and the order is placed via POST /wc/store/v1/checkout — putting the fully hand-written Etch checkout under WooCommerce's NATIVE checkout rate limiting (Advanced → Features) and Store API validation, following payment_result.redirect_url to hosted payment pages (Mollie, PayPal) or order-received (COD, invoice, bank transfer). [data-w4e-checkout-region] blocks re-render as server-side Etch HTML after every write. Redirect/offline gateways only (filter woo4etch/store_api_checkout_gateways); other gateways and no-JS submit classically.
+* New: checkout bridge {options.checkout} — payment_methods, shipping_rates, checkboxes (Germanized legal checkboxes, same relevance filtering as its own block integration), needs_shipping and the classic-fallback nonce as Etch dynamic data with builder sample previews: payment list, shipping selector and legal checkboxes are hand-written Etch loops.
+* Compliance: Germanized's Store API checkbox validation is skipped when a request lacks its extensions key — the layer ALWAYS sends it (with every data-w4e-checkbox input's state) while Germanized is active, so required legal confirmations are enforced instead of silently bypassed.
+* Change: shipped layout styling now uses Automatic.css tokens with plain fallbacks (var(--radius, 14px), var(--primary, #111827), --btn-* on buttons, --border-color-dark for borders on light surfaces) — on ACSS sites layouts follow the site's palette/spacing/radius/type out of the box; without ACSS rendering is pixel-identical. Existing installs keep their records; reset via tools/reset-layout-styles.php (repo).
 
 = 1.7.0 =
 * New: Store API cart interactions (on by default, Settings checkbox) — the classic cart/product markup is upgraded in place: add-to-cart, quantity updates, coupon apply/remove and item removal write through WooCommerce's Store API (/wc/store/v1/cart/*) with no page reload; afterwards the plugin refetches the page and swaps every [data-w4e-cart-region] element with freshly server-rendered Etch HTML (fallback: .w4e-cart/.w4e-minicart; .mini-cart-count text-synced). No client-side templating, no markup contract beyond Woo's own field names; add-to-cart forms with third-party extra fields intentionally keep the classic POST; everything falls back to the classic flow without JS. Dispatches woo4etch:cart-updated and triggers wc_fragment_refresh for fragment-based mini-carts.

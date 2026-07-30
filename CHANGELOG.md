@@ -5,7 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
-## [Unreleased]
+## [1.8.0] — 2026-07-31
+
+### Added
+
+- **Store API checkout — option A+** (#27). The hand-built Etch checkout form (marker: `data-w4e-checkout`) is upgraded in place: address edits post `/wc/store/v1/cart/update-customer` (debounced) and WooCommerce recalculates shipping rates + totals server-side; shipping picks go through `select-shipping-rate`; the order is placed via `POST /wc/store/v1/checkout` — which puts the fully hand-written checkout under **WooCommerce's native checkout rate limiting** (Advanced → Features) and Store API validation, with `payment_result.redirect_url` followed to hosted payment pages or order-received. `[data-w4e-checkout-region]` elements re-render as server-side Etch HTML after every write — no client templating, the layout stays yours. Gateway boundary: allowlist of redirect/offline flows (`bacs`, `cheque`, `cod`, `invoice`, `mollie_wc_gateway_*`; filter `woo4etch/store_api_checkout_gateways`) — anything else, and the no-JS case, submits classically. New **checkout bridge** `{options.checkout}`: `payment_methods`, `shipping_rates`, `checkboxes`, `needs_shipping`, `nonce` (classic-fallback) — payment list, shipping selector and legal checkboxes become plain Etch loops with builder sample data. **Germanized:** its Store API checkbox validation is skipped when the extensions key is absent (verified against the plugin source) — the layer always sends it while Germanized is active, and the bridge enumerates exactly the checkboxes Germanized's own block integration would render (`is_printable` + force-print filter parity). Verified E2E: live shipping recalc, unchecked-terms rejection with Germanized's real error as a notice, full COD purchase (`created_via: store-api`) landing on the Etch thank-you; spike-verified on staging incl. a complete Mollie test-mode card payment with order meta identical to a block-checkout order. New integration check (20 assertions). Docs: option ladder rewritten around A / **A+ (recommended)** / B in `06-checkout.md`.
 
 ### Changed
 
@@ -262,6 +266,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.8.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.8.0
 [1.7.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.7.0
 [1.6.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.3
 [1.6.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.2

@@ -375,19 +375,86 @@ add_filter('woocommerce_checkout_fields', function ($fields) {
 
 ## Which checkout? The option ladder
 
-Three routes, ordered by markup control vs. native protection (spike-verified in wp-env, issue #26):
+Three routes, ordered by markup control vs. native protection (all verified end-to-end — issues #26/#27):
 
 | Option | Markup control | Native Woo protection | When |
 |---|---|---|---|
-| **A) Classic shortcode checkout** (this template) | **Full** — every element is your Etch HTML | None natively — enable **Woo4Etch → Settings → Checkout rate limiting** (see Security below) | You want the checkout to look exactly like the rest of your Etch build |
-| **B) `[woo_checkout_block]`** — the native Checkout **block** embedded in your Etch layout | Around the block: full Etch. Inside: WooCommerce's markup — customize via the [Additional Checkout Fields API](https://developer.woocommerce.com/docs/block-development/extensible-blocks/cart-and-checkout-blocks/additional-checkout-fields/), block attributes (`showOrderNotes` …) and CSS (stable, class-rich markup) | **Full native card-testing rate limiting** (Advanced → Features; verified: 3/60 s with `RateLimit-*` headers on the Store API endpoint) + every gateway's official client integration (Stripe Elements, Mollie components, express payments) | You value gateway compatibility and native protections over pixel-level control of the form itself |
-| **C) Headless Store API checkout** | Full | Store API rate limiting | Only for redirect/hosted-gateway-or-COD stores — client-side tokenizing gateways (Stripe Elements & co.) only ship block integrations. Not documented here; open an issue if you need it |
+| **A) Classic checkout** (the markup in this template, submitted classically) | **Full** — every element is your Etch HTML | None natively — enable **Woo4Etch → Settings → Checkout rate limiting** (see Security below) | Gateways that render their own fields into the classic checkout (inline card forms) |
+| **A+) Store API checkout** (same Etch markup + Woo4Etch 1.8.0 interaction layer — see below) | **Full** — identical markup, plus live shipping/totals updates without reloads | **Full native checkout rate limiting** (Advanced → Features — the order is placed through `POST /wc/store/v1/checkout`) + Store API validation | **Recommended default** for shops on redirect/hosted or offline gateways (Mollie, PayPal redirect, bank transfer, COD, invoice) |
+| **B) `[woo_checkout_block]`** — the native Checkout **block** embedded in your Etch layout | Around the block: full Etch. Inside: WooCommerce's markup — customize via the [Additional Checkout Fields API](https://developer.woocommerce.com/docs/block-development/extensible-blocks/cart-and-checkout-blocks/additional-checkout-fields/), block attributes (`showOrderNotes` …) and CSS (stable, class-rich markup) | Same native rate limiting + every gateway's official client integration (Stripe Elements, Mollie components, express payments) | You need inline-tokenizing gateways or express payment buttons |
 
 `[woo_checkout_block]` resolves the block's inner tree from your assigned checkout page when it carries the block (keeping your block-attribute customization), falling back to WooCommerce's default checkout block content. Verified end-to-end: hydrates on any page inside Etch markup, completes a purchase, and redirects to your Woo4Etch thank-you layout.
 
+## Option A+ — the Store API checkout (Woo4Etch 1.8.0+)
+
+Your hand-written checkout form, upgraded in place: add `data-w4e-checkout` to the form and the Woo4Etch layer (setting **Store API cart interactions**, on by default) takes over —
+
+- **Address edits** post `/wc/store/v1/cart/update-customer` (debounced): WooCommerce recalculates shipping rates and totals server-side, and every `[data-w4e-checkout-region]` element re-renders as fresh Etch HTML. No reloads, no client templating.
+- **Shipping picks** (`name="shipping_method[0]"` radios) go through `select-shipping-rate`.
+- **Placing the order** posts `/wc/store/v1/checkout` — which puts your hand-built checkout under **WooCommerce's native checkout rate limiting** (the Advanced → Features toggle) and Store API validation. The response's `payment_result.redirect_url` is followed: hosted payment pages (Mollie, PayPal) or straight to order-received (COD, invoice, bank transfer).
+- **Gateway boundary:** the layer only engages for gateways in the allowlist (offline + redirect flows; default: `bacs`, `cheque`, `cod`, `invoice`, `mollie_wc_gateway_*` — extend via `woo4etch/store_api_checkout_gateways`). Any other selected gateway submits **classically**, so inline-tokenizing gateways keep working through option A. Without JS the form is a plain classic POST.
+
+The payment methods, shipping rates and legal checkboxes come from the checkout bridge as real Dynamic Keys — the whole form stays hand-written:
+
+```html
+<form class="checkout" data-w4e-checkout
+      action="/?wc-ajax=checkout" method="post">
+
+  <!-- …billing fields as in the template above (billing_first_name, …)… -->
+
+  <!-- Shipping selector: re-renders after address changes -->
+  <div data-w4e-checkout-region="shipping">
+    {#loop options.checkout.shipping_rates as rate}
+      <label>
+        <input type="radio" name="shipping_method[0]" value="{rate.id}">
+        {rate.label} — {rate.price}
+      </label>
+    {/loop}
+  </div>
+
+  <!-- Payment methods: a plain Etch loop, style it any way you want -->
+  {#loop options.checkout.payment_methods as pm}
+    <label>
+      <input type="radio" name="payment_method" value="{pm.id}">
+      {pm.title}
+      <!-- {pm.description} / {pm.icon} contain HTML → Raw HTML element -->
+    </label>
+  {/loop}
+
+  <!-- Legal checkboxes (Germanized) — REQUIRED when Germanized is active:
+       its Store API validation only runs when the request carries the
+       checkbox states, and the layer collects them from data-w4e-checkbox.
+       Render the label as Raw HTML (it contains links). -->
+  {#loop options.checkout.checkboxes as cb}
+    <label>
+      <input type="checkbox" name="{cb.id}" data-w4e-checkbox="{cb.id}">
+      {cb.label}
+    </label>
+  {/loop}
+
+  <!-- Totals: re-renders after every write -->
+  <div data-w4e-checkout-region="totals">
+    Subtotal: {options.cart_subtotal} · Shipping: {options.cart_shipping_total}
+    · Total: {options.cart_total}
+  </div>
+
+  <!-- Classic no-JS fallback: nonce for ?wc-ajax=checkout -->
+  <input type="hidden" name="woocommerce-process-checkout-nonce"
+         value="{options.checkout.nonce}">
+
+  <button type="submit" class="button" name="woocommerce_checkout_place_order">
+    Place order
+  </button>
+</form>
+```
+
+Available keys (`{options.checkout.*}`): `payment_methods` (`id, title, description, icon`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (`id, label, error, required`), `needs_shipping`, `nonce`. Sample data previews in the builder; reshape via `woo4etch/checkout_data`.
+
+**Germanized note (important):** Germanized's Store API checkbox validation is *skipped entirely* when a request lacks its extensions key — a naive custom Store API checkout would silently bypass the AGB confirmation. The Woo4Etch layer therefore **always** sends the key while Germanized is active, with the state of every `[data-w4e-checkbox]` input; a required checkbox missing from your layout surfaces as a visible checkout error instead of being skipped. Verified end-to-end incl. a Mollie test-mode purchase whose order meta is identical to one placed through the native Checkout block.
+
 ## Security — card-testing attacks & rate limiting
 
-**WooCommerce's native checkout rate limiting does not protect this page.** The toggle under *WooCommerce → Settings → Advanced → Features* (WC 9.6+, with client fingerprinting since 9.8) only guards the **Checkout block's** Store API path (`POST /wc/store/v1/checkout`). The classic shortcode checkout this template uses submits through `?wc-ajax=checkout` — which has **no native rate limiting at all**. Card-testing bots hammering that endpoint reach your payment gateway unthrottled.
+**WooCommerce's native checkout rate limiting only protects the Store API path.** The toggle under *WooCommerce → Settings → Advanced → Features* (WC 9.6+, with client fingerprinting since 9.8) guards `POST /wc/store/v1/checkout` — which covers option **A+** and the Checkout **block** (B). The classic submit path (option A, `?wc-ajax=checkout`) has **no native rate limiting at all** — card-testing bots hammering that endpoint reach your payment gateway unthrottled. With A+ or B, turn the Features toggle **on**; with A, use the Woo4Etch limiter below.
 
 **Built-in mitigation (Woo4Etch 1.6.3+):** check **Etch → Woo4Etch → Settings → Checkout rate limiting**. It mirrors the block checkout's defaults — max **3 place-order attempts per 60 seconds** per client (proxy-aware IP + user agent + accept-language fingerprint, the same grouping Woo's Store API limiter uses) — and rejects further submits with a checkout error notice. A legitimate customer submits once, so real buyers are unaffected. Tune or force it in code:
 
