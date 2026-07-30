@@ -385,3 +385,4 @@ jQuery(function ($) {
 - Reset one option → live region announces it, price disappears, submit goes back to disabled.
 - Submit the form → cart shows the correct variant (not the parent product).
 - Network tab: submit request contains `variation_id=<concrete ID>`, not `0`.
+- With the Woo4Etch plugin active (1.7.0+): the submit goes to `POST /wc/store/v1/cart/add-item` with the resolved variation id + attributes, without a page reload — the buyer stays on the product, a notice confirms, and the mini-cart region updates. Forms with third-party extra fields (add-ons etc.) intentionally keep the classic POST. See [`04-cart.md`](./04-cart.md) → "Interaction layer".

@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.6.3
+Stable tag: 1.7.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -105,6 +105,7 @@ Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editab
 
 = Frontend enhancements =
 
+* Store API cart interactions (Settings checkbox, on by default): add-to-cart submits, cart quantity changes, coupon apply/remove and item removal go through WooCommerce's Store API (/wc/store/v1/cart/*) without page reloads — Woo's own validation, stock checks and error messages included. Reads stay server-rendered: after every write the marked [data-w4e-cart-region] elements re-render as your own Etch HTML, so any hand-built layout live-updates without a markup convention. Forms with third-party extra fields (product add-ons etc.) keep the classic POST; everything degrades to the classic flow without JS.
 * Variation pills + quantity stepper (Settings checkbox): native attribute selects become pill buttons, quantity fields get −/+ steppers — on product pages and cart rows. Yields automatically to dedicated swatch plugins.
 * WooCommerce gallery scripts (Settings checkbox): zoom, lightbox and thumbnail slider on hand-written Etch gallery markup — including block themes, where WooCommerce itself never loads them. The gallery styling ships inside the layout's Etch class record (editable in the builder), not as a plugin stylesheet.
 * Price-range slider on archives: min_price/max_price filter forms are enhanced into a dual-handle slider; filtering stays native WooCommerce.
@@ -138,7 +139,11 @@ In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy
 
 == Changelog ==
 
-= 1.6.3 =
+= 1.7.0 =
+* New: Store API cart interactions (on by default, Settings checkbox) — the classic cart/product markup is upgraded in place: add-to-cart, quantity updates, coupon apply/remove and item removal write through WooCommerce's Store API (/wc/store/v1/cart/*) with no page reload; afterwards the plugin refetches the page and swaps every [data-w4e-cart-region] element with freshly server-rendered Etch HTML (fallback: .w4e-cart/.w4e-minicart; .mini-cart-count text-synced). No client-side templating, no markup contract beyond Woo's own field names; add-to-cart forms with third-party extra fields intentionally keep the classic POST; everything falls back to the classic flow without JS. Dispatches woo4etch:cart-updated and triggers wc_fragment_refresh for fragment-based mini-carts.
+* New: [woo_checkout_block] — embed WooCommerce's native Checkout block inside an Etch layout: full native protections (incl. Store API card-testing rate limiting) and every gateway's official client integration, while Etch owns everything around it.
+* New: cart bridge keys {options.cart_coupons} (code/amount/remove_url per applied coupon), {options.cart_discount} and {options.cart_shipping_total}; the ready-made cart layout gains per-coupon discount lines with a working remove link.
+* Docs: Store API layer reference in the Store API template; cart/mini-cart/product templates rewritten onto the real bridge keys; Store API rate-limit snippet.
 * New: opt-in checkout rate limiting for the classic shortcode checkout (Settings checkbox) — WooCommerce's native card-testing protection only covers the block checkout's Store API path; ?wc-ajax=checkout had none. Mirrors Woo's block defaults (3 attempts / 60 s per client fingerprint: proxy-aware IP + user agent + accept-language), rejects further submits with a checkout error notice, tunable via woo4etch/checkout_rate_limit. Security guidance incl. defense-in-depth options documented in the checkout template.
 * Fix: the self-updater pre-checks that all plugin files are writable BEFORE the update touches anything, and aborts with actionable guidance (permission reset / chown) instead of WordPress's mid-update "some files could not be copied" failure. FAQ entry added.
 

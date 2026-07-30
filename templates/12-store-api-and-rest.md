@@ -99,6 +99,71 @@ async function addToCart({ id, quantity, variation }, nonce) {
 
 **Important:** prices are returned as **integer strings in the smallest currency unit** (`12900` = €129.00). Divide by `10 ** currency_minor_unit` for display. Use `wc_price()` server-side or format on the client.
 
+## The built-in layer: Woo4Etch Store API cart interactions
+
+You normally don't have to write any of the fetch code above — the Woo4Etch
+plugin ships a complete Store API cart layer (1.7.0+, setting **Store API cart
+interactions**, on by default). This section is the canonical reference for
+how it behaves; [`04-cart.md`](./04-cart.md) and
+[`05-mini-cart.md`](./05-mini-cart.md) describe it from the layout side.
+
+**Architecture — writes via Store API, reads as server-rendered Etch HTML:**
+
+- **Writes**: quantity changes (`cart[<key>][qty]` inputs), `?remove_item=` /
+  `?remove_coupon=` links, `apply_coupon` buttons and `form.cart` submits are
+  intercepted and sent to `/wc/store/v1/cart/*`. Woo validates, checks stock,
+  rate-limits, and answers with its real error messages — the layer just
+  relays them as notices.
+- **Reads**: after each successful write, the current page is refetched and
+  every `[data-w4e-cart-region]` element is swapped with the freshly rendered
+  version (fallback selectors: `.w4e-cart`, `.w4e-minicart`; plain
+  `.mini-cart-count` counters are text-synced). The plugin renders **no**
+  markup client-side — your Etch layout is the single source of truth for
+  what the cart looks like. That keeps the Etch advantage intact: change the
+  layout in the builder, and the live-updating cart changes with it.
+
+**Contract (what your markup must keep):** exactly the classic Woo names the
+template docs already require — nothing extra. Every binding degrades to the
+classic POST/GET flow when JS or the setting is off.
+
+**Third-party boundary:** an add-to-cart form is only intercepted when all its
+named fields are Woo's own (`quantity`, `add-to-cart`, `product_id`,
+`variation_id`, `attribute_*`). Extra named inputs mean a plugin collects
+custom item data via `woocommerce_add_cart_item_data` — such forms submit
+classically so that data reaches the cart. Grouped-product forms
+(`quantity[<id>]`) and `buy_now` buttons also stay classic.
+
+**Events:**
+
+```js
+// After every successful write (detail.cart = Store API cart JSON):
+document.addEventListener('woo4etch:cart-updated', (e) => { /* … */ });
+```
+
+The layer also triggers jQuery `wc_fragment_refresh` when `wc-cart-fragments`
+is present, so fragment-based third-party mini-carts resync.
+
+### Store API rate limiting
+
+WooCommerce ships a rate limiter for these endpoints (off by default;
+fingerprints proxy-aware IPs). Enable and tune it in `customizations.php`:
+
+```php
+// Enable Woo's Store API rate limiting (all /wc/store/v1 writes).
+add_filter('woocommerce_store_api_rate_limit_options', function ($options) {
+    return array_merge($options, [
+        'enabled' => true,
+        'proxy_support' => true, // only if the site sits behind a trusted proxy/CDN
+        'limit'   => 25,         // max requests …
+        'seconds' => 50,         // … per window
+    ]);
+});
+```
+
+Checkout-specific protection is separate — see
+[`06-checkout.md`](./06-checkout.md) → Security (Woo's `rate_limit_checkout`
+feature for the checkout block, the Woo4Etch limiter for classic checkout).
+
 ## Extending the Store API with custom data
 
 You can attach plugin- or theme-specific data to the cart, checkout, or product endpoints — useful if Etch needs to read custom fields you've added.
@@ -269,8 +334,10 @@ Never embed REST API keys in frontend code — they grant admin-level access.
 
 | Need | Use |
 |---|---|
-| Show cart contents on the frontend | Store API `GET /cart` |
-| Add to cart from custom HTML | Store API `POST /cart/add-item` |
+| Cart markup in Etch that live-updates | Nothing — the Woo4Etch layer does it (see above) |
+| Show cart contents in Etch layouts | Cart bridge Dynamic Keys (`{options.cart_items}` …) |
+| Cart JSON in your own scripts | Store API `GET /cart` (or `detail.cart` from `woo4etch:cart-updated`) |
+| Add to cart from custom JS | Store API `POST /cart/add-item` |
 | Custom product field readable by JS | Extend Store API product endpoint |
 | Backend script that creates orders | REST v3 `POST /orders` |
 | Reports / analytics dashboard | REST v3 `GET /reports/*` |

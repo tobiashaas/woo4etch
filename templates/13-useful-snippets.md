@@ -426,6 +426,29 @@ add_filter('woocommerce_get_item_data', function (array $item_data): array {
 Alternative without PHP: reshape the payload via the `woo4etch/cart_item_payload`
 filter (see [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md)).
 
+## Enable WooCommerce's Store API rate limiting
+
+The Woo4Etch cart interactions (and the checkout block) write through
+`/wc/store/v1/*`. WooCommerce ships a rate limiter for those endpoints, **off
+by default**. Turning it on hardens the shop against scripted cart/checkout
+abuse without touching legit buyers:
+
+```php
+add_filter('woocommerce_store_api_rate_limit_options', function ($options) {
+    return array_merge($options, [
+        'enabled' => true,
+        'proxy_support' => true, // only behind a trusted proxy/CDN (reads X-Forwarded-For)
+        'limit'   => 25,         // max requests …
+        'seconds' => 50,         // … per rolling window
+    ]);
+});
+```
+
+Blocked requests get HTTP 429 with a `RateLimit-Retry-After` header; the
+Woo4Etch layer surfaces the error message as a notice. Classic (non-Store-API)
+checkout has its own limiter — see [`06-checkout.md`](./06-checkout.md) →
+Security.
+
 ## Sources
 
 - Business Bloomer — [Custom Add to Cart URLs](https://www.businessbloomer.com/woocommerce-custom-add-cart-urls-ultimate-guide/)

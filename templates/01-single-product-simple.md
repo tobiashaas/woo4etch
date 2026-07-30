@@ -339,18 +339,31 @@ add_filter('woocommerce_product_single_add_to_cart_text', function ($text, $prod
 }, 10, 2);
 ```
 
-### AJAX add-to-cart (bonus)
+### AJAX add-to-cart
 
-WooCommerce has a filter to make single products AJAX-capable too. By default AJAX is only active in the loop.
+Nothing to build — with the Woo4Etch plugin active (setting **Store API cart
+interactions**, on by default, 1.7.0+), submitting this `form.cart` is
+intercepted and sent through WooCommerce's Store API
+(`POST /wc/store/v1/cart/add-item`): the buyer stays on the page, a success or
+error notice renders (out-of-stock, quantity limits — Woo's real validation
+messages), and any header mini-cart marked `data-w4e-cart-region` updates in
+place. See [`04-cart.md`](./04-cart.md) → "Interaction layer".
+
+Two boundaries, both deliberate:
+
+- A form containing **extra named inputs** beyond Woo's own field names
+  (product add-ons, gift wrap, engraving, …) submits **classically**, so
+  third-party `woocommerce_add_cart_item_data` plugins keep their data.
+- With the plugin (or JS) off, the form is a classic POST — that path always
+  works, which is why the required names in the table above must never change.
+
+For the classic flow you can still stop the redirect to the cart page:
 
 ```php
 add_filter('woocommerce_add_to_cart_redirect', function ($url) {
-    // Don't jump to the cart page on AJAX variant
     return wp_get_referer() ?: $url;
 });
 ```
-
-If you want real AJAX, intercept the submit via JS and post to `wc-ajax=add_to_cart` — snippet on request.
 
 ## Common mistakes
 

@@ -3,6 +3,19 @@
 Minimal, ready-to-use templates for the main WooCommerce areas.
 Each template is written as **Etch HTML with Dynamic Keys** plus a **PHP layer** you add later (hooks, hidden fields, functionality).
 
+**The one principle everything here follows: your markup stays yours.**
+Every template, layout, and plugin feature in this project is built so that
+the HTML you write in Etch is the single source of truth for what renders —
+WooCommerce supplies data (Dynamic Keys, shortcodes for real Woo PHP) and
+behavior (form handlers, the Store API), but never generates or overwrites
+your layout. That's why the interactive features are wired the way they are:
+the plugin's Store API cart layer sends *writes* through WooCommerce's own
+endpoints and does *reads* by re-rendering **your** server-side Etch HTML —
+no client-side templating, no markup convention beyond WooCommerce's own
+field names. Restyle or restructure anything in the builder and every
+feature keeps working. When you extend the shop, extend it the same way:
+data via filters, behavior via hooks, markup in Etch.
+
 ## Convention
 
 All templates follow the same structure:

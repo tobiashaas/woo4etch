@@ -90,6 +90,7 @@ final class Woo4Etch_Admin {
         $settings['enable_gallery_scripts'] = !empty($_POST['enable_gallery_scripts']);
         $settings['enable_pills']           = !empty($_POST['enable_pills']);
         $settings['checkout_rate_limit']    = !empty($_POST['checkout_rate_limit']);
+        $settings['store_api_cart']         = !empty($_POST['store_api_cart']);
         update_option('woo4etch_settings', $settings);
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
@@ -278,6 +279,7 @@ final class Woo4Etch_Admin {
         $gallery_scripts = !empty($settings['enable_gallery_scripts']);
         $pills           = !empty($settings['enable_pills']);
         $rate_limit      = !empty($settings['checkout_rate_limit']);
+        $store_api       = !isset($settings['store_api_cart']) || !empty($settings['store_api_cart']);
         ?>
         <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
 
@@ -322,6 +324,18 @@ final class Woo4Etch_Admin {
                         </label>
                         <p class="description">
                             <?php esc_html_e('Progressive enhancement on single product pages, no extra markup needed: the native attribute dropdowns become accessible pill buttons and every quantity field gets minus/plus buttons. WooCommerce\'s variation logic stays in charge — a pill click sets the native select, so price, stock and availability keep updating exactly as before. Styling uses your design tokens (--primary, --space-*, --radius) with plain fallbacks and can be overridden via the .w4e-pill / .w4e-qty classes. For hand-built swatch markup use the always-on swatches bridge (data-w4e-swatch) instead — one or the other per form. Developers: woo4etch/enqueue_pills filter.', 'woo4etch'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Store API cart interactions', 'woo4etch'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="store_api_cart" value="1" <?php checked($store_api); ?>>
+                            <?php esc_html_e('Cart actions without page reloads via WooCommerce\'s Store API (recommended)', 'woo4etch'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Quantity changes, item removal, coupons and add-to-cart go through WooCommerce\'s modern Store API — with Woo\'s native validation, error messages and Store API rate limiting — and the page then re-renders its own server-side Etch HTML in place. Your markup stays 100% yours: the script binds to the standard WooCommerce field names and swaps the [data-w4e-cart-region] containers with the fresh server render; it never generates cart markup itself. Forms carrying third-party fields (custom product options) automatically fall back to the classic submit so nothing is lost, and everything keeps working without JavaScript. Developers: woo4etch/enqueue_store_api filter, woo4etch:cart-updated event.', 'woo4etch'); ?>
                         </p>
                     </td>
                 </tr>

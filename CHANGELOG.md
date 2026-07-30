@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [1.7.0] — 2026-07-30
+
+### Added
+
+- **Store API cart interactions** (#25, Settings checkbox, **on by default**). The classic markup the templates already prescribe is upgraded in place: add-to-cart submits, cart quantity changes, coupon apply/remove and item removal write through WooCommerce's **Store API** (`/wc/store/v1/cart/*`) with no page reload — Woo's own validation, stock checks, JSON error messages and Store API rate limiting apply. Reads stay **server-rendered Etch HTML**: after every write the current page is refetched and every `[data-w4e-cart-region]` element (fallback `.w4e-cart` / `.w4e-minicart`; `.mini-cart-count` counters text-synced) is swapped with the freshly rendered version — the plugin renders no cart markup client-side, so any hand-built layout live-updates with zero markup convention beyond Woo's own field names. Third-party boundary: add-to-cart forms carrying extra named inputs (product add-ons etc. via `woocommerce_add_cart_item_data`) intentionally keep the classic POST; grouped products and `buy_now` too; with the setting or JS off everything degrades to the classic flow. Dispatches `woo4etch:cart-updated` (detail.cart = Store API cart JSON) and triggers `wc_fragment_refresh` so fragment-based third-party mini-carts resync. Verified E2E in wp-env (guest session): add-to-cart happy + out-of-stock error paths, stepper auto-update incl. rebuild after region swap, coupon apply/remove, item remove → empty-cart state — all without reloads; new integration check (25 assertions).
+- **`[woo_checkout_block]`** (#26) — embeds WooCommerce's native **Checkout block** inside an Etch layout: full native protections (incl. card-testing rate limiting on the Store API path) and every gateway's official client integration, while Etch owns everything around it. Renders the assigned checkout page's block tree (or WooCommerce's default block content as fallback) through `do_blocks()`, so the block hydrates and enqueues its own scripts anywhere. Verified E2E: COD purchase through the embedded block landing on the Etch thank-you layout.
+- **Cart bridge: coupons + shipping.** New keys `{options.cart_coupons}` (per applied coupon: `code`, `amount`, `remove_url` — same semantics as Woo's own cart totals), `{options.cart_discount}` and `{options.cart_shipping_total}`; builder sample data includes a sample coupon so the discount line can be styled. The ready-made cart layout gains per-coupon discount lines with a working remove link (classic `?remove_coupon=` GET as no-JS fallback, intercepted by the Store API layer otherwise).
+
+### Changed
+
+- **Docs pass for the Store API layer**: `12-store-api-and-rest.md` is the canonical reference (architecture, contract, third-party boundary, events, Woo's `woocommerce_store_api_rate_limit_options` snippet); `04-cart.md` and `05-mini-cart.md` rewritten onto the real bridge keys (no more pseudo-key placeholders) with region markers and interaction-layer sections; add-to-cart interception notes in `01`/`02`; flagship principle ("your markup stays yours") spelled out in `templates/00-README.md`.
+
 ## [1.6.3] — 2026-07-30
 
 ### Added
@@ -244,6 +256,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.7.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.7.0
 [1.6.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.3
 [1.6.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.2
 [1.6.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.1

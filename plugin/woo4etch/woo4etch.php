@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.6.3
+ * Version:           1.7.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -224,7 +224,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.6.3';
+    const VERSION = '1.7.0';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -809,6 +809,14 @@ final class Woo4Etch {
         // Disable: add_filter('woo4etch/enqueue_price_slider', '__return_false');
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_price_slider_script']);
 
+        // Store API cart layer (issue #25): cart writes (quantity, remove,
+        // coupons, add-to-cart) go through /wc/store/v1/cart — Woo's native
+        // validation + Store API rate limiting — while the page re-renders
+        // its own server-side Etch HTML (region swap, markup stays yours).
+        // On by default; Settings checkbox / filter to disable:
+        //   add_filter('woo4etch/enqueue_store_api', '__return_false');
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_store_api_script']);
+
         // Opt-in rate limit for the CLASSIC checkout (issue #24): WooCommerce's
         // native card-testing rate limiting (Advanced → Features) only covers
         // the Checkout block's Store API path — ?wc-ajax=checkout, which the
@@ -919,6 +927,41 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Store API cart layer (assets/store-api.js): progressive enhancement
+     * that moves cart WRITES onto WooCommerce's Store API while the reads
+     * stay server-rendered Etch HTML (region swap) — see the asset header
+     * for the architecture. Enqueued site-wide (the mini-cart lives in the
+     * header); the script is a few KB and no-ops without matching markup.
+     *
+     * Default ON (a store on the newest Woo API is the point — issue #25);
+     * disable via the Settings checkbox or:
+     *   add_filter('woo4etch/enqueue_store_api', '__return_false');
+     */
+    public static function enqueue_store_api_script() {
+        $settings = (array) get_option('woo4etch_settings', []);
+        $enqueue  = !isset($settings['store_api_cart']) || !empty($settings['store_api_cart']);
+        if (!apply_filters('woo4etch/enqueue_store_api', $enqueue) || !function_exists('WC')) {
+            return;
+        }
+        wp_enqueue_script(
+            'woo4etch-store-api',
+            plugins_url('assets/store-api.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+        wp_localize_script('woo4etch-store-api', 'w4eStoreApi', [
+            'restUrl' => esc_url_raw(rest_url('wc/store/v1')),
+            'nonce'   => wp_create_nonce('wc_store_api'),
+            'i18n'    => [
+                'added'         => __('Added to your cart.', 'woo4etch'),
+                'couponApplied' => __('Coupon code applied successfully.', 'woo4etch'),
+                'error'         => __('Something went wrong. Please try again.', 'woo4etch'),
+            ],
+        ]);
     }
 
     /**
@@ -2605,6 +2648,9 @@ final class Woo4Etch {
      *   {options.cart_items}     — array; each: key, id, name, sku, quantity,
      *                              price, subtotal, permalink, image, remove_url, on_sale
      *   {options.cart_count} {options.cart_subtotal} {options.cart_total}
+     *   {options.cart_coupons}   — array; each: code, amount, remove_url
+     *   {options.cart_discount}  — formatted total discount ('' when none)
+     *   {options.cart_shipping_total} — formatted shipping ('' when nothing ships)
      *   {options.cart_url} {options.checkout_url} {options.shop_url}
      *   {options.cart_is_empty}
      *
@@ -2639,6 +2685,10 @@ final class Woo4Etch {
             $data['cart_count']    = $cart->get_cart_contents_count();
             $data['cart_subtotal'] = self::plain($cart->get_cart_subtotal());
             $data['cart_total']    = self::plain($cart->get_total());
+            $data['cart_coupons']  = self::cart_coupons($cart);
+            $discount              = $cart->get_discount_total() + ($cart->display_cart_ex_tax ? 0 : $cart->get_discount_tax());
+            $data['cart_discount'] = $discount > 0 ? self::plain(wc_price($discount)) : '';
+            $data['cart_shipping_total'] = $cart->needs_shipping() ? self::plain($cart->get_cart_shipping_total()) : '';
             $data['cart_is_empty'] = false;
         } elseif (self::is_etch_builder()) {
             // Builder canvas → sample rows so the loop has something to preview.
@@ -2648,6 +2698,9 @@ final class Woo4Etch {
             $data['cart_count']    = 0;
             $data['cart_subtotal'] = '';
             $data['cart_total']    = '';
+            $data['cart_coupons']  = [];
+            $data['cart_discount'] = '';
+            $data['cart_shipping_total'] = '';
             $data['cart_is_empty'] = true;
         }
 
@@ -2712,6 +2765,28 @@ final class Woo4Etch {
     }
 
     /**
+     * Applied coupons for {options.cart_coupons}. Amount and remove URL follow
+     * WooCommerce's own cart-totals rendering (wc_cart_totals_coupon_html), so
+     * the classic ?remove_coupon= GET keeps working as the no-JS fallback and
+     * the Store API layer can intercept the same link.
+     *
+     * @param WC_Cart $cart
+     * @return array<int,array<string,string>>
+     */
+    private static function cart_coupons(WC_Cart $cart) {
+        $out = [];
+        foreach ($cart->get_applied_coupons() as $code) {
+            $amount = $cart->get_coupon_discount_amount($code, $cart->display_cart_ex_tax);
+            $out[] = apply_filters('woo4etch/cart_coupon_payload', [
+                'code'       => $code,
+                'amount'     => self::plain(wc_price($amount)),
+                'remove_url' => add_query_arg('remove_coupon', rawurlencode($code), wc_get_cart_url()),
+            ], $code);
+        }
+        return $out;
+    }
+
+    /**
      * Sample cart data for the Etch builder canvas preview.
      *
      * @param string $size
@@ -2739,7 +2814,13 @@ final class Woo4Etch {
             ],
             'cart_count'    => 4,
             'cart_subtotal' => self::plain(wc_price(97)),
-            'cart_total'    => self::plain(wc_price(97)),
+            // Sample coupon so the discount line can be styled in the builder.
+            'cart_coupons'  => [
+                ['code' => 'welcome10', 'amount' => self::plain(wc_price(5)), 'remove_url' => '#'],
+            ],
+            'cart_discount' => self::plain(wc_price(5)),
+            'cart_shipping_total' => self::plain(wc_price(4.9)),
+            'cart_total'    => self::plain(wc_price(96.9)),
             'cart_is_empty' => false,
         ]);
     }

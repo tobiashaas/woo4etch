@@ -806,6 +806,24 @@ priority ≥ 1000; `{item.meta}` dumps them verbatim. Filter at `PHP_INT_MAX`
 with a `REST_REQUEST` guard (checkout block keeps its mandatory delivery-time
 display) — snippet in [`13-useful-snippets.md`](./13-useful-snippets.md#tame-germanizeds-gzd--rows-in-custom-cart-layouts).
 
+### Enable WooCommerce's Store API rate limiting
+
+The Woo4Etch cart interactions and the checkout block write through
+`/wc/store/v1/*`; Woo's rate limiter for those endpoints is off by default:
+
+```php
+add_filter('woocommerce_store_api_rate_limit_options', function ($options) {
+    return array_merge($options, [
+        'enabled' => true,
+        'proxy_support' => true, // only behind a trusted proxy/CDN
+        'limit'   => 25,
+        'seconds' => 50,
+    ]);
+});
+```
+
+Details + classic-checkout protection: [`13-useful-snippets.md`](./13-useful-snippets.md#enable-woocommerces-store-api-rate-limiting), [`06-checkout.md`](./06-checkout.md).
+
 ### Stop WooCommerce from loading scripts on non-Woo pages
 
 ```php

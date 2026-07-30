@@ -170,6 +170,11 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 
+    // The Store API cart layer swaps cart regions after every write — the
+    // fresh server-rendered rows need their steppers rebuilt (init is
+    // idempotent: enhanced inputs are skipped via closest('.w4e-qty')).
+    document.addEventListener('woo4etch:cart-updated', init);
+
     // Late-loading swatch plugins can replace the selects AFTER we built
     // pills (both hook DOMContentLoaded; order is enqueue luck). Sweep once
     // shortly after: where another UI appeared, remove ours — theirs wins.

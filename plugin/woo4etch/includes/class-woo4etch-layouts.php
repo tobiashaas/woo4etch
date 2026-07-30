@@ -994,7 +994,9 @@ final class Woo4Etch_Layouts {
         $view  = self::cls($s, 'w4e-minicart__view', 'display: inline-block; text-align: center; padding: 11px 12px; border: 1px solid #e6e7eb; border-radius: 10px; color: inherit; font-weight: 600; font-size: 14px; text-decoration: none;');
         $button = self::button_style($s);
 
-        $block = self::el('div', ['class' => 'w4e-minicart'], [$wrap], [
+        // data-w4e-cart-region: the Store API cart layer swaps this element
+        // with the fresh server render after every cart write.
+        $block = self::el('div', ['class' => 'w4e-minicart', 'data-w4e-cart-region' => 'mini-cart'], [$wrap], [
             self::el('a', ['class' => 'w4e-minicart__link', 'href' => '{options.cart_url}'], [$link], [
                 self::txt('Cart'),
                 self::text_el('span', '{options.cart_count}', ['class' => 'w4e-minicart__count mini-cart-count'], [$count], 'Count'),

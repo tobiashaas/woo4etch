@@ -73,6 +73,7 @@ Under **Etch → Woo4Etch → Settings**:
 - **Disable WooCommerce default styles** — removes all three Woo stylesheets (`woocommerce-layout`, `woocommerce-smallscreen`, `woocommerce-general`) so your Etch styles start from a blank slate: no specificity fights, no `!important`. Uncheck to bring the Woo styling back at any time. Payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override programmatically: `add_filter('woo4etch/disable_woo_styles', '__return_true');` (the filter wins over the checkbox).
 - **Checkout rate limiting** — protection against card-testing attacks on the **classic** checkout: WooCommerce's native limiter only covers the Checkout block's Store API path, `?wc-ajax=checkout` has none. Mirrors Woo's block defaults (3 place-order attempts / 60 s per client fingerprint) and rejects further submits with a checkout error. Off by default; tune via `woo4etch/checkout_rate_limit` (enabled/limit/window). Details + defense-in-depth options in [`06-checkout.md`](./06-checkout.md#security--card-testing-attacks--rate-limiting).
 - **Variation pills & quantity stepper** — enables `assets/pills.js` on single product pages: the native attribute `<select>`s become accessible pill buttons and every `.quantity input.qty` gets a −/+ stepper, with zero extra markup. Woo's variation JS stays leading (a pill click sets the native select and fires its `change` event). Off by default; filter: `woo4etch/enqueue_pills`. Details + companion buy-box CSS in [`02-single-product-variable.md`](./02-single-product-variable.md#zero-markup-alternative-auto-built-pills--quantity-stepper-pillsjs).
+- **Store API cart interactions** (1.7.0+) — **on by default**. Upgrades your hand-written cart markup in place: add-to-cart submits, quantity changes, coupon apply/remove and item removal go through WooCommerce's Store API (`/wc/store/v1/cart/*`) without a page reload, and every `[data-w4e-cart-region]` element re-renders as fresh server-side Etch HTML afterwards. No markup contract beyond the classic Woo names the template docs already require; forms with third-party extra fields keep the classic POST; everything degrades to the classic flow with the setting (or JS) off. Canonical reference: [`12-store-api-and-rest.md`](./12-store-api-and-rest.md#the-built-in-layer-woo4etch-store-api-cart-interactions).
 
 ## Built-in frontend behaviours (no markup)
 
@@ -85,6 +86,7 @@ These ship with the plugin and never output HTML — they only support your own 
 | **Variation pills + qty stepper** | none — auto-builds from the native selects when the Settings checkbox is on (the inverse of the swatch sync: zero markup vs. full markup control; both drive the same native `change` event); also builds steppers on cart quantity fields (`cart[<key>][qty]`) and yields automatically when a dedicated swatch plugin owns the selects | `woo4etch/enqueue_pills` (default: off) |
 | **Price-range slider** | a form containing `min_price` + `max_price` inputs on a product archive (WooCommerce's native filter params) — enhanced into a dual-handle slider synced with the fields; bound from `data-w4e-price-max` (see [`03-product-archive.md`](./03-product-archive.md#filter-sidebar--native-woocommerce-filtering-no-plugin)) | `woo4etch/enqueue_price_slider` (default: shop/taxonomy archives) |
 | **Archive filters for Etch loops** | WooCommerce's native `?min_price` / `?filter_<attribute>` params — Woo applies them to the main query only; the plugin re-applies them to Etch's main-query loop (a secondary query) on shop/category/tag pages | `woo4etch/filter_secondary_product_queries` (default: on) |
+| **Store API cart interactions** | the classic Woo names your markup already carries: `form.cart` submits, `cart[<key>][qty]` inputs, `?remove_item=` / `?remove_coupon=` links, `apply_coupon` buttons; mark live-updating blocks with `data-w4e-cart-region="<name>"` (fallback: `.w4e-cart`, `.w4e-minicart`); listen to `woo4etch:cart-updated` for custom reactions | Settings checkbox (default: on) |
 
 ## Ready-made layouts (one-click page install)
 
@@ -521,9 +523,12 @@ Available keys:
 
 | Key | Contents |
 |---|---|
-| `{options.cart_items}` | array — each item: `key, id, name, sku, quantity, price, subtotal, permalink, image, remove_url, on_sale` |
+| `{options.cart_items}` | array — each item: `key, id, name, sku, meta, quantity, price, subtotal, permalink, image, remove_url, on_sale` |
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
+| `{options.cart_coupons}` | array (1.7.0+) — one entry per applied coupon: `code, amount, remove_url`; loop it for discount lines with a working remove link (renders nothing when no coupon is active) |
+| `{options.cart_discount}` | formatted total discount, `''` when no coupon is active (1.7.0+) |
+| `{options.cart_shipping_total}` | formatted shipping total, `''` when nothing in the cart ships (1.7.0+) |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
 | `{options.cross_sells}` | array for "You may also like" — the cart products' *Linked Products → Cross-sells*; when none are maintained, random catalog products fill in (disable: `woo4etch/cross_sells_fallback`, count: `woo4etch/cross_sells_limit`) |
 | `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
@@ -532,7 +537,7 @@ Available keys:
 
 It renders the **real cart** on the frontend, and **sample rows in the Etch builder canvas** so the loop previews while you design. Remove works via `{item.remove_url}`.
 
-Because `{options.cart_nonce}` is exposed, you can wrap the loop in WooCommerce's cart form and get a **fully working** cart (quantity update + coupon) built entirely in Etch — no shortcode, and it still renders in the builder:
+Because `{options.cart_nonce}` is exposed, you can wrap the loop in WooCommerce's cart form and get a **fully working** cart (quantity update + coupon) built entirely in Etch — no shortcode, and it still renders in the builder. With **Store API cart interactions** on (1.7.0+, default), the same form updates without page reloads — quantity changes, coupon apply/remove and removals go through `/wc/store/v1/cart/*` and the marked region re-renders in place (see [`04-cart.md`](./04-cart.md#interaction-layer--woocommerce-store-api-woo4etch-170)):
 
 ```html
 <form class="woocommerce-cart-form" action="{options.cart_url}" method="post">
