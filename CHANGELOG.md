@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [Unreleased]
+
+### Fixed
+
+- **Cart layout lost its "Proceed to checkout" button on install.** The 1.7.0 coupon-line addition inserted a fifth child into the order-summary aside without widening its serialized `innerContent` slot list — and WordPress's `serialize_block()` emits exactly one child per `null` slot, silently dropping the trailing block (the checkout button) whenever the layout was installed/pushed. Fixed in `layouts/cart.json`; new fast-check asserts slot-count/child-count parity for every block in every layout, so this bug class can't ship again. Affected installs: re-install the cart layout (remove + Add to page) to get the button back.
+
 ## [1.8.0] — 2026-07-31
 
 ### Added

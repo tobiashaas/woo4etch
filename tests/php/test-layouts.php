@@ -141,6 +141,25 @@ function w4e_test_layouts() {
         w4e_equals(0, $malformed, "{$slug}: every block has blockName/attrs/innerBlocks");
         w4e_equals(0, $bad_attributes, "{$slug}: every etch/element has a non-empty attributes map");
 
+        // serialize_block() emits exactly one child per null slot in
+        // innerContent — a missing slot silently DROPS the trailing child on
+        // install (real bug: the cart aside lost its checkout button when the
+        // coupon loop was added without widening innerContent).
+        $slot_mismatches = [];
+        w4e_walk_blocks($root, static function ($b) use (&$slot_mismatches) {
+            $children = is_array($b['innerBlocks'] ?? null) ? count($b['innerBlocks']) : 0;
+            $content  = $b['innerContent'] ?? null;
+            if ($children > 0 && is_array($content)) {
+                $nulls = count(array_filter($content, static function ($c) {
+                    return $c === null;
+                }));
+                if ($nulls !== $children) {
+                    $slot_mismatches[] = ($b['blockName'] ?? '?') . " ({$nulls} slots for {$children} children)";
+                }
+            }
+        });
+        w4e_equals([], $slot_mismatches, "{$slug}: innerContent null slots match child count" . ($slot_mismatches ? ' (' . implode('; ', $slot_mismatches) . ')' : ''));
+
         // The headline loop invariant.
         $loops = w4e_collect_blocks($root, 'etch/loop');
         foreach ($loops as $i => $loop) {
