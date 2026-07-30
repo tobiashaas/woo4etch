@@ -99,7 +99,11 @@ Two ways to use them:
 
 The **Woo notices** row additionally offers **Install as component**: the notices region as a real Etch component (one globally editable definition — place instances from the builder's component library; reinstalling updates it in place).
 
-The styling is intentionally plain (neutral grays, rounded cards) — adjust the `w4e-*` classes in Etch's CSS panel or wire them to your design tokens. Mini-cart has no automatic target (it lives in your site header) — paste it there.
+**Styling: ACSS tokens with plain fallbacks.** Every value in the shipped style records is written as `var(--acss-token, <literal>)` — e.g. `border-radius: var(--radius, 14px)`, `background: var(--primary, #111827)`, `gap: var(--space-s, 12px)`, buttons on the `--btn-*` tokens. On a site running [Automatic.css](https://automaticcss.com) the layouts pick up the site's palette, spacing, radius and type scale the moment they're installed; without ACSS the literal fallbacks render the same neutral look as before (no ACSS dependency). Palettes you've disabled in ACSS (e.g. the semantic `--success`/`--danger` set or `--accent`) simply fall back too. Everything remains ordinary Etch class records — adjust any `w4e-*` class in Etch's CSS panel as usual.
+
+Note for **existing installs**: the installer never overwrites style records that already exist, so layouts installed with an older plugin version keep their previous (literal) CSS. To adopt the tokenized styles, either remove the old `w4e-*` records and re-install the layout, or run `wp eval-file tools/reset-layout-styles.php` (from the repo) — it resets all matching records to the shipped CSS in place (your own record edits are replaced, so skip it if you've customized them).
+
+Mini-cart has no automatic target (it lives in your site header) — paste it there.
 
 ## Third-party WooCommerce plugins
 

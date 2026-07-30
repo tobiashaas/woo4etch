@@ -149,6 +149,19 @@ function w4e_test_layouts() {
 
         // Issue #21: classes survive builder saves only when record-backed.
         w4e_assert_classes_bound($root, $layout['styles'] ?? [], $slug);
+
+        // Issue #22: shipped CSS uses ACSS tokens WITH plain fallbacks — a
+        // bare var(--token) would render as nothing on non-ACSS sites.
+        $bare = [];
+        foreach (($layout['styles'] ?? []) as $id => $record) {
+            $css = (string) ($record['css'] ?? '');
+            if (preg_match_all('/var\(--[a-zA-Z0-9_-]+\)/', $css, $m)) {
+                foreach ($m[0] as $hit) {
+                    $bare[] = ($record['selector'] ?? $id) . ': ' . $hit;
+                }
+            }
+        }
+        w4e_equals([], $bare, "{$slug}: no bare ACSS var() without fallback" . ($bare ? ' (' . implode('; ', array_slice($bare, 0, 5)) . ')' : ''));
     }
 
     /* ---- Single-product Woo contract (server logic keys off these) ---- */

@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [Unreleased]
+
+### Changed
+
+- **Layout styling adapted to Automatic.css tokens** (#22). Every value in the shipped style records (all layouts + `layouts/cart.json`) is now `var(--acss-token, <literal>)`: palette/contextual colors (`--primary`, `--text-dark`, `--text-dark-muted`, `--base-*`, `--white`), semantic status colors with shades (`--success-*`, `--danger-*`, `--info-*`, `--accent` for sale badges), `--radius`, `--border-color-dark` for borders on light surfaces, `--space-*` for gaps/padding, `--text-*`/`--h1` for type, and the full `--btn-*` set on the `.button` contract class. On an ACSS site the installed layouts follow the site's palette, spacing, radius and type scale immediately (verified against ACSS 3.3.7 in wp-env: cart, shop grid, filter sidebar, buy box); without ACSS the literal fallbacks render pixel-identical to 1.7.0. Disabled ACSS palettes (semantic colors, accent) gracefully fall back. Token vocabulary strictly follows the documented ACSS reference — notably borders use `--border-color-dark` (a dark border for light surfaces; `--border-color-light` is a translucent *white* in ACSS and would be invisible on light cards). New fast-check: no bare `var(--…)` without fallback may ship. Existing installs keep their old records (the merger never overwrites) — reset them to the shipped CSS with `wp eval-file tools/reset-layout-styles.php`, or re-install the layout after removing the old records.
+
 ## [1.7.0] — 2026-07-30
 
 ### Added

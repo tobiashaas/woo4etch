@@ -238,12 +238,12 @@ Caveats:
   /* the aspect-ratio guard from above (see the CLS caveat) */
   .woocommerce-product-gallery__image img:not(.zoomImg) { inline-size: 100%; aspect-ratio: 1 / 1; object-fit: contain; display: block; }
   /* 🔍 as a round button */
-  .woocommerce-product-gallery__trigger { position: absolute; inset-block-start: var(--space-xs, .75rem); inset-inline-end: var(--space-xs, .75rem); z-index: 9; display: inline-flex; align-items: center; justify-content: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: 999px; background: var(--base-ultra-light, #fff); border: 1px solid var(--border-color-light, #e5e7eb); }
+  .woocommerce-product-gallery__trigger { position: absolute; inset-block-start: var(--space-xs, .75rem); inset-inline-end: var(--space-xs, .75rem); z-index: 9; display: inline-flex; align-items: center; justify-content: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: 999px; background: var(--base-ultra-light, #fff); border: 1px solid var(--border-color-dark, #e5e7eb); }
   /* thumbs as a stable grid — flex:1 would stretch thumbs when there are fewer than data-columns images */
   .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs, .5rem); margin: var(--space-xs, .5rem) 0 0; padding: 0; list-style: none; }
   .flex-control-thumbs li { cursor: pointer; margin: 0; min-inline-size: 0; }
   /* active state: opacity + a --primary border (opacity alone is a weak affordance) */
-  .flex-control-thumbs img { inline-size: 100%; aspect-ratio: 1; object-fit: contain; display: block; border: 1px solid var(--border-color-light, #e5e7eb); border-radius: calc(var(--radius, 10px) - 2px); opacity: .55; transition: opacity .2s, border-color .2s; }
+  .flex-control-thumbs img { inline-size: 100%; aspect-ratio: 1; object-fit: contain; display: block; border: 1px solid var(--border-color-dark, #e5e7eb); border-radius: calc(var(--radius, 10px) - 2px); opacity: .55; transition: opacity .2s, border-color .2s; }
   .flex-control-thumbs img.flex-active,
   .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }
   ```

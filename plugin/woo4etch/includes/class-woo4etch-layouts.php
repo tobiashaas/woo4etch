@@ -526,12 +526,12 @@ final class Woo4Etch_Layouts {
 
     /** Shared .button style (same look as the cart layout). */
     private static function button_style(array &$styles) {
-        return self::cls($styles, 'button', 'display: inline-block; background: #111827; color: #fff; border: 0; padding: 13px 22px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; text-align: center;');
+        return self::cls($styles, 'button', 'display: inline-block; background: var(--primary, #111827); color: var(--white, #fff); border: 0; padding: var(--btn-padding-block, 13px) var(--btn-padding-inline, 22px); border-radius: var(--btn-radius, 10px); font-weight: var(--btn-font-weight, 600); font-size: var(--btn-font-size, 15px); cursor: pointer; text-align: center;');
     }
 
     /** Shared sale badge style. */
     private static function badge_style(array &$styles) {
-        return self::cls($styles, 'w4e-badge', 'display: inline-block; align-self: flex-start; background: #ff4d2d; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;');
+        return self::cls($styles, 'w4e-badge', 'display: inline-block; align-self: flex-start; background: var(--accent, #ff4d2d); color: var(--white, #fff); font-size: 11px; font-weight: 700; padding: 2px var(--space-xs, 8px); border-radius: 999px;');
     }
 
     /**
@@ -550,11 +550,11 @@ final class Woo4Etch_Layouts {
             // Hidden while empty ([woo_notices] returns '' when nothing is
             // queued) so the wrapper never reserves space on quiet pages; in
             // the builder the shortcode renders a sample notice instead.
-            self::cls($styles, 'w4e-notices', 'display: flex; flex-direction: column; gap: 10px; margin-block-end: 20px; &:not(:has(.w4e-notice)) { display: none; }'),
-            self::cls($styles, 'w4e-notice', 'padding: 12px 16px; border-radius: 8px; border: 1px solid #e5e5e5; background: #fafafa; font-size: 14px; line-height: 1.5;'),
-            self::cls($styles, 'w4e-notice--error', 'background: #fef2f2; border-color: #fecaca; color: #b91c1c;'),
-            self::cls($styles, 'w4e-notice--success', 'background: #f0fdf4; border-color: #bbf7d0; color: #166534;'),
-            self::cls($styles, 'w4e-notice--notice', 'background: #eff6ff; border-color: #bfdbfe; color: #1e40af;'),
+            self::cls($styles, 'w4e-notices', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); margin-block-end: 20px; &:not(:has(.w4e-notice)) { display: none; }'),
+            self::cls($styles, 'w4e-notice', 'padding: var(--space-s, 12px) var(--space-s, 16px); border-radius: var(--radius, 8px); border: 1px solid var(--border-color-dark, #e5e5e5); background: var(--base-ultra-light, #fafafa); font-size: var(--text-s, 14px); line-height: 1.5;'),
+            self::cls($styles, 'w4e-notice--error', 'background: var(--danger-ultra-light, #fef2f2); border-color: var(--danger-light, #fecaca); color: var(--danger-dark, #b91c1c);'),
+            self::cls($styles, 'w4e-notice--success', 'background: var(--success-ultra-light, #f0fdf4); border-color: var(--success-light, #bbf7d0); color: var(--success-dark, #166534);'),
+            self::cls($styles, 'w4e-notice--notice', 'background: var(--info-ultra-light, #eff6ff); border-color: var(--info-light, #bfdbfe); color: var(--info-dark, #1e40af);'),
         ];
         return self::el('div', ['class' => 'w4e-notices'], $refs, [
             self::raw('[woo_notices format="plain"]', 'Woo notices'),
@@ -572,7 +572,7 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section  = self::cls($s, 'w4e-product', '');
-        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: start; padding-block: 24px 48px;');
+        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-xl, 40px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px);');
         // Gallery: Woo's gallery classes/attributes so WooCommerce's own
         // zoom/lightbox/slider scripts initialise on it when enabled
         // (Woo4Etch → Settings). Without the scripts the nested CSS lays the
@@ -589,17 +589,17 @@ final class Woo4Etch_Layouts {
             $s,
             'w4e-gal',
             'position: relative; opacity: 1 !important; min-inline-size: 0;'
-            . ' & .w4e-gal-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0; }'
+            . ' & .w4e-gal-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xs, 10px); margin: 0; }'
             . ' & .flex-viewport .w4e-gal-wrap { display: block; }'
             . ' & .w4e-gal-item--featured { grid-column: 1 / -1; }'
             . ' & .w4e-gal-item a { display: block; }'
-            . ' & .w4e-gal-item img:not(.zoomImg) { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: #f3f4f6; display: block; }'
-            . ' & .flex-viewport { inline-size: 100%; border-radius: 14px; }'
-            . ' & .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }'
+            . ' & .w4e-gal-item img:not(.zoomImg) { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius, 14px); background: var(--base-ultra-light, #f3f4f6); display: block; }'
+            . ' & .flex-viewport { inline-size: 100%; border-radius: var(--radius, 14px); }'
+            . ' & .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs, 10px); margin: 10px 0 0; padding: 0; list-style: none; }'
             . ' & .flex-control-thumbs li { cursor: pointer; margin: 0; min-inline-size: 0; }'
-            . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-color-light, #e5e7eb); opacity: .6; transition: opacity .2s, border-color .2s; }'
+            . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius, 10px); border: 1px solid var(--border-color-dark, #e5e7eb); opacity: .6; transition: opacity .2s, border-color .2s; }'
             . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }'
-            . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: #fff; border: 1px solid var(--border-color-light, #e5e7eb); border-radius: 999px; }'
+            . ' & .woocommerce-product-gallery__trigger { position: absolute; top: 12px; right: 12px; z-index: 9; display: grid; place-items: center; width: 36px; height: 36px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e5e7eb); border-radius: 999px; }'
         );
         // The buy-box container also carries the styles for the runtime UI
         // pills.js builds inside it (variation pills, quantity stepper,
@@ -610,11 +610,11 @@ final class Woo4Etch_Layouts {
         $info     = self::cls(
             $s,
             'w4e-product-info',
-            'display: flex; flex-direction: column; gap: 14px;'
+            'display: flex; flex-direction: column; gap: var(--space-s, 14px);'
             . ' & .w4e-pills { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }'
             . ' & .w4e-pill { font-family: var(--text-font-family, inherit); font-size: var(--text-s, 15px); font-weight: 500; color: var(--text-dark, #16181d); background: var(--base-ultra-light, #f6f6f7); border: 1px solid var(--base-light, #d9dbe0); border-radius: calc(var(--radius, 10px) / 2); padding: calc(var(--space-xs, 8px) / 1.5) var(--space-s, 14px); cursor: pointer; }'
             . ' & .w4e-pill:hover { border-color: var(--primary, #111827); }'
-            . ' & .w4e-pill.is-selected { background: var(--primary, #111827); border-color: var(--primary, #111827); color: #fff; }'
+            . ' & .w4e-pill.is-selected { background: var(--primary, #111827); border-color: var(--primary, #111827); color: var(--white, #fff); }'
             . ' & .w4e-pill:focus-visible { outline: 2px solid var(--primary, #111827); outline-offset: 2px; }'
             . ' & .variations select[data-w4e-pills] { position: absolute; inline-size: 1px; block-size: 1px; clip-path: inset(50%); overflow: hidden; }'
             . ' & .variations, & .variations tbody, & .variations tr, & .variations th, & .variations td { display: block; padding: 0; border: 0; }'
@@ -626,17 +626,17 @@ final class Woo4Etch_Layouts {
             . ' & .w4e-qty__btn { border: 0; background: transparent; color: var(--text-dark, #16181d); font-size: var(--text-m, 17px); font-weight: 600; inline-size: 2.4rem; cursor: pointer; }'
             . ' & .w4e-qty__btn:hover { background: var(--base, #e8e9ec); }'
         );
-        $title    = self::cls($s, 'w4e-product__title', 'font-size: 32px; letter-spacing: -.02em; margin: 0;');
-        $pricerow = self::cls($s, 'w4e-product__pricerow', 'display: flex; align-items: center; gap: 12px;');
-        $price    = self::cls($s, 'w4e-product__price', 'font-size: 24px; font-weight: 800;');
-        $excerpt  = self::cls($s, 'w4e-product__excerpt', 'color: #6b7280; margin: 0;');
-        $stock    = self::cls($s, 'w4e-product__stock', 'font-size: 14px; color: #15803d; margin: 0;');
-        $form     = self::cls($s, 'w4e-product__form', 'display: flex; gap: 10px; align-items: stretch; margin-top: 4px;');
+        $title    = self::cls($s, 'w4e-product__title', 'font-size: var(--h1, 32px); letter-spacing: -.02em; margin: 0;');
+        $pricerow = self::cls($s, 'w4e-product__pricerow', 'display: flex; align-items: center; gap: var(--space-s, 12px);');
+        $price    = self::cls($s, 'w4e-product__price', 'font-size: var(--text-xxl, 24px); font-weight: 800;');
+        $excerpt  = self::cls($s, 'w4e-product__excerpt', 'color: var(--text-dark-muted, #6b7280); margin: 0;');
+        $stock    = self::cls($s, 'w4e-product__stock', 'font-size: var(--text-s, 14px); color: var(--success-dark, #15803d); margin: 0;');
+        $form     = self::cls($s, 'w4e-product__form', 'display: flex; gap: var(--space-xs, 10px); align-items: stretch; margin-top: 4px;');
         // The top price row syncs to the chosen variation (swatches.js), so the
         // duplicate price Woo renders inside the form is hidden here.
         $nativecart = self::cls($s, 'w4e-native-cart', '& .woocommerce-variation-price { display: none; }');
-        $qty      = self::cls($s, 'w4e-product__qty', 'width: 84px; padding: 11px; border: 1px solid #e6e7eb; border-radius: 10px; font-size: 15px;');
-        $meta     = self::cls($s, 'w4e-product__meta', 'color: #6b7280; font-size: 13px; border-top: 1px solid #e6e7eb; padding-top: 14px; margin-top: 6px;');
+        $qty      = self::cls($s, 'w4e-product__qty', 'width: 84px; padding: var(--space-xs, 11px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 10px); font-size: var(--text-s, 15px);');
+        $meta     = self::cls($s, 'w4e-product__meta', 'color: var(--text-dark-muted, #6b7280); font-size: var(--text-xs, 13px); border-top: 1px solid var(--border-color-dark, #e6e7eb); padding-top: var(--space-s, 14px); margin-top: 6px;');
         $badge    = self::badge_style($s);
         $button   = self::button_style($s);
 
@@ -768,7 +768,7 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section = self::cls($s, 'w4e-shop', '');
-        $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
+        $title   = self::cls($s, 'w4e-shop__title', 'font-size: var(--h1, 40px); font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-shop'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
@@ -796,8 +796,8 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section = self::cls($s, 'w4e-category', '');
-        $title   = self::cls($s, 'w4e-shop__title', 'font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
-        $intro   = self::cls($s, 'w4e-category__intro', 'max-width: 68ch; margin: 0 0 28px; display: flex; flex-direction: column; gap: 12px; & p { margin: 0; color: #374151; font-size: 16px; line-height: 1.65; }');
+        $title   = self::cls($s, 'w4e-shop__title', 'font-size: var(--h1, 40px); font-weight: 800; letter-spacing: -.02em; margin: 24px 0 20px;');
+        $intro   = self::cls($s, 'w4e-category__intro', 'max-width: 68ch; margin: 0 0 28px; display: flex; flex-direction: column; gap: var(--space-s, 12px); & p { margin: 0; color: var(--text-dark, #374151); font-size: var(--text-m, 16px); line-height: 1.65; }');
 
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-category'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
@@ -830,9 +830,9 @@ final class Woo4Etch_Layouts {
      * @return array<string,mixed>
      */
     private static function category_slider(array &$s) {
-        $catbar  = self::cls($s, 'w4e-catslider', 'display: flex; gap: 20px; margin: 0 0 28px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 4px 12px; scrollbar-width: thin; scrollbar-color: #d1d5db transparent; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);');
-        $catpill = self::cls($s, 'w4e-catslide', 'scroll-snap-align: start; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 112px; max-width: 160px; color: inherit; font-weight: 600; font-size: 14px; text-align: center; text-decoration: none; overflow-wrap: anywhere; &:hover .w4e-catslide__img { border-color: #111827; transform: translateY(-2px); }');
-        $catimg  = self::cls($s, 'w4e-catslide__img', 'width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: #f0f0f1; border: 1px solid #e6e7eb; transition: .15s;');
+        $catbar  = self::cls($s, 'w4e-catslider', 'display: flex; gap: var(--space-m, 20px); margin: 0 0 28px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 4px var(--space-s, 12px); scrollbar-width: thin; scrollbar-color: var(--base-light, #d1d5db) transparent; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);');
+        $catpill = self::cls($s, 'w4e-catslide', 'scroll-snap-align: start; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-xs, 10px); min-width: 112px; max-width: 160px; color: inherit; font-weight: 600; font-size: var(--text-s, 14px); text-align: center; text-decoration: none; overflow-wrap: anywhere; &:hover .w4e-catslide__img { border-color: var(--primary, #111827); transform: translateY(-2px); }');
+        $catimg  = self::cls($s, 'w4e-catslide__img', 'width: 96px; height: 96px; border-radius: 999px; object-fit: cover; background: var(--base-ultra-light, #f0f0f1); border: 1px solid var(--border-color-dark, #e6e7eb); transition: .15s;');
 
         return self::el('div', ['class' => 'w4e-catslider'], [$catbar], [
             self::loop('options.shop_categories', 'c', [
@@ -852,16 +852,16 @@ final class Woo4Etch_Layouts {
      * @return array<string,mixed>
      */
     private static function archive_columns(array &$s) {
-        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 0 48px; @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
+        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: 0 var(--space-xl, 48px); @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
 
-        $filter    = self::cls($s, 'w4e-filter', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 88px;');
-        $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: 10px; &:not(:last-child) { border-bottom: 1px solid #e6e7eb; padding-bottom: 20px; }');
-        $fheading  = self::cls($s, 'w4e-filter__heading', 'margin: 0; font-size: 16px; font-weight: 700;');
-        $fhint     = self::cls($s, 'w4e-filter__hint', 'margin: 0; font-size: 13px; color: #6b7280;');
-        $flist     = self::cls($s, 'w4e-filter__list', 'list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;');
-        $flink     = self::cls($s, 'w4e-filter__link', 'display: flex; justify-content: space-between; gap: 8px; color: #16181d; text-decoration: none; font-size: 14px; &:hover { text-decoration: underline; }');
+        $filter    = self::cls($s, 'w4e-filter', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 16px); padding: var(--space-m, 20px); display: flex; flex-direction: column; gap: var(--space-m, 20px); position: sticky; top: 88px;');
+        $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); &:not(:last-child) { border-bottom: 1px solid var(--border-color-dark, #e6e7eb); padding-bottom: var(--space-m, 20px); }');
+        $fheading  = self::cls($s, 'w4e-filter__heading', 'margin: 0; font-size: var(--text-m, 16px); font-weight: 700;');
+        $fhint     = self::cls($s, 'w4e-filter__hint', 'margin: 0; font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280);');
+        $flist     = self::cls($s, 'w4e-filter__list', 'list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs, 8px);');
+        $flink     = self::cls($s, 'w4e-filter__link', 'display: flex; justify-content: space-between; gap: var(--space-xs, 8px); color: var(--text-dark, #16181d); text-decoration: none; font-size: var(--text-s, 14px); &:hover { text-decoration: underline; }');
         $factive   = self::cls($s, 'w4e-filter__link--active', 'font-weight: 700;');
-        $fcount    = self::cls($s, 'w4e-filter__count', 'color: #9ca3af;');
+        $fcount    = self::cls($s, 'w4e-filter__count', 'color: var(--text-dark-muted, #9ca3af);');
         // The price form record carries the styles for the dual-range slider
         // price-slider.js builds inside it — as an Etch class record, not a
         // plugin stylesheet, so it renders with the block and is editable in
@@ -873,24 +873,24 @@ final class Woo4Etch_Layouts {
             . ' & .w4e-range__track { position: absolute; inset-inline: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--base-light, #e6e7eb); }'
             . ' & .w4e-range__fill { position: absolute; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--primary, #111827); }'
             . ' & .w4e-range input[type="range"] { position: absolute; inset-inline: 0; top: 0; width: 100%; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; pointer-events: none; }'
-            . ' & .w4e-range input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 999px; background: #fff; border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
-            . ' & .w4e-range input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 999px; background: #fff; border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
+            . ' & .w4e-range input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 999px; background: var(--white, #fff); border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
+            . ' & .w4e-range input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 999px; background: var(--white, #fff); border: 2px solid var(--primary, #111827); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); cursor: grab; }'
             . ' & .w4e-range input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--primary, #111827); outline-offset: 2px; }'
         );
-        $prices    = self::cls($s, 'w4e-filter__prices', 'display: flex; gap: 8px;');
-        $pricein   = self::cls($s, 'w4e-filter__price', 'width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid #e6e7eb; border-radius: 999px; font-size: 14px;');
+        $prices    = self::cls($s, 'w4e-filter__prices', 'display: flex; gap: var(--space-xs, 8px);');
+        $pricein   = self::cls($s, 'w4e-filter__price', 'width: 100%; min-width: 0; padding: var(--space-xs, 9px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: 999px; font-size: var(--text-s, 14px);');
         $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
-        $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: 13px; color: #6b7280; text-align: center; text-decoration: underline;');
+        $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); text-align: center; text-decoration: underline;');
 
-        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 24px;');
+        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-m, 24px);');
         $card    = self::cls($s, 'w4e-card', 'display: flex; flex-direction: column; gap: 4px;');
-        $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: #f0f0f1; border-radius: 14px; padding: 24px; margin-bottom: 8px;');
+        $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: var(--base-ultra-light, #f0f0f1); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); margin-bottom: 8px;');
         $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: contain; mix-blend-mode: multiply;');
-        $sale    = self::cls($s, 'w4e-card__sale', 'position: absolute; top: 12px; left: 12px; background: #d43a1f; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px;');
+        $sale    = self::cls($s, 'w4e-card__sale', 'position: absolute; top: 12px; left: 12px; background: var(--accent, #d43a1f); color: var(--white, #fff); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px var(--space-s, 12px); border-radius: 999px;');
         $link    = self::cls($s, 'w4e-card__link', 'color: inherit; text-decoration: none; &:hover { text-decoration: underline; }');
-        $name    = self::cls($s, 'w4e-card__name', 'font-size: 15px; font-weight: 500; margin: 0;');
-        $price   = self::cls($s, 'w4e-card__price', 'margin: 0; font-size: 18px; font-weight: 800;');
-        $btn     = self::cls($s, 'w4e-card__btn', 'align-self: flex-start; margin-top: 6px; font-size: 13px; padding: 8px 16px;');
+        $name    = self::cls($s, 'w4e-card__name', 'font-size: var(--text-s, 15px); font-weight: 500; margin: 0;');
+        $price   = self::cls($s, 'w4e-card__price', 'margin: 0; font-size: var(--text-l, 18px); font-weight: 800;');
+        $btn     = self::cls($s, 'w4e-card__btn', 'align-self: flex-start; margin-top: 6px; font-size: var(--text-xs, 13px); padding: var(--space-xs, 8px) var(--space-s, 16px);');
         $button  = self::button_style($s);
 
         $cat_link = static function ($active, $extra_style, $label) use ($flink, $factive, $fcount) {
@@ -979,19 +979,19 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $wrap  = self::cls($s, 'w4e-minicart', 'position: relative; display: inline-flex; &:hover .w4e-minicart__panel, &:focus-within .w4e-minicart__panel { opacity: 1; visibility: visible; transform: none; }');
-        $link  = self::cls($s, 'w4e-minicart__link', 'display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid #e6e7eb; border-radius: 999px; color: inherit; font-weight: 600; font-size: 14px; text-decoration: none;');
-        $count = self::cls($s, 'w4e-minicart__count', 'display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #111827; color: #fff; font-size: 12px; font-weight: 700;');
-        $panel = self::cls($s, 'w4e-minicart__panel', 'position: absolute; right: 0; top: calc(100% + 10px); width: 320px; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; box-shadow: 0 12px 30px rgba(0, 0, 0, .12); padding: 16px; display: flex; flex-direction: column; gap: 12px; opacity: 0; visibility: hidden; transform: translateY(6px); transition: .15s; z-index: 40;');
-        $empty = self::cls($s, 'w4e-minicart__empty', 'margin: 0; padding: 8px 0; text-align: center; color: #6b7280; font-size: 14px;');
-        $items = self::cls($s, 'w4e-minicart__items', 'display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow: auto;');
-        $row   = self::cls($s, 'w4e-minirow', 'display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center;');
-        $rimg  = self::cls($s, 'w4e-minirow__img', 'width: 48px; height: 48px; object-fit: cover; border-radius: 8px; background: #f3f4f6;');
-        $rname = self::cls($s, 'w4e-minirow__name', 'font-size: 13px; font-weight: 600; margin: 0;');
-        $rqty  = self::cls($s, 'w4e-minirow__qty', 'font-size: 12px; color: #6b7280;');
-        $rsub  = self::cls($s, 'w4e-minirow__sub', 'font-size: 13px; font-weight: 700; white-space: nowrap;');
-        $total = self::cls($s, 'w4e-minicart__total', 'display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; border-top: 1px solid #e6e7eb; padding-top: 10px;');
-        $acts  = self::cls($s, 'w4e-minicart__actions', 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px;');
-        $view  = self::cls($s, 'w4e-minicart__view', 'display: inline-block; text-align: center; padding: 11px 12px; border: 1px solid #e6e7eb; border-radius: 10px; color: inherit; font-weight: 600; font-size: 14px; text-decoration: none;');
+        $link  = self::cls($s, 'w4e-minicart__link', 'display: inline-flex; align-items: center; gap: var(--space-xs, 8px); padding: var(--space-xs, 9px) var(--space-s, 16px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: 999px; color: inherit; font-weight: 600; font-size: var(--text-s, 14px); text-decoration: none;');
+        $count = self::cls($s, 'w4e-minicart__count', 'display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--primary, #111827); color: var(--white, #fff); font-size: var(--text-xs, 12px); font-weight: 700;');
+        $panel = self::cls($s, 'w4e-minicart__panel', 'position: absolute; right: 0; top: calc(100% + 10px); width: 320px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); box-shadow: 0 12px 30px rgba(0, 0, 0, .12); padding: var(--space-s, 16px); display: flex; flex-direction: column; gap: var(--space-s, 12px); opacity: 0; visibility: hidden; transform: translateY(6px); transition: .15s; z-index: 40;');
+        $empty = self::cls($s, 'w4e-minicart__empty', 'margin: 0; padding: var(--space-xs, 8px) 0; text-align: center; color: var(--text-dark-muted, #6b7280); font-size: var(--text-s, 14px);');
+        $items = self::cls($s, 'w4e-minicart__items', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); max-height: 320px; overflow: auto;');
+        $row   = self::cls($s, 'w4e-minirow', 'display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: var(--space-xs, 10px); align-items: center;');
+        $rimg  = self::cls($s, 'w4e-minirow__img', 'width: 48px; height: 48px; object-fit: cover; border-radius: var(--radius, 8px); background: var(--base-ultra-light, #f3f4f6);');
+        $rname = self::cls($s, 'w4e-minirow__name', 'font-size: var(--text-xs, 13px); font-weight: 600; margin: 0;');
+        $rqty  = self::cls($s, 'w4e-minirow__qty', 'font-size: var(--text-xs, 12px); color: var(--text-dark-muted, #6b7280);');
+        $rsub  = self::cls($s, 'w4e-minirow__sub', 'font-size: var(--text-xs, 13px); font-weight: 700; white-space: nowrap;');
+        $total = self::cls($s, 'w4e-minicart__total', 'display: flex; justify-content: space-between; font-weight: 700; font-size: var(--text-s, 14px); border-top: 1px solid var(--border-color-dark, #e6e7eb); padding-top: var(--space-xs, 10px);');
+        $acts  = self::cls($s, 'w4e-minicart__actions', 'display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs, 8px);');
+        $view  = self::cls($s, 'w4e-minicart__view', 'display: inline-block; text-align: center; padding: var(--space-xs, 11px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 10px); color: inherit; font-weight: 600; font-size: var(--text-s, 14px); text-decoration: none;');
         $button = self::button_style($s);
 
         // data-w4e-cart-region: the Store API cart layer swaps this element
@@ -1038,16 +1038,16 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section = self::cls($s, 'w4e-account', '');
-        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start; padding-block: 24px 48px;');
-        $nav     = self::cls($s, 'w4e-account-nav', 'display: flex; flex-direction: column; gap: 2px; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; padding: 10px; position: sticky; top: 88px;');
-        $navlink = self::cls($s, 'w4e-account-nav__link', 'padding: 10px 12px; border-radius: 8px; color: #16181d; font-weight: 500; text-decoration: none;');
-        $content = self::cls($s, 'w4e-account-content', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px;');
-        $heading = self::cls($s, 'w4e-account__heading', 'margin: 0 0 6px; font-size: 22px; letter-spacing: -.01em;');
+        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px);');
+        $nav     = self::cls($s, 'w4e-account-nav', 'display: flex; flex-direction: column; gap: 2px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-xs, 10px); position: sticky; top: 88px;');
+        $navlink = self::cls($s, 'w4e-account-nav__link', 'padding: var(--space-xs, 10px) var(--space-s, 12px); border-radius: var(--radius, 8px); color: var(--text-dark, #16181d); font-weight: 500; text-decoration: none;');
+        $content = self::cls($s, 'w4e-account-content', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); display: flex; flex-direction: column; gap: var(--space-s, 14px);');
+        $heading = self::cls($s, 'w4e-account__heading', 'margin: 0 0 6px; font-size: var(--text-xl, 22px); letter-spacing: -.01em;');
         $orders  = self::cls($s, 'w4e-orders', 'list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;');
-        $row     = self::cls($s, 'w4e-orderrow', 'display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid #e6e7eb;');
+        $row     = self::cls($s, 'w4e-orderrow', 'display: grid; grid-template-columns: auto 1fr auto auto; gap: var(--space-s, 16px); align-items: center; padding: var(--space-s, 12px) 0; border-bottom: 1px solid var(--border-color-dark, #e6e7eb);');
         $number  = self::cls($s, 'w4e-orderrow__number', 'font-weight: 700; color: inherit;');
-        $status  = self::cls($s, 'w4e-orderrow__status', 'font-size: 13px; color: #6b7280;');
-        $login   = self::cls($s, 'w4e-account-login', 'max-width: 420px; margin-inline: auto; background: #fff; border: 1px solid #e6e7eb; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px; & input { width: 100%; padding: 10px 12px; border: 1px solid #e6e7eb; border-radius: 8px; } & label { display: block; margin-bottom: 4px; font-weight: 500; } & .form-row { margin: 0 0 12px; }');
+        $status  = self::cls($s, 'w4e-orderrow__status', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280);');
+        $login   = self::cls($s, 'w4e-account-login', 'max-width: 420px; margin-inline: auto; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); display: flex; flex-direction: column; gap: var(--space-s, 14px); & input { width: 100%; padding: var(--space-xs, 10px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 8px); } & label { display: block; margin-bottom: 4px; font-weight: 500; } & .form-row { margin: 0 0 12px; }');
 
         $ep = 'options.account_endpoint';
 
@@ -1117,16 +1117,16 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section  = self::cls($s, 'w4e-thankyou', '');
-        $wrap     = self::cls($s, 'w4e-order', 'display: flex; flex-direction: column; gap: 18px; padding-block: 24px 48px; max-width: 720px;');
-        $notice   = self::cls($s, 'w4e-thankyou__notice', 'background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 14px 18px; border-radius: 12px; font-weight: 600; margin: 0;');
-        $overview = self::cls($s, 'w4e-order-overview', 'list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;');
-        $cell     = self::cls($s, 'w4e-order-overview__item', 'background: #fff; border: 1px solid #e6e7eb; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;');
-        $celllab  = self::cls($s, 'w4e-order-overview__label', 'font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: .04em;');
+        $wrap     = self::cls($s, 'w4e-order', 'display: flex; flex-direction: column; gap: var(--space-m, 18px); padding-block: var(--space-m, 24px) var(--space-xl, 48px); max-width: 720px;');
+        $notice   = self::cls($s, 'w4e-thankyou__notice', 'background: var(--success-ultra-light, #ecfdf5); border: 1px solid var(--success-light, #a7f3d0); color: var(--success-dark, #065f46); padding: var(--space-s, 14px) var(--space-m, 18px); border-radius: var(--radius, 12px); font-weight: 600; margin: 0;');
+        $overview = self::cls($s, 'w4e-order-overview', 'list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-s, 14px);');
+        $cell     = self::cls($s, 'w4e-order-overview__item', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 12px); padding: var(--space-s, 12px) var(--space-s, 14px); display: flex; flex-direction: column; gap: 4px;');
+        $celllab  = self::cls($s, 'w4e-order-overview__label', 'font-size: var(--text-xs, 12px); color: var(--text-dark-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em;');
         $cellval  = self::cls($s, 'w4e-order-overview__value', 'font-weight: 700;');
-        $heading  = self::cls($s, 'w4e-thankyou__heading', 'margin: 8px 0 0; font-size: 20px; letter-spacing: -.01em;');
-        $items    = self::cls($s, 'w4e-orderitems', 'list-style: none; margin: 0; padding: 0; border: 1px solid #e6e7eb; border-radius: 14px; background: #fff; overflow: hidden;');
-        $itemrow  = self::cls($s, 'w4e-orderitem', 'display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e6e7eb;');
-        $itemimg  = self::cls($s, 'w4e-orderitem__img', 'width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #f3f4f6;');
+        $heading  = self::cls($s, 'w4e-thankyou__heading', 'margin: 8px 0 0; font-size: var(--text-xl, 20px); letter-spacing: -.01em;');
+        $items    = self::cls($s, 'w4e-orderitems', 'list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); background: var(--white, #fff); overflow: hidden;');
+        $itemrow  = self::cls($s, 'w4e-orderitem', 'display: grid; grid-template-columns: 56px 1fr auto; gap: var(--space-s, 14px); align-items: center; padding: var(--space-s, 12px) var(--space-s, 16px); border-bottom: 1px solid var(--border-color-dark, #e6e7eb);');
+        $itemimg  = self::cls($s, 'w4e-orderitem__img', 'width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius, 8px); background: var(--base-ultra-light, #f3f4f6);');
         $itemname = self::cls($s, 'w4e-orderitem__name', 'font-weight: 600;');
         $itemtot  = self::cls($s, 'w4e-orderitem__total', 'font-weight: 700; white-space: nowrap;');
 

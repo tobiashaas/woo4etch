@@ -103,6 +103,8 @@ Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editab
 
 "Add to page/template" installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without touching existing content, and refuses double-inserts. "Copy JSON" exports Etch's native paste format instead. Everything previews live in the builder via the plugin's dynamic-data bridges ({options.cart_items}, {options.shop_categories}, {options.account_menu}, {options.order}, …).
 
+All shipped styles are written as Automatic.css tokens with plain fallbacks (var(--radius, 14px), var(--primary, #111827), var(--space-s, 12px), buttons on the --btn-* tokens): on an ACSS site the layouts follow the site's palette, spacing, radius and type scale out of the box; without ACSS they render the same neutral look as before.
+
 = Frontend enhancements =
 
 * Store API cart interactions (Settings checkbox, on by default): add-to-cart submits, cart quantity changes, coupon apply/remove and item removal go through WooCommerce's Store API (/wc/store/v1/cart/*) without page reloads — Woo's own validation, stock checks and error messages included. Reads stay server-rendered: after every write the marked [data-w4e-cart-region] elements re-render as your own Etch HTML, so any hand-built layout live-updates without a markup convention. Forms with third-party extra fields (product add-ons etc.) keep the classic POST; everything degrades to the classic flow without JS.
