@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.6.2
+ * Version:           1.6.3
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -224,7 +224,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.6.2';
+    const VERSION = '1.6.3';
 
     /**
      * Register all shortcodes and the admin reference screen.
@@ -802,6 +802,15 @@ final class Woo4Etch {
         // Disable: add_filter('woo4etch/enqueue_price_slider', '__return_false');
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_price_slider_script']);
 
+        // Opt-in rate limit for the CLASSIC checkout (issue #24): WooCommerce's
+        // native card-testing rate limiting (Advanced → Features) only covers
+        // the Checkout block's Store API path — ?wc-ajax=checkout, which the
+        // Etch shortcode checkout uses, has no native protection at all.
+        // Enable via the Settings checkbox or the woo4etch/checkout_rate_limit
+        // filter; defaults mirror Woo's block limits (3 attempts / 60 s,
+        // fingerprinted by IP + user agent + accept-language).
+        add_action('woocommerce_after_checkout_validation', [__CLASS__, 'checkout_rate_limit'], 10, 2);
+
         // Optional zero-markup variation UX: native attribute <select>s become
         // pill buttons, .quantity inputs get a −/+ stepper (assets/pills.js).
         // Driven by the admin checkbox (Woo4Etch → Settings) or the filter:
@@ -903,6 +912,77 @@ final class Woo4Etch {
             self::VERSION,
             true
         );
+    }
+
+    /**
+     * Rate-limit place-order attempts on the classic checkout (issue #24).
+     * Hooked to woocommerce_after_checkout_validation — every submit counts,
+     * and once the fingerprint exceeds the limit inside the window the order
+     * is rejected with a checkout error notice. Defaults mirror the Checkout
+     * block's native protection (3 / 60 s). Off by default; enable via the
+     * Settings checkbox or override everything via the filter:
+     *
+     *   add_filter('woo4etch/checkout_rate_limit', function ($o) {
+     *       $o['enabled'] = true; $o['limit'] = 5; $o['window'] = 120;
+     *       return $o;
+     *   });
+     *
+     * @param array    $data   Posted checkout data (unused).
+     * @param WP_Error $errors Checkout validation errors.
+     */
+    public static function checkout_rate_limit($data, $errors) {
+        $settings = (array) get_option('woo4etch_settings', []);
+        $opts     = apply_filters('woo4etch/checkout_rate_limit', [
+            'enabled' => !empty($settings['checkout_rate_limit']),
+            'limit'   => 3,
+            'window'  => 60,
+        ]);
+        if (empty($opts['enabled']) || !$errors instanceof WP_Error) {
+            return;
+        }
+        if (self::checkout_rate_limit_exceeded((int) $opts['limit'], (int) $opts['window'])) {
+            $errors->add(
+                'woo4etch_rate_limited',
+                __('Too many checkout attempts. Please wait a minute and try again.', 'woo4etch')
+            );
+        }
+    }
+
+    /**
+     * Sliding-window attempt counter per client fingerprint (proxy-aware IP +
+     * user agent + accept-language — the same grouping WooCommerce's Store
+     * API rate limiting uses, so attackers rotating IPs alone are still
+     * grouped by the rest of the fingerprint).
+     *
+     * Public so the integration tests can exercise the window semantics.
+     *
+     * @param int $limit  Allowed attempts inside the window.
+     * @param int $window Window in seconds.
+     * @return bool True when this attempt exceeds the limit.
+     */
+    public static function checkout_rate_limit_exceeded($limit, $window) {
+        $ip = class_exists('WC_Geolocation')
+            ? WC_Geolocation::get_ip_address()
+            : (isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '');
+        $fingerprint = md5(
+            $ip
+            . '|' . (isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '')
+            . '|' . (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_ACCEPT_LANGUAGE'])) : '')
+        );
+        $key  = 'w4e_rl_' . $fingerprint;
+        $now  = time();
+        $hits = get_transient($key);
+        $hits = is_array($hits) ? array_values(array_filter($hits, static function ($t) use ($now, $window) {
+            return (int) $t > $now - $window;
+        })) : [];
+
+        $exceeded = count($hits) >= $limit;
+        if (!$exceeded) {
+            $hits[] = $now;
+        }
+        set_transient($key, $hits, max(1, (int) $window));
+
+        return $exceeded;
     }
 
     /**

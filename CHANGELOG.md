@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [1.6.3] — 2026-07-30
+
+### Added
+
+- **Opt-in checkout rate limiting for the classic checkout** (#24). WooCommerce's native card-testing protection (*Advanced → Features*, WC 9.6+/9.8 fingerprinting) only guards the Checkout **block's** Store API path — the classic `?wc-ajax=checkout` the Etch shortcode checkout uses has no native rate limiting at all. New Settings checkbox mirrors the block defaults: max 3 place-order attempts per 60 s per client fingerprint (proxy-aware IP + user agent + accept-language, the same grouping Woo's Store API limiter uses); further submits are rejected with a checkout error notice. Off by default; `woo4etch/checkout_rate_limit` filter for enabled/limit/window. Verified E2E against the real endpoint (attempts 1–3 pass validation, 4th blocked, normal single purchase unaffected) plus a new integration check for the sliding-window semantics. Template 06 gains a security section incl. defense-in-depth options (gateway-side, CAPTCHA/Turnstile, WAF rules).
+
+### Fixed
+
+- **Self-update no longer dies mid-flight on drifted file permissions** (#23, GridPane report). The updater pre-checks every installed plugin file for writability *before* WordPress touches anything and aborts with actionable guidance (GridPane permission-reset tool / generic `chown` + 755/644) — instead of the generic "some files could not be copied" after the old version was already half-removed. FAQ entries in readme.txt and the plugin README.
+
 ## [1.6.2] — 2026-07-30
 
 ### Fixed
@@ -234,6 +244,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.6.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.3
 [1.6.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.2
 [1.6.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.1
 [1.6.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.6.0

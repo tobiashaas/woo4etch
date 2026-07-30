@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -111,6 +111,8 @@ Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editab
 
 = Hardening =
 
+* Checkout rate limiting (Settings checkbox): protection against card-testing attacks on the classic shortcode checkout — WooCommerce's native limiter only covers the block checkout. Mirrors Woo's defaults (3 place-order attempts / 60 s per client fingerprint); tunable via woo4etch/checkout_rate_limit.
+
 Restrict which hooks `[do_action]` may fire:
 
 `add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
@@ -134,6 +136,10 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
 
 == Changelog ==
+
+= 1.6.3 =
+* New: opt-in checkout rate limiting for the classic shortcode checkout (Settings checkbox) — WooCommerce's native card-testing protection only covers the block checkout's Store API path; ?wc-ajax=checkout had none. Mirrors Woo's block defaults (3 attempts / 60 s per client fingerprint: proxy-aware IP + user agent + accept-language), rejects further submits with a checkout error notice, tunable via woo4etch/checkout_rate_limit. Security guidance incl. defense-in-depth options documented in the checkout template.
+* Fix: the self-updater pre-checks that all plugin files are writable BEFORE the update touches anything, and aborts with actionable guidance (permission reset / chown) instead of WordPress's mid-update "some files could not be copied" failure. FAQ entry added.
 
 = 1.6.2 =
 * Fix: unstyled cart / "You may also like" on sites with pre-existing empty style records. The style merger reused existing records by selector without ever writing CSS into them — an EMPTY record (e.g. created by an earlier install or builder session) therefore shadowed the shipped styles forever. Empty records for the plugin's own .w4e-* selectors are now filled with the shipped CSS on install/push (IDs and block references stay untouched); non-empty records and generic selectors like .button remain exactly as the site defines them.

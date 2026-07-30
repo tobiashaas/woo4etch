@@ -89,6 +89,7 @@ final class Woo4Etch_Admin {
         $settings['disable_woo_styles']     = !empty($_POST['disable_woo_styles']);
         $settings['enable_gallery_scripts'] = !empty($_POST['enable_gallery_scripts']);
         $settings['enable_pills']           = !empty($_POST['enable_pills']);
+        $settings['checkout_rate_limit']    = !empty($_POST['checkout_rate_limit']);
         update_option('woo4etch_settings', $settings);
 
         $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
@@ -276,6 +277,7 @@ final class Woo4Etch_Admin {
         $disabled_styles = !empty($settings['disable_woo_styles']);
         $gallery_scripts = !empty($settings['enable_gallery_scripts']);
         $pills           = !empty($settings['enable_pills']);
+        $rate_limit      = !empty($settings['checkout_rate_limit']);
         ?>
         <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
 
@@ -320,6 +322,18 @@ final class Woo4Etch_Admin {
                         </label>
                         <p class="description">
                             <?php esc_html_e('Progressive enhancement on single product pages, no extra markup needed: the native attribute dropdowns become accessible pill buttons and every quantity field gets minus/plus buttons. WooCommerce\'s variation logic stays in charge — a pill click sets the native select, so price, stock and availability keep updating exactly as before. Styling uses your design tokens (--primary, --space-*, --radius) with plain fallbacks and can be overridden via the .w4e-pill / .w4e-qty classes. For hand-built swatch markup use the always-on swatches bridge (data-w4e-swatch) instead — one or the other per form. Developers: woo4etch/enqueue_pills filter.', 'woo4etch'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Checkout rate limiting', 'woo4etch'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="checkout_rate_limit" value="1" <?php checked($rate_limit); ?>>
+                            <?php esc_html_e('Rate-limit place-order attempts on the classic checkout (3 attempts per minute per client)', 'woo4etch'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Protection against card-testing attacks: WooCommerce\'s own checkout rate limiting (WooCommerce → Settings → Advanced → Features) only covers the block-based checkout — the classic shortcode checkout this plugin\'s templates use has no native protection. This limit mirrors WooCommerce\'s block defaults and rejects further attempts with a checkout error once a client (IP + browser fingerprint) exceeds 3 submits in 60 seconds. Legitimate customers are unaffected — a normal purchase is a single submit. Developers: woo4etch/checkout_rate_limit filter (enabled/limit/window).', 'woo4etch'); ?>
                         </p>
                     </td>
                 </tr>

@@ -373,6 +373,28 @@ add_filter('woocommerce_checkout_fields', function ($fields) {
 });
 ```
 
+## Security — card-testing attacks & rate limiting
+
+**WooCommerce's native checkout rate limiting does not protect this page.** The toggle under *WooCommerce → Settings → Advanced → Features* (WC 9.6+, with client fingerprinting since 9.8) only guards the **Checkout block's** Store API path (`POST /wc/store/v1/checkout`). The classic shortcode checkout this template uses submits through `?wc-ajax=checkout` — which has **no native rate limiting at all**. Card-testing bots hammering that endpoint reach your payment gateway unthrottled.
+
+**Built-in mitigation (Woo4Etch 1.6.3+):** check **Etch → Woo4Etch → Settings → Checkout rate limiting**. It mirrors the block checkout's defaults — max **3 place-order attempts per 60 seconds** per client (proxy-aware IP + user agent + accept-language fingerprint, the same grouping Woo's Store API limiter uses) — and rejects further submits with a checkout error notice. A legitimate customer submits once, so real buyers are unaffected. Tune or force it in code:
+
+```php
+add_filter('woo4etch/checkout_rate_limit', function ($opts) {
+    $opts['enabled'] = true; // force on regardless of the checkbox
+    $opts['limit']   = 5;    // attempts …
+    $opts['window']  = 120;  // … per seconds
+    return $opts;
+});
+```
+
+**Defense in depth** (combine — the limiter is one layer, not the whole answer):
+
+- **Gateway-side protections** — e.g. Stripe Radar, Mollie's fraud screening; enable CVC/AVS checks.
+- **CAPTCHA / Turnstile on checkout** — stops dumb bots before validation.
+- **Host/WAF-level rate limiting** on `?wc-ajax=checkout` (Cloudflare rule, nginx `limit_req`) — blocks floods before PHP boots, which the plugin-level limiter cannot.
+- Dedicated plugins such as [bh-wc-checkout-rate-limiter](https://github.com/BrianHenryIE/bh-wc-checkout-rate-limiter) if you want per-gateway rules.
+
 ## Common mistakes
 
 - **Block checkout active** instead of shortcode → classic hooks don't fire, custom markup ignored. First thing to check on any custom checkout.
