@@ -117,6 +117,12 @@ Restrict which hooks `[do_action]` may fire:
     return strpos($hook, 'woocommerce_') === 0; // only woo_* hooks
 }, 10, 2);`
 
+== Frequently Asked Questions ==
+
+= The update fails with "some files could not be copied. This is usually due to inconsistent file permissions." =
+
+WordPress could not overwrite the existing files under wp-content/plugins/woo4etch/ because their ownership/permissions no longer match the user PHP runs as (this happens occasionally on managed hosts, e.g. after certain GridPane provisioning or development steps — it is not a Woo4Etch bug). Fix: reset the file permissions for the site (GridPane ships a one-click permission-reset tool; the generic equivalent is chown-ing wp-content/plugins/woo4etch/ to the PHP user with directories 755 and files 644), then retry the update. Since 1.6.3 the updater detects this before touching any files and aborts with this exact guidance instead of failing mid-update.
+
 == Installation ==
 
 1. Upload the `woo4etch` folder to `/wp-content/plugins/` (or `/wp-content/mu-plugins/woo4etch/` as an MU-plugin).

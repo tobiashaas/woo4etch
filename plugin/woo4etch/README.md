@@ -31,6 +31,8 @@ Full key reference: [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4e
 
 When installed under `wp-content/plugins/woo4etch/`, Woo4Etch checks [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) for new versions. Publish a release with the `woo4etch.zip` asset (created automatically when a maintainer pushes a `v*` tag). Updates appear under **Dashboard → Updates**.
 
+**Troubleshooting — "some files could not be copied. This is usually due to inconsistent file permissions."**: the ownership/permissions under `wp-content/plugins/woo4etch/` no longer match the PHP user (occasionally happens on managed hosts, e.g. after certain GridPane provisioning steps — not a Woo4Etch bug). Reset the site's file permissions (GridPane has a one-click permission-reset tool; generic fix: `chown -R` the folder to the PHP user, directories `755`, files `644`) and retry. Since 1.6.3 the updater detects this **before** touching any files and aborts with this guidance instead of failing mid-update.
+
 ## Shortcode reference
 
 ### Generic `[do_action]` shortcode

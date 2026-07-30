@@ -61,10 +61,46 @@ if (file_exists(WP_CONTENT_DIR . '/woo4etch-customizations.php')) {
 define('WOO4ETCH_SKELETON_MD5', '2f16c60ee54637bae945f4b62b939ba0');
 
 add_filter('upgrader_pre_install', static function ($response, $hook_extra) {
-    if (!is_wp_error($response)
-        && isset($hook_extra['plugin'])
-        && plugin_basename(__FILE__) === $hook_extra['plugin']
-        && file_exists(__DIR__ . '/includes/customizations.php')
+    if (is_wp_error($response)
+        || !isset($hook_extra['plugin'])
+        || plugin_basename(__FILE__) !== $hook_extra['plugin']) {
+        return $response;
+    }
+
+    // Pre-check: WordPress's copy_dir() fails mid-update with the generic
+    // "some files could not be copied" when file ownership/permissions under
+    // the plugin folder drifted from the PHP user (seen on GridPane after
+    // certain provisioning steps). Detect that BEFORE any file is touched
+    // and fail with an actionable message instead. (Issue #23)
+    $unwritable = [];
+    $iterator   = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(__DIR__, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($iterator as $file) {
+        if (!is_writable($file->getPathname())) {
+            $unwritable[] = str_replace(trailingslashit(dirname(__DIR__)), '', $file->getPathname());
+            if (count($unwritable) >= 5) {
+                break;
+            }
+        }
+    }
+    if (!is_writable(__DIR__)) {
+        array_unshift($unwritable, basename(__DIR__) . '/');
+    }
+    if ($unwritable) {
+        return new WP_Error(
+            'woo4etch_files_not_writable',
+            sprintf(
+                /* translators: 1: plugin directory path, 2: list of example files */
+                __('Woo4Etch update aborted before touching any files: the web server cannot overwrite parts of %1$s (e.g. %2$s). Fix the file ownership/permissions for that folder — on GridPane run the site\'s permission-reset tool; generally: chown the folder to the PHP user, directories 755, files 644 — then retry the update. Your current plugin version is untouched.', 'woo4etch'),
+                'wp-content/plugins/' . basename(__DIR__) . '/',
+                implode(', ', array_slice($unwritable, 0, 5))
+            )
+        );
+    }
+
+    if (file_exists(__DIR__ . '/includes/customizations.php')
         && md5_file(__DIR__ . '/includes/customizations.php') !== WOO4ETCH_SKELETON_MD5) {
         @copy(__DIR__ . '/includes/customizations.php', get_temp_dir() . 'woo4etch-customizations.preserved.php');
     }
