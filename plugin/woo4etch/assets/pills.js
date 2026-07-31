@@ -31,7 +31,7 @@
 
     var CSS = ''
         + '.w4e-pills{display:flex;flex-wrap:wrap;gap:var(--space-xs,.5rem);}'
-        + '.w4e-pill{font-family:var(--text-font-family,inherit);font-size:var(--text-s,.9375rem);font-weight:500;color:var(--text-dark,#16181d);background:var(--base-ultra-light,#f6f6f7);border:1px solid var(--base-light,#d9dbe0);border-radius:calc(var(--radius,10px) / 2);padding:calc(var(--space-xs,.5rem) / 1.5) var(--space-s,.85rem);cursor:pointer;}'
+        + '.w4e-pill{font-family:var(--text-font-family,inherit);font-size:var(--text-s,.9375rem);font-weight:500;color:var(--text-dark,#16181d);background:var(--neutral-ultra-light,#f6f6f7);border:var(--border, 1px solid #d9dbe0);border-radius:calc(var(--radius,10px) / 2);padding:calc(var(--space-xs,.5rem) / 1.5) var(--space-s,.85rem);cursor:pointer;}'
         + '.w4e-pill:hover{border-color:var(--primary,currentColor);}'
         + '.w4e-pill.is-selected{background:var(--primary,#111827);border-color:var(--primary,#111827);color:#fff;}'
         + '.w4e-pill:focus-visible{outline:2px solid var(--primary,#111827);outline-offset:2px;}'
@@ -40,10 +40,10 @@
         + '.variations_form .variations tr{margin-block-end:var(--space-s,.85rem);}'
         + '.variations_form .variations th.label{margin-block-end:calc(var(--space-xs,.5rem) / 2);font-family:var(--text-font-family,inherit);font-size:var(--text-xs,.8125rem);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dark,#16181d);}'
         + '.variations_form .reset_variations{font-size:var(--text-xs,.8125rem);color:var(--text-dark-muted,#6b7280);}'
-        + '.w4e-qty{display:inline-flex;align-items:stretch;border:1px solid var(--base-light,#d9dbe0);border-radius:var(--radius,10px);overflow:hidden;background:var(--base-ultra-light,#f6f6f7);}'
+        + '.w4e-qty{display:inline-flex;align-items:stretch;border:var(--border, 1px solid #d9dbe0);border-radius:var(--radius,10px);overflow:hidden;background:var(--neutral-ultra-light,#f6f6f7);}'
         + '.w4e-qty input.qty{border:0;border-radius:0;text-align:center;inline-size:3.5rem;background:transparent;}'
         + '.w4e-qty__btn{border:0;background:transparent;color:var(--text-dark,#16181d);font-size:var(--text-m,1.0625rem);font-weight:600;inline-size:2.4rem;cursor:pointer;}'
-        + '.w4e-qty__btn:hover{background:var(--base,#e8e9ec);}';
+        + '.w4e-qty__btn:hover{background:var(--neutral-light,#e8e9ec);}';
 
     function injectCss() {
         // With Etch active the widget styles ship as Etch class records
