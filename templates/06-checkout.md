@@ -450,7 +450,9 @@ The payment methods, shipping rates and legal checkboxes come from the checkout 
 </form>
 ```
 
-Available keys (`{options.checkout.*}`): `payment_methods` (`id, title, description, icon`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (`id, label, error, required`), `needs_shipping`, `nonce`. Sample data previews in the builder; reshape via `woo4etch/checkout_data`.
+Available keys (`{options.checkout.*}`): `payment_methods` (`id, title, description, icon, selected`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (`id, label, error, required`), `countries` (`code, name, selected`), `needs_shipping`, `nonce`. Sample data previews in the builder; reshape via `woo4etch/checkout_data`.
+
+**`payment_methods` only lists gateways that work in a hand-built form** — the same redirect/offline allowlist the interaction layer uses (`woo4etch/store_api_checkout_gateways`). Inline-tokenizing gateways (Stripe Elements & co.) need their own card-field markup and client JS, which only their block/classic integrations provide — offering them in this list would sell buyers a broken option. Run such gateways via `[woo_checkout_block]` (option B), or widen the filter only if you know the gateway completes as a redirect.
 
 **Germanized note (important):** Germanized's Store API checkbox validation is *skipped entirely* when a request lacks its extensions key — a naive custom Store API checkout would silently bypass the AGB confirmation. The Woo4Etch layer therefore **always** sends the key while Germanized is active, with the state of every `[data-w4e-checkbox]` input; a required checkbox missing from your layout surfaces as a visible checkout error instead of being skipped. Verified end-to-end incl. a Mollie test-mode purchase whose order meta is identical to one placed through the native Checkout block.
 

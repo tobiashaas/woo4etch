@@ -953,6 +953,43 @@ final class Woo4Etch {
      * the classic checkout scripts have no job here: dequeue them. Hooked
      * LATE (priority 100) so WooCommerce has already enqueued the handle.
      */
+    /**
+     * Gateways the Store API checkout may place orders through — redirect/
+     * offline flows only. Shared by the frontend module (interception
+     * allowlist) and the checkout bridge (payment_methods filtering):
+     * inline-tokenizing gateways (Stripe Elements & co.) can't work in a
+     * hand-built form — they need their client JS + payment_fields markup —
+     * so offering them there would sell a broken option. `*` = prefix match.
+     *
+     * @return array<int,string>
+     */
+    public static function store_api_checkout_gateways() {
+        return (array) apply_filters('woo4etch/store_api_checkout_gateways', [
+            'bacs',
+            'cheque',
+            'cod',
+            'invoice',
+            'mollie_wc_gateway_*',
+        ]);
+    }
+
+    /**
+     * Does a gateway id match the Store API checkout allowlist?
+     *
+     * @param string $id Gateway id.
+     * @return bool
+     */
+    private static function gateway_allowlisted($id) {
+        foreach (self::store_api_checkout_gateways() as $pattern) {
+            if (substr($pattern, -1) === '*'
+                ? strpos($id, substr($pattern, 0, -1)) === 0
+                : $id === $pattern) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static function dequeue_classic_checkout_js() {
         if (!function_exists('is_checkout') || !is_checkout() || is_wc_endpoint_url()) {
             return;
@@ -988,13 +1025,7 @@ final class Woo4Etch {
              * tokenization (inline card fields) is NOT listed and keeps the
              * classic submit. `*` suffix = prefix match.
              */
-            'checkoutGateways' => apply_filters('woo4etch/store_api_checkout_gateways', [
-                'bacs',
-                'cheque',
-                'cod',
-                'invoice',
-                'mollie_wc_gateway_*',
-            ]),
+            'checkoutGateways' => self::store_api_checkout_gateways(),
             /*
              * Germanized guard: its Store API checkbox validation is skipped
              * entirely when the request lacks the extensions key — the
@@ -2894,6 +2925,13 @@ final class Woo4Etch {
         if (WC()->payment_gateways()) {
             $chosen = (string) WC()->session->get('chosen_payment_method');
             foreach (WC()->payment_gateways()->get_available_payment_gateways() as $gateway) {
+                // Only gateways that actually WORK in a hand-built form
+                // (redirect/offline — same allowlist the JS module uses).
+                // Inline-tokenizing gateways need their own payment_fields
+                // markup + client JS; offer those via [woo_checkout_block].
+                if (!self::gateway_allowlisted($gateway->id)) {
+                    continue;
+                }
                 $methods[] = [
                     'id'          => $gateway->id,
                     'title'       => $gateway->get_title(),

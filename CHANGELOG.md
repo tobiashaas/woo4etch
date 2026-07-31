@@ -18,6 +18,7 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 ### Fixed
 
+- **The checkout bridge no longer offers gateways that can't work in a hand-built form.** `{options.checkout.payment_methods}` listed every available gateway — including inline-tokenizing ones (Stripe Elements & co.) whose card fields and client JS only exist in their block/classic integrations; a buyer picking one got a broken submit. The bridge now filters by the same redirect/offline allowlist the interaction layer uses (`woo4etch/store_api_checkout_gateways`, shared server/client). Inline gateways belong in `[woo_checkout_block]` (option B); documented in the checkout template. Mollie failure path verified E2E on one order (1203): failed payment → buyer returned with Woo's notice, cart intact → retry reuses the SAME order via Woo's draft-order mechanics → paid, `processing`, stock reduced.
 - **Failed cart writes no longer leave optimistic UI state.** When Woo rejects a write (e.g. bumping a sold-individually quantity), the stepper had already changed the input — the layer now re-renders the regions to the server truth before showing the error, for quantity updates, item/coupon removals alike.
 
 ### Changed
