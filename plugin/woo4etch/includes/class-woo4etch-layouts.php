@@ -572,7 +572,7 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section  = self::cls($s, 'w4e-product', '');
-        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-xl, 40px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px);');
+        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-xl, 40px); }');
         // Gallery: Woo's gallery classes/attributes so WooCommerce's own
         // zoom/lightbox/slider scripts initialise on it when enabled
         // (Woo4Etch → Settings). Without the scripts the nested CSS lays the
@@ -631,7 +631,7 @@ final class Woo4Etch_Layouts {
         $price    = self::cls($s, 'w4e-product__price', 'font-size: var(--text-xxl, 24px); font-weight: 800;');
         $excerpt  = self::cls($s, 'w4e-product__excerpt', 'color: var(--text-dark-muted, #6b7280); margin: 0;');
         $stock    = self::cls($s, 'w4e-product__stock', 'font-size: var(--text-s, 14px); color: var(--success-dark, #15803d); margin: 0;');
-        $form     = self::cls($s, 'w4e-product__form', 'display: flex; gap: var(--space-xs, 10px); align-items: stretch; margin-top: 4px;');
+        $form     = self::cls($s, 'w4e-product__form', 'display: flex; flex-wrap: wrap; gap: var(--space-xs, 10px); align-items: stretch; margin-top: 4px;');
         // The top price row syncs to the chosen variation (swatches.js), so the
         // duplicate price Woo renders inside the form is hidden here.
         $nativecart = self::cls($s, 'w4e-native-cart', '& .woocommerce-variation-price { display: none; }');
@@ -852,9 +852,9 @@ final class Woo4Etch_Layouts {
      * @return array<string,mixed>
      */
     private static function archive_columns(array &$s) {
-        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: 0 var(--space-xl, 48px); @media (max-width: 880px) { grid-template-columns: minmax(0, 1fr); }');
+        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: 0 var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: 280px minmax(0, 1fr); }');
 
-        $filter    = self::cls($s, 'w4e-filter', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 16px); padding: var(--space-m, 20px); display: flex; flex-direction: column; gap: var(--space-m, 20px); position: sticky; top: 88px;');
+        $filter    = self::cls($s, 'w4e-filter', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 16px); padding: var(--space-m, 20px); display: flex; flex-direction: column; gap: var(--space-m, 20px); @media (min-width: 992px) { position: sticky; top: 88px; }');
         $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); &:not(:last-child) { border-bottom: 1px solid var(--border-color-dark, #e6e7eb); padding-bottom: var(--space-m, 20px); }');
         $fheading  = self::cls($s, 'w4e-filter__heading', 'margin: 0; font-size: var(--text-m, 16px); font-weight: 700;');
         $fhint     = self::cls($s, 'w4e-filter__hint', 'margin: 0; font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280);');
@@ -882,7 +882,7 @@ final class Woo4Etch_Layouts {
         $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
         $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); text-align: center; text-decoration: underline;');
 
-        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-m, 24px);');
+        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-s, 16px); @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-m, 24px); }');
         $card    = self::cls($s, 'w4e-card', 'display: flex; flex-direction: column; gap: 4px;');
         $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: var(--base-ultra-light, #f0f0f1); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); margin-bottom: 8px;');
         $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: contain; mix-blend-mode: multiply;');
@@ -981,7 +981,7 @@ final class Woo4Etch_Layouts {
         $wrap  = self::cls($s, 'w4e-minicart', 'position: relative; display: inline-flex; &:hover .w4e-minicart__panel, &:focus-within .w4e-minicart__panel { opacity: 1; visibility: visible; transform: none; }');
         $link  = self::cls($s, 'w4e-minicart__link', 'display: inline-flex; align-items: center; gap: var(--space-xs, 8px); padding: var(--space-xs, 9px) var(--space-s, 16px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: 999px; color: inherit; font-weight: 600; font-size: var(--text-s, 14px); text-decoration: none;');
         $count = self::cls($s, 'w4e-minicart__count', 'display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--primary, #111827); color: var(--white, #fff); font-size: var(--text-xs, 12px); font-weight: 700;');
-        $panel = self::cls($s, 'w4e-minicart__panel', 'position: absolute; right: 0; top: calc(100% + 10px); width: 320px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); box-shadow: 0 12px 30px rgba(0, 0, 0, .12); padding: var(--space-s, 16px); display: flex; flex-direction: column; gap: var(--space-s, 12px); opacity: 0; visibility: hidden; transform: translateY(6px); transition: .15s; z-index: 40;');
+        $panel = self::cls($s, 'w4e-minicart__panel', 'position: absolute; right: 0; top: calc(100% + 10px); width: min(320px, calc(100vw - 24px)); background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); box-shadow: 0 12px 30px rgba(0, 0, 0, .12); padding: var(--space-s, 16px); display: flex; flex-direction: column; gap: var(--space-s, 12px); opacity: 0; visibility: hidden; transform: translateY(6px); transition: .15s; z-index: 40;');
         $empty = self::cls($s, 'w4e-minicart__empty', 'margin: 0; padding: var(--space-xs, 8px) 0; text-align: center; color: var(--text-dark-muted, #6b7280); font-size: var(--text-s, 14px);');
         $items = self::cls($s, 'w4e-minicart__items', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); max-height: 320px; overflow: auto;');
         $row   = self::cls($s, 'w4e-minirow', 'display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: var(--space-xs, 10px); align-items: center;');
@@ -1038,13 +1038,13 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section = self::cls($s, 'w4e-account', '');
-        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px);');
-        $nav     = self::cls($s, 'w4e-account-nav', 'display: flex; flex-direction: column; gap: 2px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-xs, 10px); position: sticky; top: 88px;');
+        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m, 20px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 768px) { grid-template-columns: 240px minmax(0, 1fr); gap: var(--space-l, 32px); }');
+        $nav     = self::cls($s, 'w4e-account-nav', 'display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-xs, 10px); @media (min-width: 768px) { flex-direction: column; position: sticky; top: 88px; }');
         $navlink = self::cls($s, 'w4e-account-nav__link', 'padding: var(--space-xs, 10px) var(--space-s, 12px); border-radius: var(--radius, 8px); color: var(--text-dark, #16181d); font-weight: 500; text-decoration: none;');
         $content = self::cls($s, 'w4e-account-content', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); display: flex; flex-direction: column; gap: var(--space-s, 14px);');
         $heading = self::cls($s, 'w4e-account__heading', 'margin: 0 0 6px; font-size: var(--text-xl, 22px); letter-spacing: -.01em;');
         $orders  = self::cls($s, 'w4e-orders', 'list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;');
-        $row     = self::cls($s, 'w4e-orderrow', 'display: grid; grid-template-columns: auto 1fr auto auto; gap: var(--space-s, 16px); align-items: center; padding: var(--space-s, 12px) 0; border-bottom: 1px solid var(--border-color-dark, #e6e7eb);');
+        $row     = self::cls($s, 'w4e-orderrow', 'display: grid; grid-template-columns: 1fr auto; gap: calc(var(--space-xs, 8px) / 2) var(--space-s, 16px); align-items: center; padding: var(--space-s, 12px) 0; border-bottom: 1px solid var(--border-color-dark, #e6e7eb); @media (min-width: 768px) { grid-template-columns: auto 1fr auto auto; gap: var(--space-s, 16px); }');
         $number  = self::cls($s, 'w4e-orderrow__number', 'font-weight: 700; color: inherit;');
         $status  = self::cls($s, 'w4e-orderrow__status', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280);');
         $login   = self::cls($s, 'w4e-account-login', 'max-width: 420px; margin-inline: auto; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); display: flex; flex-direction: column; gap: var(--space-s, 14px); & input { width: 100%; padding: var(--space-xs, 10px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 8px); } & label { display: block; margin-bottom: 4px; font-weight: 500; } & .form-row { margin: 0 0 12px; }');

@@ -7,6 +7,10 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 ## [Unreleased]
 
+### Changed
+
+- **All shipped layouts are now mobile-first responsive** (ACSS-style: base styles = mobile, `@media (min-width: 768px/992px)` overrides, spacing via tokens). Cart page: single column with a redesigned line-item row on small screens (image spans two rows, stepper + remove on the second row), aside stacks below with a full-width checkout button, cross-sells 2-up; shop: product grid 2-up on phones, filter sidebar stacks (sticky only on desktop); product page: single column below 992px, buy-box form wraps; account: nav becomes a wrap row on phones, order rows collapse to two columns; mini-cart panel clamps to the viewport. Verified at 375px and desktop on both wp-env (ACSS 3.3.7) and staging (ACSS 4.0.0-rc-3 — widgets follow the site's brand palette end-to-end).
+
 ### Fixed
 
 - **Cart layout lost its "Proceed to checkout" button on install.** The 1.7.0 coupon-line addition inserted a fifth child into the order-summary aside without widening its serialized `innerContent` slot list — and WordPress's `serialize_block()` emits exactly one child per `null` slot, silently dropping the trailing block (the checkout button) whenever the layout was installed/pushed. Fixed in `layouts/cart.json`; new fast-check asserts slot-count/child-count parity for every block in every layout, so this bug class can't ship again. Affected installs: re-install the cart layout (remove + Add to page) to get the button back.
