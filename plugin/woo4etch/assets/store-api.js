@@ -163,6 +163,14 @@
         notice(err && err.message ? err.message : (i18n.error || 'Something went wrong.'), 'error');
     }
 
+    // Failed write: the DOM may hold optimistic state (a stepper already
+    // bumped the input Woo just rejected, e.g. sold-individually items) —
+    // re-render the regions to the server truth, THEN show the error (the
+    // notices region can live inside a swapped region).
+    function failAndRestore(err) {
+        return refreshRegions().then(function () { fail(err); });
+    }
+
     /* ---------------- cart page bindings ---------------- */
 
     var qtyTimer = null;
@@ -179,7 +187,7 @@
             var call = quantity === 0
                 ? api('/cart/remove-item', 'POST', { key: key })
                 : api('/cart/update-item', 'POST', { key: key, quantity: quantity });
-            call.then(afterWrite).catch(fail);
+            call.then(afterWrite).catch(failAndRestore);
         }, 350);
     });
 
@@ -196,7 +204,7 @@
             (itemKey
                 ? api('/cart/remove-item', 'POST', { key: itemKey })
                 : api('/cart/remove-coupon', 'POST', { code: coupon })
-            ).then(afterWrite).catch(fail);
+            ).then(afterWrite).catch(failAndRestore);
             return;
         }
 

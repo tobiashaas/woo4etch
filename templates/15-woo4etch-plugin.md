@@ -530,7 +530,7 @@ Available keys:
 
 | Key | Contents |
 |---|---|
-| `{options.cart_items}` | array — each item: `key, id, name, sku, meta, quantity, price, subtotal, permalink, image, remove_url, on_sale` |
+| `{options.cart_items}` | array — each item: `key, id, name, sku, meta, quantity, price, subtotal, permalink, image, remove_url, on_sale, sold_individually` (render a static quantity instead of an input when `sold_individually` is true — the shipped cart layout does) |
 | `{options.cart_count}` | total item count |
 | `{options.cart_subtotal}` / `{options.cart_total}` | formatted subtotal / total |
 | `{options.cart_coupons}` | array (1.7.0+) — one entry per applied coupon: `code, amount, remove_url`; loop it for discount lines with a working remove link (renders nothing when no coupon is active) |

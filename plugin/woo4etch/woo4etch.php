@@ -2797,6 +2797,9 @@ final class Woo4Etch {
             'image'      => (string) $image,
             'remove_url' => wc_get_cart_remove_url($key),
             'on_sale'    => $product->is_on_sale(),
+            // Sold-individually items must not render an editable quantity
+            // (Zack's product-context flag, mirrored per cart line).
+            'sold_individually' => $product->is_sold_individually(),
         ];
 
         /**
@@ -3037,6 +3040,7 @@ final class Woo4Etch {
                 'price' => self::plain(wc_price($unit)),
                 'subtotal' => self::plain(wc_price($line)),
                 'permalink' => '#', 'image' => $ph, 'remove_url' => '#', 'on_sale' => $on_sale,
+                'sold_individually' => 'sample-cap' === $key,
             ];
         };
         // Varied rows so the builder preview reflects real carts: a variation,
