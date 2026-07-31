@@ -44,6 +44,19 @@ w4e_it(strpos($js, "'/checkout'") !== false, 'module places the order via /check
 w4e_it(strpos($js, 'woocommerce-germanized') !== false, 'module always sends the Germanized extensions key');
 w4e_it(strpos($js, 'data-w4e-checkout-region') !== false, 'module swaps checkout regions');
 
+/* ---- Ready-made checkout layout ---- */
+
+if (class_exists('Woo4Etch_Layouts')) {
+    $layout = Woo4Etch_Layouts::get('checkout');
+    $json   = $layout ? wp_json_encode($layout['block']) : '';
+    w4e_it(is_array($layout), 'ready-made checkout layout resolvable');
+    w4e_it(strpos($json, 'data-w4e-checkout') !== false, 'layout form carries the A+ opt-in marker');
+    w4e_it(strpos($json, 'options.checkout.payment_methods') !== false, 'layout loops the payment methods bridge');
+    w4e_it(strpos($json, 'data-w4e-checkout-region') !== false, 'layout marks live-update regions');
+    w4e_it(strpos($json, 'woocommerce-process-checkout-nonce') !== false, 'layout keeps the classic no-JS fallback nonce');
+}
+w4e_it(array_key_exists('countries', $checkout), 'checkout bridge has countries');
+
 /* ---- Gateway allowlist ---- */
 
 $list = apply_filters('woo4etch/store_api_checkout_gateways', ['bacs', 'cheque', 'cod', 'invoice', 'mollie_wc_gateway_*']);

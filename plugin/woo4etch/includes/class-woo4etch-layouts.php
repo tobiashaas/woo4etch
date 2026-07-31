@@ -55,6 +55,11 @@ final class Woo4Etch_Layouts {
                 'description' => 'Product cards over the main archive query: image, sale badge, title, price, AJAX add-to-cart button. Uses {item.*} product keys.',
                 'area'        => 'Archive',
             ],
+            'checkout' => [
+                'name'        => 'Checkout — Store API (option A+)',
+                'description' => 'Complete hand-written checkout on the Store API layer: contact + billing fields, country select, live shipping selector, payment methods, legal checkboxes (Germanized) and an order summary — all as Etch loops over {options.checkout.*}. Address edits recalculate shipping/totals without a reload; the order is placed through WooCommerce\'s natively rate-limited Store API endpoint (redirect/offline gateways; others submit classically). Works as a classic form without JS.',
+                'area'        => 'Checkout',
+            ],
             'mini-cart' => [
                 'name'        => 'Header mini-cart (link + dropdown)',
                 'description' => 'Cart link with live item count plus a hover/focus dropdown: item rows, subtotal, view-cart/checkout buttons — and a friendly message instead of an empty box when the cart is empty. Pure CSS reveal (keyboard-accessible via :focus-within); the count span carries the mini-cart-count class used by the fragment snippet.',
@@ -975,6 +980,195 @@ final class Woo4Etch_Layouts {
      * instead of orphaned action buttons. Pure CSS reveal (hover +
      * :focus-within, so it is keyboard-accessible); no JS.
      */
+    /**
+     * Checkout — Store API / option A+ (issue #27): the entire checkout as
+     * hand-written Etch markup over the {options.checkout.*} bridge. The
+     * data-w4e-checkout marker opts the form into the Store API layer
+     * (live shipping/totals recalc, natively rate-limited order placement);
+     * without JS it posts classically to ?wc-ajax=checkout via the bridge
+     * nonce. Checked states (country, shipping rate, payment method) are
+     * rendered server-side via per-item conditions, so the form is correct
+     * before any script runs.
+     */
+    private static function layout_checkout() {
+        $s = [];
+
+        $section  = self::cls($s, 'w4e-checkout', '');
+        $formcls  = self::cls($s, 'w4e-checkout-form', '');
+        $title    = self::cls($s, 'w4e-page__title', 'font-size: var(--h1, 32px); letter-spacing: -.02em; margin: 24px 0 20px;');
+        $layout   = self::cls($s, 'w4e-checkout-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m, 20px); align-items: start; padding-block: var(--space-xs, 8px) var(--space-l, 32px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-l, 32px); }');
+        $main     = self::cls($s, 'w4e-checkout-main', 'display: flex; flex-direction: column; gap: var(--space-s, 14px); min-width: 0;');
+        $heading  = self::cls($s, 'w4e-checkout__heading', 'margin: var(--space-s, 12px) 0 0; font-size: var(--text-l, 18px); letter-spacing: -.01em;');
+        $fieldrow = self::cls($s, 'w4e-fieldrow', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-s, 12px); @media (min-width: 560px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
+        $field    = self::cls($s, 'w4e-field', 'width: 100%; padding: var(--space-xs, 11px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 8px); font-size: var(--text-s, 15px); background: var(--white, #fff);');
+        $choice   = self::cls($s, 'w4e-choice', 'display: flex; gap: var(--space-xs, 10px); align-items: center; padding: var(--space-s, 12px) var(--space-s, 14px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 10px); background: var(--white, #fff); cursor: pointer; font-size: var(--text-s, 15px); &:has(input:checked) { border-color: var(--primary, #111827); box-shadow: 0 0 0 1px var(--primary, #111827); } & input { accent-color: var(--primary, #111827); }');
+        $choicegp = self::cls($s, 'w4e-choicegroup', 'display: flex; flex-direction: column; gap: var(--space-xs, 8px); &[aria-busy="true"] { opacity: .55; pointer-events: none; transition: opacity .15s; }');
+        $chprice  = self::cls($s, 'w4e-choice__price', 'margin-inline-start: auto; font-weight: 700; white-space: nowrap;');
+        $paydesc  = self::cls($s, 'w4e-choice__desc', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); & p { margin: 0; }');
+        $legal    = self::cls($s, 'w4e-legal', 'display: flex; gap: var(--space-xs, 10px); align-items: flex-start; font-size: var(--text-s, 14px); color: var(--text-dark-muted, #52525b); & a { text-decoration: underline; } & input { margin-top: 3px; accent-color: var(--primary, #111827); }');
+        $aside    = self::cls($s, 'w4e-checkout-aside', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 22px); display: flex; flex-direction: column; gap: var(--space-xs, 8px); &[aria-busy="true"] { opacity: .55; pointer-events: none; transition: opacity .15s; } @media (min-width: 992px) { position: sticky; top: 88px; }');
+        $atitle   = self::cls($s, 'w4e-checkout-aside__title', 'margin: 0 0 var(--space-xs, 8px); font-size: var(--text-xl, 20px); letter-spacing: -.01em;');
+        $sumrow   = self::cls($s, 'w4e-sumrow', 'display: flex; justify-content: space-between; gap: var(--space-s, 12px); font-size: var(--text-s, 14px); color: var(--text-dark-muted, #6b7280); & span:last-child { white-space: nowrap; }');
+        $line     = self::cls($s, 'w4e-checkout-aside__line', 'display: flex; justify-content: space-between; gap: var(--space-s, 12px); padding: 6px 0; color: var(--text-dark-muted, #6b7280);');
+        $cpnline  = self::cls($s, 'w4e-checkout-aside__line--coupon', 'color: var(--success, #16a34a); & a { margin-inline-start: 8px; font-size: var(--text-xs, 12px); color: var(--text-dark-muted, #6b7280); text-decoration: underline; }');
+        $total    = self::cls($s, 'w4e-checkout-aside__line--total', 'color: var(--text-dark, #16181d); font-weight: 800; font-size: var(--text-l, 18px); border-top: 1px solid var(--border-color-dark, #e6e7eb); margin-top: 6px; padding-top: var(--space-s, 14px);');
+        $cpnrow   = self::cls($s, 'w4e-coupon-row', 'display: flex; gap: var(--space-xs, 8px); margin-block: var(--space-xs, 8px); & input { flex: 1; min-width: 0; } & .button { padding-inline: var(--space-s, 14px); }');
+        $button   = self::button_style($s);
+        $place    = self::cls($s, 'w4e-place-order', 'display: block; width: 100%; text-align: center; margin-top: var(--space-s, 12px);');
+        $empty    = self::cls($s, 'w4e-checkout-empty', 'display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-s, 16px); padding-block: var(--space-l, 32px);');
+
+        /* Checked-state pattern: one condition pair per option, so the
+           server-rendered form is correct without JS. */
+        $radio = static function ($flag_path, array $attributes, array $styles) {
+            $checked = $attributes;
+            $checked['checked'] = 'checked';
+            return [
+                self::cond($flag_path, 'isTruthy', null, [self::el('input', $checked, $styles)], 'Selected'),
+                self::cond($flag_path, 'isFalsy', null, [self::el('input', $attributes, $styles)], 'Not selected'),
+            ];
+        };
+
+        $field_el = static function ($type, $name, $placeholder, array $extra = []) use ($field) {
+            return self::el('input', array_merge([
+                'class'       => 'w4e-field',
+                'type'        => $type,
+                'name'        => $name,
+                'placeholder' => $placeholder,
+            ], $extra), [$field], [], $placeholder ?: $name);
+        };
+
+        $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-checkout'], ['etch-section-style', $section], [
+            self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
+                self::text_el('h1', '{this.title}', ['class' => 'w4e-page__title'], [$title], 'Title'),
+                self::notices_block($s),
+
+                self::cond('options.cart_is_empty', 'isFalsy', null, [
+                    self::el('form', [
+                        'class'             => 'checkout w4e-checkout-form',
+                        'data-w4e-checkout' => '1',
+                        'action'            => '/?wc-ajax=checkout',
+                        'method'            => 'post',
+                    ], [$formcls], [
+                        self::el('div', ['class' => 'w4e-checkout-layout'], [$layout], [
+
+                            self::el('div', ['class' => 'w4e-checkout-main'], [$main], [
+                                self::text_el('h2', 'Contact', ['class' => 'w4e-checkout__heading'], [$heading], 'Contact heading'),
+                                $field_el('email', 'billing_email', 'E-mail address', ['required' => 'required', 'autocomplete' => 'email']),
+
+                                self::text_el('h2', 'Billing address', ['class' => 'w4e-checkout__heading'], [$heading], 'Billing heading'),
+                                self::el('div', ['class' => 'w4e-fieldrow'], [$fieldrow], [
+                                    $field_el('text', 'billing_first_name', 'First name', ['required' => 'required', 'autocomplete' => 'given-name']),
+                                    $field_el('text', 'billing_last_name', 'Last name', ['required' => 'required', 'autocomplete' => 'family-name']),
+                                ], 'Name row'),
+                                $field_el('text', 'billing_address_1', 'Street and number', ['required' => 'required', 'autocomplete' => 'address-line1']),
+                                self::el('div', ['class' => 'w4e-fieldrow'], [$fieldrow], [
+                                    $field_el('text', 'billing_postcode', 'Postcode', ['required' => 'required', 'autocomplete' => 'postal-code']),
+                                    $field_el('text', 'billing_city', 'City', ['required' => 'required', 'autocomplete' => 'address-level2']),
+                                ], 'City row'),
+                                self::el('select', ['class' => 'w4e-field', 'name' => 'billing_country', 'autocomplete' => 'country'], [$field], [
+                                    self::loop('options.checkout.countries', 'c', [
+                                        self::cond('c.selected', 'isTruthy', null, [
+                                            self::text_el('option', '{c.name}', ['value' => '{c.code}', 'selected' => 'selected'], [], 'Selected country'),
+                                        ], 'Selected'),
+                                        self::cond('c.selected', 'isFalsy', null, [
+                                            self::text_el('option', '{c.name}', ['value' => '{c.code}'], [], 'Country'),
+                                        ], 'Not selected'),
+                                    ]),
+                                ], 'Country'),
+                                $field_el('tel', 'billing_phone', 'Phone (optional)', ['autocomplete' => 'tel']),
+
+                                self::cond('options.checkout.needs_shipping', 'isTruthy', null, [
+                                    self::text_el('h2', 'Shipping', ['class' => 'w4e-checkout__heading'], [$heading], 'Shipping heading'),
+                                    self::el('div', ['class' => 'w4e-choicegroup', 'data-w4e-checkout-region' => 'shipping'], [$choicegp], [
+                                        self::loop('options.checkout.shipping_rates', 'rate', [
+                                            self::el('label', ['class' => 'w4e-choice'], [$choice], array_merge(
+                                                $radio('rate.selected', ['type' => 'radio', 'name' => 'shipping_method[0]', 'value' => '{rate.id}'], []),
+                                                [
+                                                    self::txt('{rate.label}'),
+                                                    self::text_el('span', '{rate.price}', ['class' => 'w4e-choice__price'], [$chprice], 'Price'),
+                                                ]
+                                            ), 'Rate'),
+                                        ]),
+                                    ], 'Shipping options'),
+                                ], 'Needs shipping'),
+
+                                self::text_el('h2', 'Payment', ['class' => 'w4e-checkout__heading'], [$heading], 'Payment heading'),
+                                self::el('div', ['class' => 'w4e-choicegroup'], [$choicegp], [
+                                    self::loop('options.checkout.payment_methods', 'pm', [
+                                        self::el('label', ['class' => 'w4e-choice'], [$choice], array_merge(
+                                            $radio('pm.selected', ['type' => 'radio', 'name' => 'payment_method', 'value' => '{pm.id}'], []),
+                                            [
+                                                self::txt('{pm.title}'),
+                                                // Gateway icons/descriptions carry HTML.
+                                                self::el('span', ['class' => 'w4e-choice__desc'], [$paydesc], [self::raw('{pm.description}', 'Description')], 'Description'),
+                                            ]
+                                        ), 'Payment method'),
+                                    ]),
+                                ], 'Payment methods'),
+
+                                // Germanized legal checkboxes — label HTML contains links.
+                                self::loop('options.checkout.checkboxes', 'cb', [
+                                    self::el('label', ['class' => 'w4e-legal'], [$legal], [
+                                        self::el('input', ['type' => 'checkbox', 'name' => '{cb.id}', 'data-w4e-checkbox' => '{cb.id}'], []),
+                                        self::raw('{cb.label}', 'Checkbox label'),
+                                    ], 'Legal checkbox'),
+                                ]),
+                            ], 'Checkout main'),
+
+                            self::el('aside', ['class' => 'w4e-checkout-aside', 'data-w4e-checkout-region' => 'totals'], [$aside], [
+                                self::text_el('h2', 'Order summary', ['class' => 'w4e-checkout-aside__title'], [$atitle], 'Summary title'),
+                                self::loop('options.cart_items', 'item', [
+                                    self::el('div', ['class' => 'w4e-sumrow'], [$sumrow], [
+                                        self::txt('{item.name} × {item.quantity}'),
+                                        self::text_el('span', '{item.subtotal}', ['class' => ''], [], 'Line total'),
+                                    ], 'Item'),
+                                ]),
+                                self::el('div', ['class' => 'w4e-coupon-row'], [$cpnrow], [
+                                    self::el('input', ['class' => 'w4e-field', 'type' => 'text', 'name' => 'coupon_code', 'placeholder' => 'Coupon code'], [$field]),
+                                    self::text_el('button', 'Apply', ['class' => 'button', 'type' => 'submit', 'name' => 'apply_coupon', 'value' => 'Apply coupon'], [$button], 'Apply coupon'),
+                                ], 'Coupon'),
+                                self::el('div', ['class' => 'w4e-checkout-aside__line'], [$line], [
+                                    self::text_el('span', 'Subtotal', ['class' => ''], []),
+                                    self::text_el('span', '{options.cart_subtotal}', ['class' => ''], []),
+                                ], 'Subtotal'),
+                                self::loop('options.cart_coupons', 'coupon', [
+                                    self::el('div', ['class' => 'w4e-checkout-aside__line w4e-checkout-aside__line--coupon'], [$line, $cpnline], [
+                                        self::el('span', ['class' => ''], [], [
+                                            self::txt('Coupon: {coupon.code}'),
+                                            self::text_el('a', 'Remove', ['href' => '{coupon.remove_url}', 'class' => ''], [], 'Remove coupon'),
+                                        ], 'Coupon name'),
+                                        self::text_el('span', '−{coupon.amount}', ['class' => ''], []),
+                                    ], 'Coupon line'),
+                                ]),
+                                self::cond('options.checkout.needs_shipping', 'isTruthy', null, [
+                                    self::el('div', ['class' => 'w4e-checkout-aside__line'], [$line], [
+                                        self::text_el('span', 'Shipping', ['class' => ''], []),
+                                        self::text_el('span', '{options.cart_shipping_total}', ['class' => ''], []),
+                                    ], 'Shipping line'),
+                                ], 'Shipping total'),
+                                self::el('div', ['class' => 'w4e-checkout-aside__line w4e-checkout-aside__line--total'], [$line, $total], [
+                                    self::text_el('span', 'Total', ['class' => ''], []),
+                                    self::text_el('span', '{options.cart_total}', ['class' => ''], []),
+                                ], 'Total line'),
+                                self::el('input', ['class' => '', 'type' => 'hidden', 'name' => 'woocommerce-process-checkout-nonce', 'value' => '{options.checkout.nonce}'], []),
+                                self::text_el('button', 'Place order', ['class' => 'button w4e-place-order', 'type' => 'submit', 'name' => 'woocommerce_checkout_place_order'], [$button, $place], 'Place order'),
+                            ], 'Order summary'),
+                        ], 'Checkout layout'),
+                    ], 'Checkout form'),
+                ], 'Has items'),
+
+                self::cond('options.cart_is_empty', 'isTruthy', null, [
+                    self::el('div', ['class' => 'w4e-checkout-empty'], [$empty], [
+                        self::text_el('p', 'Your cart is currently empty.', ['class' => ''], [], 'Empty message'),
+                        self::text_el('a', 'Return to shop', ['class' => 'button', 'href' => '{options.shop_url}'], [$button], 'Return to shop'),
+                    ], 'Empty checkout'),
+                ], 'Empty cart'),
+            ]),
+        ], 'W4e Checkout');
+
+        return ['block' => $block, 'styles' => $s];
+    }
+
     private static function layout_mini_cart() {
         $s = [];
 

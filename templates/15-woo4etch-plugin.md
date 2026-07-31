@@ -91,7 +91,7 @@ These ship with the plugin and never output HTML — they only support your own 
 
 ## Ready-made layouts (one-click page install)
 
-Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, single product, shop archive (working filter sidebar + category slider), category archive (SEO intro + `{term.description}`), header mini-cart (hover dropdown with empty state), My Account (login gate for guests), thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
+Under **Etch → Woo4Etch → Ready-made layouts** the plugin ships complete, editable Etch layouts for every shop area — cart, **checkout (Store API / option A+: live shipping recalc, natively rate-limited order placement, Germanized legal checkboxes — see [`06-checkout.md`](./06-checkout.md))**, single product, shop archive (working filter sidebar + category slider), category archive (SEO intro + `{term.description}`), header mini-cart (hover dropdown with empty state), My Account (login gate for guests), thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
 
 Two ways to use them:
 
@@ -537,7 +537,7 @@ Available keys:
 | `{options.cart_discount}` | formatted total discount, `''` when no coupon is active (1.7.0+) |
 | `{options.cart_shipping_total}` | formatted shipping total, `''` when nothing in the cart ships (1.7.0+) |
 | `{options.cart_url}` / `{options.checkout_url}` | cart / checkout URLs |
-| `{options.checkout}` | checkout bridge (1.8.0+): `payment_methods` (`id, title, description, icon`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (Germanized legal checkboxes for THIS cart: `id, label, error, required`), `needs_shipping`, `nonce` (classic-fallback nonce) — the whole checkout form becomes hand-written Etch loops; see [`06-checkout.md`](./06-checkout.md#option-a--the-store-api-checkout-woo4etch-180) |
+| `{options.checkout}` | checkout bridge (1.8.0+): `payment_methods` (`id, title, description, icon, selected`), `shipping_rates` (`id, package, label, price, selected`), `checkboxes` (Germanized legal checkboxes for THIS cart: `id, label, error, required`), `countries` (`code, name, selected` — allowed countries for a hand-built country select), `needs_shipping`, `nonce` (classic-fallback nonce) — the whole checkout form becomes hand-written Etch loops; see [`06-checkout.md`](./06-checkout.md#option-a--the-store-api-checkout-woo4etch-180) |
 | `{options.cross_sells}` | array for "You may also like" — the cart products' *Linked Products → Cross-sells*; when none are maintained, random catalog products fill in (disable: `woo4etch/cross_sells_fallback`, count: `woo4etch/cross_sells_limit`) |
 | `{options.shop_url}` | shop page URL — e.g. the "Return to shop" link of an empty-cart state |
 | `{options.cart_nonce}` | cart nonce token — lets you build a working cart **form** in Etch |

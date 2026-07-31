@@ -136,6 +136,15 @@ final class Woo4Etch_Health {
                     'label'   => __('My Account page', 'woo4etch'),
                     'markers' => ['w4e-account', '[woocommerce_my_account', '[woo_account_content'],
                 ];
+            case 'checkout':
+                return [
+                    'kind'    => 'page',
+                    'page_id' => function_exists('wc_get_page_id') ? (int) wc_get_page_id('checkout') : 0,
+                    'label'   => __('Checkout page', 'woo4etch'),
+                    // Refuse when ANY checkout already renders there — a
+                    // second checkout on the same page would double-submit.
+                    'markers' => ['w4e-checkout-form', '[woocommerce_checkout', 'wp:woocommerce/checkout', '[woo_checkout_block'],
+                ];
             case 'product-grid':
                 return [
                     'kind'          => 'template',

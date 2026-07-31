@@ -947,6 +947,22 @@ final class Woo4Etch {
         if (!apply_filters('woo4etch/enqueue_store_api', $enqueue) || !function_exists('WC')) {
             return;
         }
+
+        /*
+         * A+ checkout page: WooCommerce enqueues wc-checkout.js on is_checkout()
+         * regardless of the page content. Its form-level submit handler
+         * `return false`s (preventDefault + stopPropagation) and re-posts via
+         * the classic ?wc-ajax=checkout — hijacking the Store API layer's
+         * submit. When the assigned checkout page carries the data-w4e-checkout
+         * marker, the classic checkout scripts have no job here: dequeue them.
+         */
+        if (function_exists('is_checkout') && is_checkout() && !is_wc_endpoint_url()) {
+            $page = get_post(wc_get_page_id('checkout'));
+            if ($page && strpos((string) $page->post_content, 'data-w4e-checkout') !== false
+                && apply_filters('woo4etch/dequeue_classic_checkout_js', true)) {
+                wp_dequeue_script('wc-checkout');
+            }
+        }
         wp_enqueue_script(
             'woo4etch-store-api',
             plugins_url('assets/store-api.js', __FILE__),
@@ -2853,6 +2869,7 @@ final class Woo4Etch {
             'payment_methods' => [],
             'shipping_rates'  => [],
             'checkboxes'      => [],
+            'countries'       => [],
             'needs_shipping'  => false,
             'nonce'           => '',
         ];
@@ -2864,12 +2881,36 @@ final class Woo4Etch {
 
         $methods = [];
         if (WC()->payment_gateways()) {
+            $chosen = (string) WC()->session->get('chosen_payment_method');
             foreach (WC()->payment_gateways()->get_available_payment_gateways() as $gateway) {
                 $methods[] = [
                     'id'          => $gateway->id,
                     'title'       => $gateway->get_title(),
                     'description' => wp_kses_post(wpautop(wptexturize((string) $gateway->get_description()))),
                     'icon'        => wp_kses_post((string) $gateway->get_icon()),
+                    'selected'    => $gateway->id === $chosen,
+                ];
+            }
+            // No session choice yet → preselect the first gateway, so the
+            // layout's checked-state conditions always mark exactly one.
+            if ($methods && !array_filter(array_column($methods, 'selected'))) {
+                $methods[0]['selected'] = true;
+            }
+        }
+
+        // Allowed countries for a hand-built country <select> — Etch loop with
+        // per-option selected conditions ({options.checkout.countries}).
+        $countries = [];
+        if (WC()->countries) {
+            $current = WC()->customer ? WC()->customer->get_billing_country() : '';
+            if ('' === $current) {
+                $current = WC()->countries->get_base_country();
+            }
+            foreach (WC()->countries->get_allowed_countries() as $code => $label) {
+                $countries[] = [
+                    'code'     => (string) $code,
+                    'name'     => html_entity_decode((string) $label, ENT_QUOTES),
+                    'selected' => $code === $current,
                 ];
             }
         }
@@ -2903,6 +2944,7 @@ final class Woo4Etch {
             'payment_methods' => $methods,
             'shipping_rates'  => $rates,
             'checkboxes'      => self::checkout_checkboxes(),
+            'countries'       => $countries,
             'needs_shipping'  => $needs_shipping,
             // For the no-JS fallback: a hand-built form posting classically to
             // ?wc-ajax=checkout needs this as woocommerce-process-checkout-nonce.
@@ -2952,8 +2994,12 @@ final class Woo4Etch {
     private static function sample_checkout_data() {
         return apply_filters('woo4etch/checkout_sample_data', [
             'payment_methods' => [
-                ['id' => 'sample_card', 'title' => __('Card', 'woo4etch'), 'description' => __('Pay securely by card.', 'woo4etch'), 'icon' => ''],
-                ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => ''],
+                ['id' => 'sample_card', 'title' => __('Card', 'woo4etch'), 'description' => __('Pay securely by card.', 'woo4etch'), 'icon' => '', 'selected' => true],
+                ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => '', 'selected' => false],
+            ],
+            'countries'       => [
+                ['code' => 'DE', 'name' => 'Germany', 'selected' => true],
+                ['code' => 'AT', 'name' => 'Austria', 'selected' => false],
             ],
             'shipping_rates'  => [
                 ['id' => 'flat_rate:1', 'package' => 0, 'label' => __('Standard shipping', 'woo4etch'), 'price' => self::plain(wc_price(4.9)), 'selected' => true],

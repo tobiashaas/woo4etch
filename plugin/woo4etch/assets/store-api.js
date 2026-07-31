@@ -338,15 +338,29 @@
         }
     });
 
+    // CAPTURE phase: on the assigned checkout page WooCommerce enqueues
+    // wc-checkout.js, whose form-level submit handler `return false`s —
+    // stopping propagation before a bubble-phase listener would ever run.
+    // Capturing on document fires first; when we take the submit we stop
+    // the event so the classic AJAX never double-handles it.
     document.addEventListener('submit', function (e) {
         var form = e.target;
-        if (!form.hasAttribute || !form.hasAttribute('data-w4e-checkout') || busy) return;
+        if (!form.hasAttribute || !form.hasAttribute('data-w4e-checkout')) return;
+        if (busy) {
+            // Mid-update (address/shipping write in flight): swallow the
+            // submit instead of letting it slip through as a classic POST —
+            // the user clicks again once the totals settled.
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
 
         var picked  = form.querySelector('[name="payment_method"]:checked');
         var gateway = picked ? picked.value : '';
         if (!gatewayAllowed(gateway)) return; // classic submit stays the path
 
         e.preventDefault();
+        e.stopPropagation();
         setBusy(true);
 
         var payload = readAddresses(form);
@@ -386,5 +400,5 @@
                 // show the error — the notices region can live inside a region.
                 refreshRegions().then(function () { fail(err); });
             });
-    });
+    }, true);
 })();

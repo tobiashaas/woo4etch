@@ -385,6 +385,8 @@ Three routes, ordered by markup control vs. native protection (all verified end-
 
 `[woo_checkout_block]` resolves the block's inner tree from your assigned checkout page when it carries the block (keeping your block-attribute customization), falling back to WooCommerce's default checkout block content. Verified end-to-end: hydrates on any page inside Etch markup, completes a purchase, and redirects to your Woo4Etch thank-you layout.
 
+> **Ready-made version:** the plugin ships a complete A+ checkout layout — contact + billing fields, country select (preselected from the customer/base country), live shipping selector, payment methods with selection outline, legal checkboxes (Germanized) and a sticky order summary with coupon field — all as Etch loops over `{options.checkout.*}`, mobile-first, with the classic no-JS fallback wired in. Install via **Etch → Woo4Etch → Ready-made layouts → Checkout** (the installer refuses pages that already render a checkout — clear the old `[woocommerce_checkout]` / checkout block first). On the assigned checkout page the plugin also dequeues WooCommerce's classic `wc-checkout.js` (its form-level submit handler would hijack the Store API submit); filter: `woo4etch/dequeue_classic_checkout_js`.
+
 ## Option A+ — the Store API checkout (Woo4Etch 1.8.0+)
 
 Your hand-written checkout form, upgraded in place: add `data-w4e-checkout` to the form and the Woo4Etch layer (setting **Store API cart interactions**, on by default) takes over —
