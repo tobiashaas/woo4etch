@@ -577,7 +577,7 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section  = self::cls($s, 'w4e-product', '');
-        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-xl, 40px); }');
+        $layout   = self::cls($s, 'w4e-product-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 32px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--grid-gap, 40px); }');
         // Gallery: Woo's gallery classes/attributes so WooCommerce's own
         // zoom/lightbox/slider scripts initialise on it when enabled
         // (Woo4Etch → Settings). Without the scripts the nested CSS lays the
@@ -594,13 +594,13 @@ final class Woo4Etch_Layouts {
             $s,
             'w4e-gal',
             'position: relative; opacity: 1 !important; min-inline-size: 0;'
-            . ' & .w4e-gal-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xs, 10px); margin: 0; }'
+            . ' & .w4e-gal-wrap { display: grid; grid-template-columns: var(--grid-4, repeat(4, 1fr)); gap: var(--space-xs, 10px); margin: 0; }'
             . ' & .flex-viewport .w4e-gal-wrap { display: block; }'
             . ' & .w4e-gal-item--featured { grid-column: 1 / -1; }'
             . ' & .w4e-gal-item a { display: block; }'
             . ' & .w4e-gal-item img:not(.zoomImg) { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius, 14px); background: var(--base-ultra-light, #f3f4f6); display: block; }'
             . ' & .flex-viewport { inline-size: 100%; border-radius: var(--radius, 14px); }'
-            . ' & .flex-control-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xs, 10px); margin: 10px 0 0; padding: 0; list-style: none; }'
+            . ' & .flex-control-thumbs { display: grid; grid-template-columns: var(--grid-4, repeat(4, minmax(0, 1fr))); gap: var(--space-xs, 10px); margin: 10px 0 0; padding: 0; list-style: none; }'
             . ' & .flex-control-thumbs li { cursor: pointer; margin: 0; min-inline-size: 0; }'
             . ' & .flex-control-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius, 10px); border: 1px solid var(--border-color-dark, #e5e7eb); opacity: .6; transition: opacity .2s, border-color .2s; }'
             . ' & .flex-control-thumbs img.flex-active, & .flex-control-thumbs img:hover { opacity: 1; border-color: var(--primary, currentColor); }'
@@ -857,7 +857,7 @@ final class Woo4Etch_Layouts {
      * @return array<string,mixed>
      */
     private static function archive_columns(array &$s) {
-        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-l, 32px); align-items: start; padding-block: 0 var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: 280px minmax(0, 1fr); }');
+        $cols = self::cls($s, 'w4e-shop-cols', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 32px); align-items: start; padding-block: 0 var(--space-xl, 48px); @media (min-width: 992px) { grid-template-columns: 280px minmax(0, 1fr); }');
 
         $filter    = self::cls($s, 'w4e-filter', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 16px); padding: var(--space-m, 20px); display: flex; flex-direction: column; gap: var(--space-m, 20px); @media (min-width: 992px) { position: sticky; top: 88px; }');
         $fgroup    = self::cls($s, 'w4e-filter__group', 'display: flex; flex-direction: column; gap: var(--space-xs, 10px); &:not(:last-child) { border-bottom: 1px solid var(--border-color-dark, #e6e7eb); padding-bottom: var(--space-m, 20px); }');
@@ -887,7 +887,7 @@ final class Woo4Etch_Layouts {
         $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
         $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); text-align: center; text-decoration: underline;');
 
-        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-s, 16px); @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-m, 24px); }');
+        $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--grid-gap, 16px); @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--grid-gap, 24px); }');
         $card    = self::cls($s, 'w4e-card', 'display: flex; flex-direction: column; gap: 4px;');
         $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: var(--base-ultra-light, #f0f0f1); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); margin-bottom: 8px;');
         $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: contain; mix-blend-mode: multiply;');
@@ -996,14 +996,15 @@ final class Woo4Etch_Layouts {
         $section  = self::cls($s, 'w4e-checkout', '');
         $formcls  = self::cls($s, 'w4e-checkout-form', '');
         $title    = self::cls($s, 'w4e-page__title', 'font-size: var(--h1, 32px); letter-spacing: -.02em; margin: 24px 0 20px;');
-        $layout   = self::cls($s, 'w4e-checkout-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m, 20px); align-items: start; padding-block: var(--space-xs, 8px) var(--space-l, 32px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-l, 32px); }');
+        $layout   = self::cls($s, 'w4e-checkout-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 20px); align-items: start; padding-block: var(--space-xs, 8px) var(--space-l, 32px); @media (min-width: 992px) { grid-template-columns: minmax(0, 1fr) 380px; gap: var(--grid-gap, 32px); }');
         $main     = self::cls($s, 'w4e-checkout-main', 'display: flex; flex-direction: column; gap: var(--space-s, 14px); min-width: 0;');
         $heading  = self::cls($s, 'w4e-checkout__heading', 'margin: var(--space-s, 12px) 0 0; font-size: var(--text-l, 18px); letter-spacing: -.01em;');
-        $fieldrow = self::cls($s, 'w4e-fieldrow', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-s, 12px); @media (min-width: 560px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
+        $fieldrow = self::cls($s, 'w4e-fieldrow', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-s, 12px); @media (min-width: 560px) { grid-template-columns: var(--grid-2, repeat(2, minmax(0, 1fr))); }');
         $field    = self::cls($s, 'w4e-field', 'width: 100%; padding: var(--space-xs, 11px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 8px); font-size: var(--text-s, 15px); background: var(--white, #fff);');
         $choice   = self::cls($s, 'w4e-choice', 'display: flex; gap: var(--space-xs, 10px); align-items: center; padding: var(--space-s, 12px) var(--space-s, 14px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 10px); background: var(--white, #fff); cursor: pointer; font-size: var(--text-s, 15px); &:has(input:checked) { border-color: var(--primary, #111827); box-shadow: 0 0 0 1px var(--primary, #111827); } & input { accent-color: var(--primary, #111827); }');
         $choicegp = self::cls($s, 'w4e-choicegroup', 'display: flex; flex-direction: column; gap: var(--space-xs, 8px); &[aria-busy="true"] { opacity: .55; pointer-events: none; transition: opacity .15s; }');
         $chprice  = self::cls($s, 'w4e-choice__price', 'margin-inline-start: auto; font-weight: 700; white-space: nowrap;');
+        $chicon   = self::cls($s, 'w4e-choice__icon', 'display: inline-flex; align-items: center; margin-inline-start: auto; & img { height: 24px; width: auto; max-width: 64px; }');
         $paydesc  = self::cls($s, 'w4e-choice__desc', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); & p { margin: 0; }');
         $legal    = self::cls($s, 'w4e-legal', 'display: flex; gap: var(--space-xs, 10px); align-items: flex-start; font-size: var(--text-s, 14px); color: var(--text-dark-muted, #52525b); & a { text-decoration: underline; } & input { margin-top: 3px; accent-color: var(--primary, #111827); }');
         $aside    = self::cls($s, 'w4e-checkout-aside', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 22px); display: flex; flex-direction: column; gap: var(--space-xs, 8px); &[aria-busy="true"] { opacity: .55; pointer-events: none; transition: opacity .15s; } @media (min-width: 992px) { position: sticky; top: 88px; }');
@@ -1099,8 +1100,10 @@ final class Woo4Etch_Layouts {
                                             $radio('pm.selected', ['type' => 'radio', 'name' => 'payment_method', 'value' => '{pm.id}'], []),
                                             [
                                                 self::txt('{pm.title}'),
-                                                // Gateway icons/descriptions carry HTML.
+                                                // Gateway icons/descriptions carry HTML (gateways
+                                                // provide their logos via get_icon()).
                                                 self::el('span', ['class' => 'w4e-choice__desc'], [$paydesc], [self::raw('{pm.description}', 'Description')], 'Description'),
+                                                self::el('span', ['class' => 'w4e-choice__icon'], [$chicon], [self::raw('{pm.icon}', 'Icon')], 'Icon'),
                                             ]
                                         ), 'Payment method'),
                                     ]),
@@ -1184,7 +1187,7 @@ final class Woo4Etch_Layouts {
         $rqty  = self::cls($s, 'w4e-minirow__qty', 'font-size: var(--text-xs, 12px); color: var(--text-dark-muted, #6b7280);');
         $rsub  = self::cls($s, 'w4e-minirow__sub', 'font-size: var(--text-xs, 13px); font-weight: 700; white-space: nowrap;');
         $total = self::cls($s, 'w4e-minicart__total', 'display: flex; justify-content: space-between; font-weight: 700; font-size: var(--text-s, 14px); border-top: 1px solid var(--border-color-dark, #e6e7eb); padding-top: var(--space-xs, 10px);');
-        $acts  = self::cls($s, 'w4e-minicart__actions', 'display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs, 8px);');
+        $acts  = self::cls($s, 'w4e-minicart__actions', 'display: grid; grid-template-columns: var(--grid-2, repeat(2, 1fr)); gap: var(--space-xs, 8px);');
         $view  = self::cls($s, 'w4e-minicart__view', 'display: inline-block; text-align: center; padding: var(--space-xs, 11px) var(--space-s, 12px); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 10px); color: inherit; font-weight: 600; font-size: var(--text-s, 14px); text-decoration: none;');
         $button = self::button_style($s);
 
@@ -1232,7 +1235,7 @@ final class Woo4Etch_Layouts {
         $s = [];
 
         $section = self::cls($s, 'w4e-account', '');
-        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-m, 20px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 768px) { grid-template-columns: 240px minmax(0, 1fr); gap: var(--space-l, 32px); }');
+        $layout  = self::cls($s, 'w4e-account-layout', 'display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 20px); align-items: start; padding-block: var(--space-m, 24px) var(--space-xl, 48px); @media (min-width: 768px) { grid-template-columns: 240px minmax(0, 1fr); gap: var(--grid-gap, 32px); }');
         $nav     = self::cls($s, 'w4e-account-nav', 'display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-xs, 10px); @media (min-width: 768px) { flex-direction: column; position: sticky; top: 88px; }');
         $navlink = self::cls($s, 'w4e-account-nav__link', 'padding: var(--space-xs, 10px) var(--space-s, 12px); border-radius: var(--radius, 8px); color: var(--text-dark, #16181d); font-weight: 500; text-decoration: none;');
         $content = self::cls($s, 'w4e-account-content', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); display: flex; flex-direction: column; gap: var(--space-s, 14px);');
@@ -1313,7 +1316,7 @@ final class Woo4Etch_Layouts {
         $section  = self::cls($s, 'w4e-thankyou', '');
         $wrap     = self::cls($s, 'w4e-order', 'display: flex; flex-direction: column; gap: var(--space-m, 18px); padding-block: var(--space-m, 24px) var(--space-xl, 48px); max-width: 720px;');
         $notice   = self::cls($s, 'w4e-thankyou__notice', 'background: var(--success-ultra-light, #ecfdf5); border: 1px solid var(--success-light, #a7f3d0); color: var(--success-dark, #065f46); padding: var(--space-s, 14px) var(--space-m, 18px); border-radius: var(--radius, 12px); font-weight: 600; margin: 0;');
-        $overview = self::cls($s, 'w4e-order-overview', 'list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-s, 14px);');
+        $overview = self::cls($s, 'w4e-order-overview', 'list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--grid-gap, 14px);');
         $cell     = self::cls($s, 'w4e-order-overview__item', 'background: var(--white, #fff); border: 1px solid var(--border-color-dark, #e6e7eb); border-radius: var(--radius, 12px); padding: var(--space-s, 12px) var(--space-s, 14px); display: flex; flex-direction: column; gap: 4px;');
         $celllab  = self::cls($s, 'w4e-order-overview__label', 'font-size: var(--text-xs, 12px); color: var(--text-dark-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em;');
         $cellval  = self::cls($s, 'w4e-order-overview__value', 'font-weight: 700;');
