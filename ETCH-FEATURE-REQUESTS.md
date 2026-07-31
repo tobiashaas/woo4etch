@@ -99,6 +99,33 @@ A user (or Woo4Etch programmatically, via the existing `POST /etch-api/templates
 
 **Division of labor offer:** with this filter merged, Woo4Etch would ship and maintain the entire WooCommerce endpoint mapping (incl. docs and preset template slugs) — Etch core stays free of Woo-specific code. We'd prototype against a fork to keep the patch minimal and aligned with Etch's code style.
 
+## 5. Template picker should list plugin-registered template types
+
+Etch's "new template" picker (`Templates.svelte`) is a static catalog — site
+templates (index, 404, search, front-page, …) plus generated entries for CPTs
+(`single-{cpt}`, `archive-{cpt}`) and taxonomies. What it never offers are
+template types that plugins **register** with the block-template system:
+WooCommerce's `page-cart`, `page-checkout`, `order-confirmation`,
+`product-search-results`, `coming-soon`, `taxonomy-product_tag` and
+`taxonomy-product_attribute`. The WordPress Site Editor lists all of these
+under "Add New Template" because it reads the registry; a user comparing the
+two concludes Etch "can't see" WooCommerce templates.
+
+Once such a template *exists* as a `wp_template` post (created via the Site
+Editor, or programmatically), Etch's hub shows and edits it perfectly — the
+gap is only the creation catalog. And Etch is already 90 % there: its
+`list_templates` REST route runs `ensure_templates_saved()`, which
+materializes `source === 'plugin'` templates from `get_block_templates()`
+into posts. The missing piece is surfacing the same registry entries in the
+picker (or simply treating "registered but not yet materialized" like the
+theme-file case it already handles).
+
+**Related fix on our side is not possible cleanly:** Woo4Etch pre-creates the
+four templates its layouts target (`archive-product`, `taxonomy-product_cat`,
+`single-product`, `order-confirmation`) on push, but blanket-creating the
+rest as empty posts would shadow WooCommerce's fallback rendering with blank
+pages — the picker is the right place.
+
 ## Nice-to-have (lower priority)
 
 - **Server-side component install:** Etch's public scripting API now covers component CRUD (`etch.components.createAsync()/updateAsync({key, description, properties, blocks})` — docs.etchwp.com/public-api/components), which is great — but the runtime only exists inside the builder (`window.etch` on `?etch=magic` pages). A *supported server-side* equivalent (PHP function or documented REST payload) is still missing, so plugins that want to ship components fall back to writing the storage format directly: a `wp_block` post with serialized block markup plus `etch_component_html_key` / `etch_component_properties` meta (both Woo4Etch's notices component and Bricks2Etch's bundled system components do exactly this, in production). It works, but it hard-couples third-party code to Etch's internal storage contract — a one-line supported `etch_install_component($definition)` (or documented REST payload) would remove that coupling.
