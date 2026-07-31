@@ -449,22 +449,56 @@ final class Woo4Etch_Layouts {
     /**
      * etch/condition block.
      *
+     * CRITICAL: conditionString must be the real EXPRESSION, not a label.
+     * The Etch builder treats conditionString as the source of truth and
+     * re-derives the condition object from it on every save — a label there
+     * becomes leftHand after one builder round-trip, the path is lost, and
+     * the condition silently evaluates false forever (real bug: the pushed
+     * checkout page went blank after a builder save). The human-readable
+     * label goes into metadata.name instead.
+     *
      * @param array<string,mixed>|string $left     Data path, or nested condition array.
      * @param string                     $operator isTruthy|isFalsy|===|!==|==|!=|>|<|>=|<=|&&|\|\|.
      * @param mixed                      $right    Literal ('orders' must be passed quoted: "'orders'"), path, or nested condition.
      * @param array<int,array>           $children Child blocks.
-     * @param string                     $label    Human-readable conditionString for the builder UI.
+     * @param string                     $label    Display name for the builder tree (metadata.name).
      * @return array<string,mixed>
      */
     private static function cond($left, $operator, $right, array $children, $label) {
         return self::block(
             'etch/condition',
             [
+                'metadata'        => ['name' => $label],
                 'condition'       => ['leftHand' => $left, 'operator' => $operator, 'rightHand' => $right],
-                'conditionString' => $label,
+                'conditionString' => self::cond_expression($left, $operator, $right),
             ],
             $children
         );
+    }
+
+    /**
+     * Derive the builder-parseable expression for a condition — the exact
+     * string the Etch builder round-trips (see cond()).
+     *
+     * @param array<string,mixed>|string $left
+     * @param string                     $operator
+     * @param mixed                      $right
+     * @return string
+     */
+    private static function cond_expression($left, $operator, $right) {
+        $l = is_array($left)
+            ? self::cond_expression($left['leftHand'], $left['operator'], $left['rightHand'])
+            : (string) $left;
+        if ('isTruthy' === $operator) {
+            return $l;
+        }
+        if ('isFalsy' === $operator) {
+            return '!' . $l;
+        }
+        $r = is_array($right)
+            ? self::cond_expression($right['leftHand'], $right['operator'], $right['rightHand'])
+            : (string) $right;
+        return $l . ' ' . $operator . ' ' . $r;
     }
 
     /** Shorthand: nested condition operand (not a block). */

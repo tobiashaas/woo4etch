@@ -169,6 +169,39 @@ function w4e_test_layouts() {
         // Issue #21: classes survive builder saves only when record-backed.
         w4e_assert_classes_bound($root, $layout['styles'] ?? [], $slug);
 
+        // The Etch builder re-derives every condition from conditionString on
+        // save — a label there destroys the condition after one round-trip
+        // (real bug: pushed checkout page went blank). Assert the string is a
+        // parseable expression consistent with the condition object.
+        $bad_conditions = [];
+        w4e_walk_blocks($root, static function ($b) use (&$bad_conditions) {
+            if (($b['blockName'] ?? '') !== 'etch/condition') {
+                return;
+            }
+            $cond = $b['attrs']['condition'] ?? null;
+            $str  = (string) ($b['attrs']['conditionString'] ?? '');
+            if (!is_array($cond) || $str === '') {
+                $bad_conditions[] = 'missing condition/conditionString';
+                return;
+            }
+            $left = $cond['leftHand'];
+            // Nested conditions: just require an operator in the string.
+            if (is_array($left)) {
+                if (!preg_match('/(&&|\|\||===|!==|==|!=|>=|<=|>|<)/', $str)) {
+                    $bad_conditions[] = "nested condition without operator in '{$str}'";
+                }
+                return;
+            }
+            // The left-hand data path must appear verbatim in the string, and
+            // the string must not be a bare label (spaces without operators).
+            if (strpos($str, (string) $left) === false) {
+                $bad_conditions[] = "conditionString '{$str}' does not contain path '{$left}'";
+            } elseif (strpos((string) $left, '.') === false) {
+                $bad_conditions[] = "leftHand '{$left}' is not a data path";
+            }
+        });
+        w4e_equals([], $bad_conditions, "{$slug}: conditionStrings are builder-safe expressions" . ($bad_conditions ? ' (' . implode('; ', array_slice($bad_conditions, 0, 3)) . ')' : ''));
+
         // Issue #22: shipped CSS uses ACSS tokens WITH plain fallbacks — a
         // bare var(--token) would render as nothing on non-ACSS sites.
         $bare = [];
