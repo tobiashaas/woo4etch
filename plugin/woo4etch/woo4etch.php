@@ -817,6 +817,9 @@ final class Woo4Etch {
         // On by default; Settings checkbox / filter to disable:
         //   add_filter('woo4etch/enqueue_store_api', '__return_false');
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_store_api_script']);
+        // Late (100): must run AFTER WooCommerce enqueued wc-checkout — at the
+        // same priority the dequeue is a no-op depending on plugin load order.
+        add_action('wp_enqueue_scripts', [__CLASS__, 'dequeue_classic_checkout_js'], 100);
 
         // Opt-in rate limit for the CLASSIC checkout (issue #24): WooCommerce's
         // native card-testing rate limiting (Advanced → Features) only covers
@@ -941,6 +944,26 @@ final class Woo4Etch {
      * disable via the Settings checkbox or:
      *   add_filter('woo4etch/enqueue_store_api', '__return_false');
      */
+    /**
+     * A+ checkout page: WooCommerce enqueues wc-checkout.js on is_checkout()
+     * regardless of the page content. Its form-level submit handler
+     * `return false`s (preventDefault + stopPropagation) and re-posts via the
+     * classic ?wc-ajax=checkout — hijacking the Store API layer's submit.
+     * When the assigned checkout page carries the data-w4e-checkout marker,
+     * the classic checkout scripts have no job here: dequeue them. Hooked
+     * LATE (priority 100) so WooCommerce has already enqueued the handle.
+     */
+    public static function dequeue_classic_checkout_js() {
+        if (!function_exists('is_checkout') || !is_checkout() || is_wc_endpoint_url()) {
+            return;
+        }
+        $page = get_post(wc_get_page_id('checkout'));
+        if ($page && strpos((string) $page->post_content, 'data-w4e-checkout') !== false
+            && apply_filters('woo4etch/dequeue_classic_checkout_js', true)) {
+            wp_dequeue_script('wc-checkout');
+        }
+    }
+
     public static function enqueue_store_api_script() {
         $settings = (array) get_option('woo4etch_settings', []);
         $enqueue  = !isset($settings['store_api_cart']) || !empty($settings['store_api_cart']);
@@ -948,21 +971,6 @@ final class Woo4Etch {
             return;
         }
 
-        /*
-         * A+ checkout page: WooCommerce enqueues wc-checkout.js on is_checkout()
-         * regardless of the page content. Its form-level submit handler
-         * `return false`s (preventDefault + stopPropagation) and re-posts via
-         * the classic ?wc-ajax=checkout — hijacking the Store API layer's
-         * submit. When the assigned checkout page carries the data-w4e-checkout
-         * marker, the classic checkout scripts have no job here: dequeue them.
-         */
-        if (function_exists('is_checkout') && is_checkout() && !is_wc_endpoint_url()) {
-            $page = get_post(wc_get_page_id('checkout'));
-            if ($page && strpos((string) $page->post_content, 'data-w4e-checkout') !== false
-                && apply_filters('woo4etch/dequeue_classic_checkout_js', true)) {
-                wp_dequeue_script('wc-checkout');
-            }
-        }
         wp_enqueue_script(
             'woo4etch-store-api',
             plugins_url('assets/store-api.js', __FILE__),
