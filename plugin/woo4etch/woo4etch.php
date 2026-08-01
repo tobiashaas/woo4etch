@@ -1010,6 +1010,11 @@ final class Woo4Etch {
 
         $items = [];
         foreach (Woo4Etch_Health::wc_templates() as $slug => $meta) {
+            // Frame templates opt out of the hub group ('hub' => false) —
+            // they stay manageable via the wp-admin table.
+            if (isset($meta['hub']) && false === $meta['hub']) {
+                continue;
+            }
             $post = Woo4Etch_Health::find_template($slug);
             if (!$post) {
                 continue;

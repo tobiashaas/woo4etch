@@ -318,13 +318,18 @@ final class Woo4Etch_Health {
      */
     public static function wc_templates() {
         return apply_filters('woo4etch/wc_templates', [
+            // 'hub' => false keeps a template out of the builder-hub group
+            // (it stays manageable in this admin table) — frames are rarely
+            // edited and would only add noise next to the content templates.
             'page-cart' => [
                 'name'        => __('Page: Cart (frame)', 'woo4etch'),
                 'description' => __('The frame around the cart PAGE (any slug — WooCommerce maps it to the assigned page). Created as a clone of your generic “page” template; edit it only for a cart-specific frame.', 'woo4etch'),
+                'hub'         => false,
             ],
             'page-checkout' => [
                 'name'        => __('Page: Checkout (frame)', 'woo4etch'),
                 'description' => __('The frame around the checkout PAGE. Typical use: a reduced header (logo + trust, no navigation) while the checkout content itself lives on the page.', 'woo4etch'),
+                'hub'         => false,
             ],
             'order-confirmation' => [
                 'name'        => __('Order confirmation (thank-you)', 'woo4etch'),
