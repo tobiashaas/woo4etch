@@ -304,6 +304,87 @@ final class Woo4Etch_Health {
      * @param string $slug Template slug (e.g. 'single-product').
      * @return WP_Post|null
      */
+    /**
+     * Curated WooCommerce block templates worth having editable in Etch.
+     *
+     * WooCommerce REGISTERS these template types, but Etch's template picker
+     * only knows the standard hierarchy — so until a wp_template post exists,
+     * they're reachable only through the WP Site Editor. Materializing them
+     * as posts (with sensible content) makes them show up in Etch's hub.
+     * Note: deleting them later does NOT remove them from the frontend —
+     * WooCommerce backfills its plugin default (generic template parts).
+     *
+     * @return array<string,array{name:string,description:string}>
+     */
+    public static function wc_templates() {
+        return apply_filters('woo4etch/wc_templates', [
+            'page-cart' => [
+                'name'        => __('Page: Cart (frame)', 'woo4etch'),
+                'description' => __('The frame around the cart PAGE (any slug — WooCommerce maps it to the assigned page). Created as a clone of your generic “page” template; edit it only for a cart-specific frame.', 'woo4etch'),
+            ],
+            'page-checkout' => [
+                'name'        => __('Page: Checkout (frame)', 'woo4etch'),
+                'description' => __('The frame around the checkout PAGE. Typical use: a reduced header (logo + trust, no navigation) while the checkout content itself lives on the page.', 'woo4etch'),
+            ],
+            'order-confirmation' => [
+                'name'        => __('Order confirmation (thank-you)', 'woo4etch'),
+                'description' => __('Renders the order-received endpoint after payment. The Thank-you layout above installs into it.', 'woo4etch'),
+            ],
+            'product-search-results' => [
+                'name'        => __('Product search results', 'woo4etch'),
+                'description' => __('Renders product search result pages.', 'woo4etch'),
+            ],
+            'coming-soon' => [
+                'name'        => __('Coming soon', 'woo4etch'),
+                'description' => __('Shown while WooCommerce → Site Visibility is set to “Coming soon”. Inactive on live sites.', 'woo4etch'),
+            ],
+        ]);
+    }
+
+    /**
+     * Make a WooCommerce-registered template editable in Etch by creating
+     * its wp_template post. Frames (page-cart / page-checkout) clone the
+     * site's generic "page" template so the house frame applies; everything
+     * else starts from WooCommerce's own default content (blockified file).
+     *
+     * @param string $slug Template slug from wc_templates().
+     * @return int|WP_Error New template post ID.
+     */
+    public static function materialize_wc_template($slug) {
+        if (!array_key_exists($slug, self::wc_templates())) {
+            return new WP_Error('woo4etch_unknown_template', __('Unknown WooCommerce template.', 'woo4etch'));
+        }
+        if (self::find_template($slug)) {
+            return new WP_Error('woo4etch_template_exists', __('This template already exists — it is already visible in Etch.', 'woo4etch'));
+        }
+
+        $content = '';
+        // Frames: prefer the site's own generic page frame over WC's default
+        // (which uses generic header/footer template parts).
+        if (in_array($slug, ['page-cart', 'page-checkout'], true)) {
+            $page = self::find_template('page');
+            if ($page) {
+                $content = (string) $page->post_content;
+            }
+        }
+        if ('' === $content) {
+            foreach ([
+                WP_PLUGIN_DIR . '/woocommerce/templates/templates/blockified/' . $slug . '.html',
+                WP_PLUGIN_DIR . '/woocommerce/templates/templates/' . $slug . '.html',
+            ] as $file) {
+                if (is_readable($file)) {
+                    $content = (string) file_get_contents($file);
+                    break;
+                }
+            }
+        }
+        if ('' === $content) {
+            return new WP_Error('woo4etch_no_default', __('No default content found for this template (WooCommerce files not readable).', 'woo4etch'));
+        }
+
+        return self::create_template($slug, $content);
+    }
+
     public static function find_template($slug) {
         $posts = get_posts([
             'post_type'      => 'wp_template',

@@ -14,6 +14,7 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 ### Added
 
+- **"WooCommerce templates in Etch" admin section.** WooCommerce registers template types (`page-cart`, `page-checkout`, `order-confirmation`, `product-search-results`, `coming-soon`) that Etch's template picker doesn't offer — users had to detour through the WP Site Editor to create them before Etch could edit them. New table on the Woo4Etch admin page materializes each one with a click: frames (cart/checkout) start as a clone of the site's generic `page` template so the house frame applies, everything else starts from WooCommerce's default content; existing ones deep-link into the editor. Includes the field-learned warning that deleting such a template swaps in WooCommerce's plugin default (generic template parts) rather than removing it. Filter: `woo4etch/wc_templates`.
 - **Sold-individually support in the cart layer** (completes Zack's `sold_individually` product-context contribution): the cart bridge exposes `sold_individually` per line item, and the shipped cart layout renders a static quantity instead of an editable input/stepper for such lines. Server-side Woo validation always guarded the change — now the UI matches it. Verified E2E on staging incl. the double-add rejection (Woo's real error as a notice, no reload) and a full Mollie purchase (order 1202: variable product variation 339 + sold-individually item, `created_via: store-api`).
 
 ### Fixed

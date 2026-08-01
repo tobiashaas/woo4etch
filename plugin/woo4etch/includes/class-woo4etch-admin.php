@@ -25,6 +25,7 @@ final class Woo4Etch_Admin {
         add_action('admin_post_woo4etch_request_component', [__CLASS__, 'handle_request_component']);
         add_action('admin_post_woo4etch_insert_into_page', [__CLASS__, 'handle_insert_into_page']);
         add_action('admin_post_woo4etch_push_layout', [__CLASS__, 'handle_push_layout']);
+        add_action('admin_post_woo4etch_materialize_template', [__CLASS__, 'handle_materialize_template']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
         add_action('admin_init', [__CLASS__, 'cleanup_legacy_patterns']);
     }
@@ -174,6 +175,31 @@ final class Woo4Etch_Admin {
     /**
      * Attach under Etch when present; otherwise under WooCommerce.
      */
+    /**
+     * Materialize a WooCommerce-registered template as a wp_template post so
+     * it becomes visible/editable in Etch's template hub.
+     */
+    public static function handle_materialize_template() {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('Insufficient permissions.', 'woo4etch'));
+        }
+        $slug = isset($_POST['template']) ? sanitize_key(wp_unslash($_POST['template'])) : '';
+        check_admin_referer('woo4etch_materialize_' . $slug);
+
+        $result   = class_exists('Woo4Etch_Health')
+            ? Woo4Etch_Health::materialize_wc_template($slug)
+            : new WP_Error('woo4etch_missing', __('Health module unavailable.', 'woo4etch'));
+        $redirect = wp_get_referer() ?: admin_url();
+        $redirect = remove_query_arg(['w4e_pushed', 'w4e_push_error'], $redirect);
+        if (is_wp_error($result)) {
+            $redirect = add_query_arg('w4e_push_error', rawurlencode($result->get_error_message()), $redirect);
+        } else {
+            $redirect = add_query_arg('w4e_pushed', rawurlencode($slug), $redirect);
+        }
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
     public static function register_menu() {
         $parent = self::resolve_parent_slug();
 
@@ -464,6 +490,8 @@ final class Woo4Etch_Admin {
             </tbody>
         </table>
 
+        <?php self::render_wc_templates_section(); ?>
+
         <?php self::render_health_section(); ?>
         <?php
     }
@@ -472,6 +500,59 @@ final class Woo4Etch_Admin {
      * Page health check: are the expected elements present on the pages
      * WooCommerce is configured to use?
      */
+    /**
+     * WooCommerce templates → Etch hub. WooCommerce registers these template
+     * types, but Etch's picker only offers the standard hierarchy — so until
+     * a wp_template post exists they're editable only via the WP Site Editor.
+     * One click materializes them; existing ones deep-link into the editor.
+     */
+    private static function render_wc_templates_section() {
+        if (!class_exists('Woo4Etch_Health')) {
+            return;
+        }
+        ?>
+        <h2><?php esc_html_e('WooCommerce templates in Etch', 'woo4etch'); ?></h2>
+        <p class="description" style="max-width: 820px;">
+            <?php esc_html_e('WooCommerce registers these template types, but Etch’s “new template” picker only knows the standard WordPress hierarchy — so they normally have to be created once through the WP Site Editor before Etch can edit them. “Make editable in Etch” does that step for you: frames (cart/checkout) start as a clone of your generic “page” template, everything else starts from WooCommerce’s default. Heads-up: templates like these can’t be removed by deleting them — WooCommerce falls back to its own plugin default (generic header/footer parts) instead.', 'woo4etch'); ?>
+        </p>
+        <table class="widefat striped" style="max-width: 980px;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Template', 'woo4etch'); ?></th>
+                    <th><?php esc_html_e('What it renders', 'woo4etch'); ?></th>
+                    <th style="width:220px;"><?php esc_html_e('Status', 'woo4etch'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (Woo4Etch_Health::wc_templates() as $slug => $meta) :
+                    $post = Woo4Etch_Health::find_template($slug);
+                    ?>
+                    <tr>
+                        <td><strong><?php echo esc_html($meta['name']); ?></strong><br><code><?php echo esc_html($slug); ?></code></td>
+                        <td><?php echo esc_html($meta['description']); ?></td>
+                        <td>
+                            <?php if ($post) : ?>
+                                <a class="woo4etch-installed" href="<?php echo esc_url((string) get_edit_post_link($post->ID, 'raw')); ?>">
+                                    <?php esc_html_e('✓ In Etch — open in editor', 'woo4etch'); ?>
+                                </a>
+                            <?php else : ?>
+                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                                    <input type="hidden" name="action" value="woo4etch_materialize_template">
+                                    <input type="hidden" name="template" value="<?php echo esc_attr($slug); ?>">
+                                    <?php wp_nonce_field('woo4etch_materialize_' . $slug); ?>
+                                    <button type="submit" class="button button-small">
+                                        <?php esc_html_e('Make editable in Etch', 'woo4etch'); ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
     private static function render_health_section() {
         $targets = Woo4Etch_Health::targets();
         if (empty($targets)) {
