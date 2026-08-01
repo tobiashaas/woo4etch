@@ -68,6 +68,8 @@ add_filter('etch/dynamic_data/roots', function (array $roots) {
 
 Lazy resolution matters: shop data should only be computed when a layout actually references the root.
 
+> **Status (2026-07-31, answered by Pedro Bartulihe):** a roots filter doesn't exist, and the endorsed pattern is nesting inside the existing option root — `$data['woo'] = [...]` → `{options.woo.cart}`. That covers the collision/ownership concern (Woo4Etch already uses this shape for `{options.checkout.*}` and `{options.order.*}`); existing flat keys stay for compatibility. What remains of this request is small: top-level grouping in the builder's key-picker, and making `DynamicContentRegistry`'s timing/stability official for integrations that already use it.
+
 ## 4. Endpoint-aware template conditions (WooCommerce thank-you, My Account sub-pages)
 
 **Current state:** Etch resolves templates strictly via WordPress's FSE hierarchy (`classes/Traits/DynamicData.php:536-596` — `page-{slug}` → `page-{id}` → `page` → `index`, matched against `wp_template` posts). WooCommerce **endpoints** are invisible to that hierarchy: `/checkout/order-received/{id}/` and `/my-account/orders/` are rewrite endpoints on the checkout / My Account *page*, not separate posts — so the page's template renders for every endpoint URL, with no way to vary it.
