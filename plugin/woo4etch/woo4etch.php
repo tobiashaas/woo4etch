@@ -817,6 +817,7 @@ final class Woo4Etch {
         // On by default; Settings checkbox / filter to disable:
         //   add_filter('woo4etch/enqueue_store_api', '__return_false');
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_store_api_script']);
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_etch_hub_templates']);
         // Late (100): must run AFTER WooCommerce enqueued wc-checkout — at the
         // same priority the dequeue is a no-op depending on plugin load order.
         add_action('wp_enqueue_scripts', [__CLASS__, 'dequeue_classic_checkout_js'], 100);
@@ -988,6 +989,53 @@ final class Woo4Etch {
             }
         }
         return false;
+    }
+
+    /**
+     * Surface WooCommerce templates inside Etch's template hub (builder
+     * shell only). Etch's hub renders only slugs its catalog knows —
+     * Woo-registered templates (page-cart, order-confirmation, …) exist in
+     * the REST list but are never displayed. The bridge script appends a
+     * "WooCommerce" group with ?etch=magic&post_id= edit links (Etch's own
+     * deep-link scheme). Disable: woo4etch/etch_hub_templates filter.
+     */
+    public static function enqueue_etch_hub_templates() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!isset($_GET['etch']) || 'magic' !== $_GET['etch'] || !current_user_can('manage_options')) {
+            return;
+        }
+        if (!class_exists('Woo4Etch_Health') || !apply_filters('woo4etch/etch_hub_templates', true)) {
+            return;
+        }
+
+        $items = [];
+        foreach (Woo4Etch_Health::wc_templates() as $slug => $meta) {
+            $post = Woo4Etch_Health::find_template($slug);
+            if (!$post) {
+                continue;
+            }
+            $items[] = [
+                'slug' => $slug,
+                'name' => $meta['name'],
+                'url'  => add_query_arg(['etch' => 'magic', 'post_id' => $post->ID], home_url('/')),
+            ];
+        }
+        if (!$items) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'woo4etch-etch-hub-templates',
+            plugins_url('assets/etch-hub-templates.js', __FILE__),
+            [],
+            self::VERSION,
+            true
+        );
+        wp_localize_script('woo4etch-etch-hub-templates', 'w4eHubTemplates', [
+            'groupLabel' => __('WooCommerce', 'woo4etch'),
+            'editLabel'  => __('Edit', 'woo4etch'),
+            'items'      => $items,
+        ]);
     }
 
     public static function dequeue_classic_checkout_js() {

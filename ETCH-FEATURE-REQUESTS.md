@@ -101,7 +101,21 @@ A user (or Woo4Etch programmatically, via the existing `POST /etch-api/templates
 
 **Division of labor offer:** with this filter merged, Woo4Etch would ship and maintain the entire WooCommerce endpoint mapping (incl. docs and preset template slugs) — Etch core stays free of Woo-specific code. We'd prototype against a fork to keep the patch minimal and aligned with Etch's code style.
 
-## 5. Template picker should list plugin-registered template types
+## 5. Template hub should list plugin-registered templates (not just its catalog)
+
+> **Sharpened after UI-level testing:** the gap is bigger than the "new
+> template" picker. The hub's LIST itself (`Templates.svelte`) derives its
+> rendered items exclusively from the static/generated catalog and matches
+> `templates.list` against it — **any existing `wp_template` post whose slug
+> the catalog doesn't know is silently invisible**, even though the
+> `/etch-api/templates` REST response contains it. On a live Woo site all
+> five WooCommerce templates existed as posts with correct theme terms and
+> were editable via deep link (`?etch=magic&post_id=…`) — but none appeared
+> anywhere in the hub. A catch-all "Other templates" group for unmatched
+> list entries would fix both the list and (with the registry) the picker.
+> Until then, Woo4Etch bridges it by injecting a "WooCommerce" group into
+> `.etch-templates__content` with deep links (assets/etch-hub-templates.js)
+> — happy to retire that the moment the hub lists unknown slugs natively.
 
 Etch's "new template" picker (`Templates.svelte`) is a static catalog — site
 templates (index, 404, search, front-page, …) plus generated entries for CPTs
