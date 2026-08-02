@@ -3,7 +3,7 @@
  * Plugin Name:       Woo4Etch
  * Plugin URI:        https://github.com/tobiashaas/woo4etch
  * Description:       WooCommerce shortcodes and customization layer for Etch templates — [do_action], prices, stock, add-to-cart, gallery, conditionals, archive, and Woo data as Etch dynamic data (cart, account, orders).
- * Version:           1.8.0
+ * Version:           1.9.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -224,7 +224,7 @@ add_action('plugins_loaded', static function () {
 final class Woo4Etch {
 
     /** Plugin version. */
-    const VERSION = '1.8.0';
+    const VERSION = '1.9.0';
 
     /**
      * Register all shortcodes and the admin reference screen.

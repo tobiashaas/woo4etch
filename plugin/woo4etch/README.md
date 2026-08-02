@@ -14,7 +14,7 @@ The plugin is ready to use: all shortcodes register on `plugins_loaded` once Woo
 
 ## Ready-made layouts
 
-**Etch → Woo4Etch → Ready-made layouts**: complete, editable Etch layouts — shop archive (working filter sidebar + category slider), category archive (SEO intro + term description), single product, cart, header mini-cart (hover dropdown), My Account, thank-you, Woo notices. **Add to page/template** installs each one straight where it renders (WooCommerce's assigned page or the area's Etch template; append-only, never double-inserts), or copy them as Etch paste-JSON. Built on the dynamic-data bridges below, so they preview live in the builder.
+**Etch → Woo4Etch → Layouts**: complete, editable Etch layouts — shop archive (working filter sidebar + category slider), category archive (SEO intro + term description), single product, cart, header mini-cart (hover dropdown), My Account, thank-you, Woo notices. **Add to page/template** installs each one straight where it renders (WooCommerce's assigned page or the area's Etch template; append-only, never double-inserts), or copy them as Etch paste-JSON. Built on the dynamic-data bridges below, so they preview live in the builder.
 
 ## Dynamic data bridges (no shortcode needed)
 

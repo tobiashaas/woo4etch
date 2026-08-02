@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -14,7 +14,7 @@ WooCommerce shortcodes and customizations for Etch templates — for everything 
 
 Etch is a WordPress visual builder that doesn't (yet) have native WooCommerce blocks. Woo4Etch provides a small set of carefully scoped shortcodes you can drop into Etch templates to invoke WooCommerce PHP where you need it.
 
-The foundation is a generic `[do_action]` shortcode that fires any WordPress action hook from inside content. On top of that, a comprehensive set of convenience shortcodes covers product data, media, UI, cart, account, store/archive, and conditional rendering — so you don't have to hunt for hook names or template paths yourself. The admin reference (Etch → Woo4Etch) lists every shortcode, including the native WooCommerce ones, with copy buttons.
+The foundation is a generic `[do_action]` shortcode that fires any WordPress action hook from inside content. On top of that, a comprehensive set of convenience shortcodes covers product data, media, UI, cart, account, store/archive, and conditional rendering — so you don't have to hunt for hook names or template paths yourself. The admin reference (Etch → Woo4Etch → Shortcodes) lists every shortcode, including the native WooCommerce ones, with copy buttons.
 
 = Shortcodes =
 
@@ -99,7 +99,7 @@ The reference page also lists the native WooCommerce shortcodes (`[woocommerce_c
 
 = Ready-made layouts =
 
-Under Etch → Woo4Etch → Ready-made layouts the plugin ships complete, editable Etch layouts: shop archive (working filter sidebar with category counts and a dual-handle price slider, category slider), category archive (SEO intro + term description), single product (gallery, type-aware add-to-cart), cart (quantity update, coupon, cross-sells, empty state), checkout (Store API "option A+": contact/billing fields, country select, live shipping selector, payment methods, Germanized legal checkboxes, order summary with coupon — natively rate-limited order placement, classic no-JS fallback), header mini-cart (hover dropdown with empty state), My Account (login gate, dashboard, orders), thank-you and a Woo notices region (also installable as an Etch component).
+On the Layouts tab (Etch → Woo4Etch) the plugin ships complete, editable Etch layouts: shop archive (working filter sidebar with category counts and a dual-handle price slider, category slider), category archive (SEO intro + term description), single product (gallery, type-aware add-to-cart), cart (quantity update, coupon, cross-sells, empty state), checkout (Store API "option A+": contact/billing fields, country select, live shipping selector, payment methods, Germanized legal checkboxes, order summary with coupon — natively rate-limited order placement, classic no-JS fallback), header mini-cart (hover dropdown with empty state), My Account (login gate, dashboard, orders), thank-you and a Woo notices region (also installable as an Etch component).
 
 "Add to page/template" installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without touching existing content, and refuses double-inserts. "Copy JSON" exports Etch's native paste format instead. Everything previews live in the builder via the plugin's dynamic-data bridges ({options.cart_items}, {options.shop_categories}, {options.account_menu}, {options.order}, …).
 
@@ -141,6 +141,19 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when Etch is not active) — four tabs: Overview (shop status), Layouts, Settings, and the Shortcodes reference with copy buttons. WooCommerce's own template types are handled inside the builder: Etch's template hub gets a "WooCommerce" group that opens them, or creates them on click.
 
 == Changelog ==
+
+= 1.9.0 =
+* New: ready-made CHECKOUT layout ("option A+") — the last shop area gets its one-click layout: contact/billing fields, country select, live shipping selector, payment methods with logos, Germanized legal checkboxes and a sticky order summary with coupon field, all as hand-written Etch blocks over the checkout bridge. Mobile-first, checked states rendered server-side (correct before any JS runs), classic no-JS fallback. New bridge keys: {options.checkout.countries} and payment_methods[].selected.
+* New: WooCommerce templates inside Etch's template hub — the builder's hub only renders slugs from its own catalog, so WooCommerce's templates (thank-you, product search results, coming soon) never showed up there. The plugin adds a native-looking "WooCommerce" group (built from Etch's own DOM, admins only) that opens them, or creates them on click if no template post exists yet. Page frames (cart/checkout) stay out by design; opt one in via the woo4etch/wc_templates filter.
+* New: sold-individually products render a fixed quantity instead of a stepper in the cart layout (Woo's server-side rule now matches the UI).
+* Change: the admin page is now four tabs — Overview (shop status), Layouts, Settings, Shortcodes — instead of one long scroll; page slug is woo4etch (old bookmarks redirect). Settings descriptions were corrected: the Store API toggle also drives the checkout layout's interactions, and checkout rate limiting protects the classic path (Store API orders are covered by WooCommerce itself).
+* Change: all shipped layouts are mobile-first responsive, use ACSS grid tokens (--grid-gap, --grid-2/4) for layout grids, and their ACSS token mapping was corrected to the real spacing scale and neutral greys.
+* Fix: saving a shipped layout in the builder destroyed its conditions — the condition string carried a human label, and Etch re-derives conditions from that string on save (a blank checkout page was the visible symptom). Conditions now carry real expressions; tools/repair-condition-strings.php repairs affected sites.
+* Fix: WooCommerce's classic checkout script no longer hijacks the Store API checkout (it re-posted through ?wc-ajax=checkout, bypassing the layer).
+* Fix: the checkout bridge only offers gateways that can work in a hand-built form (redirect/offline flows) — inline card-field gateways like Stripe Elements belong in [woo_checkout_block].
+* Fix: a rejected cart write no longer leaves the optimistic UI state (the layer re-renders to the server truth before showing Woo's error).
+* Fix: the shop status reported the checkout page as "missing" on every site.
+* Fix: the cart layout lost its "Proceed to checkout" button on install (serialization slot mismatch). Re-install the cart layout to get it back.
 
 = 1.8.0 =
 * New: Store API checkout ("option A+") — add data-w4e-checkout to your hand-built checkout form and the layer upgrades it in place: address edits recalculate shipping/totals live (cart/update-customer), shipping picks go through select-shipping-rate, and the order is placed via POST /wc/store/v1/checkout — putting the fully hand-written Etch checkout under WooCommerce's NATIVE checkout rate limiting (Advanced → Features) and Store API validation, following payment_result.redirect_url to hosted payment pages (Mollie, PayPal) or order-received (COD, invoice, bank transfer). [data-w4e-checkout-region] blocks re-render as server-side Etch HTML after every write. Redirect/offline gateways only (filter woo4etch/store_api_checkout_gateways); other gateways and no-JS submit classically.
