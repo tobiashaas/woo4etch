@@ -138,7 +138,7 @@ WordPress could not overwrite the existing files under wp-content/plugins/woo4et
 
 WooCommerce must be installed and active.
 
-In the admin, open **Etch → Woo4Etch** for a table of all shortcodes with copy buttons (or **WooCommerce → Woo4Etch** when Etch is not active).
+In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when Etch is not active) — four tabs: Overview (shop status), Layouts, Settings, and the Shortcodes reference with copy buttons. WooCommerce's own template types are handled inside the builder: Etch's template hub gets a "WooCommerce" group that opens them, or creates them on click.
 
 == Changelog ==
 

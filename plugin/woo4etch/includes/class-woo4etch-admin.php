@@ -1,6 +1,8 @@
 <?php
 /**
- * Admin UI: shortcode reference under the Etch menu (when available).
+ * Admin UI: the Woo4Etch page under the Etch menu (when available) —
+ * Overview (shop status + WC templates), Layouts, Settings and the
+ * shortcode reference, as tabs on one page.
  *
  * @package Woo4Etch
  */
@@ -10,11 +12,17 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Registers the Woo4Etch shortcode overview page.
+ * Registers the Woo4Etch admin page.
  */
 final class Woo4Etch_Admin {
 
-    const PAGE_SLUG = 'woo4etch-shortcodes';
+    const PAGE_SLUG = 'woo4etch';
+
+    /**
+     * Slug the page lived under while it was only the shortcode reference —
+     * still redirected so old bookmarks keep working.
+     */
+    const LEGACY_PAGE_SLUG = 'woo4etch-shortcodes';
 
     /**
      * Hook admin menu registration.
@@ -28,6 +36,56 @@ final class Woo4Etch_Admin {
         add_action('admin_post_woo4etch_materialize_template', [__CLASS__, 'handle_materialize_template']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
         add_action('admin_init', [__CLASS__, 'cleanup_legacy_patterns']);
+        // Not admin_init: wp-admin/menu.php rejects unknown page slugs before
+        // that hook ever fires, and this one runs right before it wp_die()s.
+        add_action('admin_page_access_denied', [__CLASS__, 'redirect_legacy_slug']);
+    }
+
+    /**
+     * The page's tabs. Overview first: "is my shop wired correctly" is the
+     * question users open this page for.
+     *
+     * @return array<string,string> slug => label.
+     */
+    private static function tabs() {
+        return [
+            'overview'   => __('Overview', 'woo4etch'),
+            'layouts'    => __('Layouts', 'woo4etch'),
+            'settings'   => __('Settings', 'woo4etch'),
+            'shortcodes' => __('Shortcodes', 'woo4etch'),
+        ];
+    }
+
+    /**
+     * Currently selected tab (validated against tabs()).
+     *
+     * @return string Tab slug.
+     */
+    private static function current_tab() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only view switch.
+        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'overview';
+        // phpcs:enable
+        return array_key_exists($tab, self::tabs()) ? $tab : 'overview';
+    }
+
+    /**
+     * Old bookmarks: ?page=woo4etch-shortcodes → ?page=woo4etch (same tab).
+     */
+    public static function redirect_legacy_slug() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only redirect.
+        if (!isset($_GET['page']) || self::LEGACY_PAGE_SLUG !== $_GET['page']) {
+            return;
+        }
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            return; // Let WordPress deny the page as it normally would.
+        }
+        $url = admin_url('admin.php?page=' . self::PAGE_SLUG);
+        if (isset($_GET['tab'])) {
+            $url = add_query_arg('tab', sanitize_key(wp_unslash($_GET['tab'])), $url);
+        }
+        // phpcs:enable
+        wp_safe_redirect($url);
+        exit;
     }
 
     /**
@@ -94,7 +152,7 @@ final class Woo4Etch_Admin {
         $settings['store_api_cart']         = !empty($_POST['store_api_cart']);
         update_option('woo4etch_settings', $settings);
 
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG . '&tab=settings');
         $redirect = add_query_arg('w4e_settings_saved', '1', remove_query_arg('w4e_settings_saved', $redirect));
         wp_safe_redirect($redirect);
         exit;
@@ -173,30 +231,47 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * Attach under Etch when present; otherwise under WooCommerce.
-     */
-    /**
-     * Materialize a WooCommerce-registered template as a wp_template post so
-     * it becomes visible/editable in Etch's template hub.
+     * Create a WooCommerce-registered template as a wp_template post and send
+     * the user straight into the Etch builder for it.
+     *
+     * Reached from the "WooCommerce" group the plugin injects into Etch's
+     * template hub — the hub lists a Woo template type that has no post yet,
+     * and this endpoint turns it into an editable one on click. A GET link
+     * (nonce-protected) rather than a form, because the caller is the builder
+     * shell, not a wp-admin screen.
      */
     public static function handle_materialize_template() {
-        if (!current_user_can('manage_woocommerce')) {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
             wp_die(esc_html__('Insufficient permissions.', 'woo4etch'));
         }
-        $slug = isset($_POST['template']) ? sanitize_key(wp_unslash($_POST['template'])) : '';
+        $slug = isset($_REQUEST['template']) ? sanitize_key(wp_unslash($_REQUEST['template'])) : '';
         check_admin_referer('woo4etch_materialize_' . $slug);
 
-        $result   = class_exists('Woo4Etch_Health')
+        $result = class_exists('Woo4Etch_Health')
             ? Woo4Etch_Health::materialize_wc_template($slug)
             : new WP_Error('woo4etch_missing', __('Health module unavailable.', 'woo4etch'));
-        $redirect = wp_get_referer() ?: admin_url();
-        $redirect = remove_query_arg(['w4e_pushed', 'w4e_push_error'], $redirect);
-        if (is_wp_error($result)) {
-            $redirect = add_query_arg('w4e_push_error', rawurlencode($result->get_error_message()), $redirect);
-        } else {
-            $redirect = add_query_arg('w4e_pushed', rawurlencode($slug), $redirect);
+
+        // Success — open the new template in the builder. If it already
+        // existed (a second click, a parallel tab), open that one instead of
+        // reporting an error the user can do nothing with.
+        $post_id = 0;
+        if (!is_wp_error($result)) {
+            $post_id = (int) $result;
+        } elseif ('woo4etch_template_exists' === $result->get_error_code() && class_exists('Woo4Etch_Health')) {
+            $existing = Woo4Etch_Health::find_template($slug);
+            $post_id  = $existing ? (int) $existing->ID : 0;
         }
-        wp_safe_redirect($redirect);
+
+        if ($post_id > 0) {
+            wp_safe_redirect(add_query_arg(['etch' => 'magic', 'post_id' => $post_id], home_url('/')));
+            exit;
+        }
+
+        wp_safe_redirect(add_query_arg(
+            'w4e_push_error',
+            rawurlencode($result->get_error_message()),
+            admin_url('admin.php?page=' . self::PAGE_SLUG)
+        ));
         exit;
     }
 
@@ -205,7 +280,7 @@ final class Woo4Etch_Admin {
 
         add_submenu_page(
             $parent,
-            __('Woo4Etch Shortcodes', 'woo4etch'),
+            __('Woo4Etch', 'woo4etch'),
             __('Woo4Etch', 'woo4etch'),
             apply_filters('woo4etch/admin_capability', 'manage_woocommerce'),
             self::PAGE_SLUG,
@@ -290,16 +365,34 @@ final class Woo4Etch_Admin {
             . '.woo4etch-shortcodes .category-heading{margin:2em 0 .5em;font-size:1.1em;}'
             . '.woo4etch-shortcodes .woo4etch-intro{max-width:72em;}'
             . '.woo4etch-shortcodes .woo4etch-installed{color:#00a32a;font-weight:700;margin-left:4px;}'
+            . '.woo4etch-shortcodes .woo4etch-tabs{margin-bottom:1.2em;}'
+            . '.woo4etch-shortcodes .woo4etch-details{max-width:60em;margin:.4em 0 0;}'
+            . '.woo4etch-shortcodes .woo4etch-details summary{cursor:pointer;color:#2271b1;font-size:12px;}'
+            . '.woo4etch-shortcodes .woo4etch-header-links{font-size:13px;font-weight:400;margin-left:12px;}'
         );
+    }
+
+    /**
+     * Print a one-line setting description with the long explanation folded
+     * into a <details> block — keeps the settings tab scannable.
+     *
+     * @param string $short One-sentence summary (already translated).
+     * @param string $long  Full explanation (already translated).
+     */
+    private static function setting_description($short, $long) {
+        ?>
+        <p class="description"><?php echo esc_html($short); ?></p>
+        <details class="woo4etch-details">
+            <summary><?php esc_html_e('Details', 'woo4etch'); ?></summary>
+            <p class="description"><?php echo esc_html($long); ?></p>
+        </details>
+        <?php
     }
 
     /**
      * Settings: toggles that would otherwise need a PHP snippet.
      */
     private static function render_settings_section() {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flag.
-        $saved = isset($_GET['w4e_settings_saved']);
-        // phpcs:enable
         $settings = (array) get_option('woo4etch_settings', []);
         $disabled_styles = !empty($settings['disable_woo_styles']);
         $gallery_scripts = !empty($settings['enable_gallery_scripts']);
@@ -307,12 +400,6 @@ final class Woo4Etch_Admin {
         $rate_limit      = !empty($settings['checkout_rate_limit']);
         $store_api       = !isset($settings['store_api_cart']) || !empty($settings['store_api_cart']);
         ?>
-        <h2 class="category-heading"><?php esc_html_e('Settings', 'woo4etch'); ?></h2>
-
-        <?php if ($saved) : ?>
-            <div class="notice notice-success inline"><p><?php esc_html_e('Settings saved.', 'woo4etch'); ?></p></div>
-        <?php endif; ?>
-
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="woo4etch_save_settings">
             <?php wp_nonce_field('woo4etch_save_settings'); ?>
@@ -324,9 +411,10 @@ final class Woo4Etch_Admin {
                             <input type="checkbox" name="disable_woo_styles" value="1" <?php checked($disabled_styles); ?>>
                             <?php esc_html_e('Disable WooCommerce default styles', 'woo4etch'); ?>
                         </label>
-                        <p class="description">
-                            <?php esc_html_e('Removes all three WooCommerce stylesheets (layout, smallscreen, general) so your Etch styles start from a blank slate — no specificity fights, no !important. Uncheck to bring the Woo default styling back at any time. Note: payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override this via the woo4etch/disable_woo_styles filter.', 'woo4etch'); ?>
-                        </p>
+                        <?php self::setting_description(
+                            __('Removes all three WooCommerce stylesheets so your Etch styles start from a blank slate — no specificity fights, no !important.', 'woo4etch'),
+                            __('Covers the layout, smallscreen and general stylesheets. Uncheck to bring the Woo default styling back at any time. Note: payment gateways and some extensions enqueue their own CSS and are not affected. Developers can override this via the woo4etch/disable_woo_styles filter.', 'woo4etch')
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
@@ -336,9 +424,10 @@ final class Woo4Etch_Admin {
                             <input type="checkbox" name="enable_gallery_scripts" value="1" <?php checked($gallery_scripts); ?>>
                             <?php esc_html_e('Enable WooCommerce gallery scripts (hover zoom, lightbox, thumbnail slider)', 'woo4etch'); ?>
                         </label>
-                        <p class="description">
-                            <?php esc_html_e('Loads WooCommerce\'s own zoom, PhotoSwipe lightbox and FlexSlider scripts on single product pages — including on block themes like Etch\'s, where WooCommerce itself never loads them. Your gallery markup must use the Woo gallery classes for the scripts to pick it up: the easiest way is the [woo_gallery mode="woo"] shortcode; the single-product template docs show a hand-written Etch variant. Developers can fine-tune via the woo4etch/gallery_features filter.', 'woo4etch'); ?>
-                        </p>
+                        <?php self::setting_description(
+                            __('Loads WooCommerce\'s own zoom, lightbox and slider scripts on single product pages — including on block themes like Etch\'s, where WooCommerce itself never loads them.', 'woo4etch'),
+                            __('Your gallery markup must use the Woo gallery classes for the scripts to pick it up: the easiest way is the [woo_gallery mode="woo"] shortcode; the single-product template docs show a hand-written Etch variant. Developers can fine-tune via the woo4etch/gallery_features filter.', 'woo4etch')
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
@@ -348,21 +437,23 @@ final class Woo4Etch_Admin {
                             <input type="checkbox" name="enable_pills" value="1" <?php checked($pills); ?>>
                             <?php esc_html_e('Turn variation dropdowns into pill buttons and quantity inputs into a −/+ stepper', 'woo4etch'); ?>
                         </label>
-                        <p class="description">
-                            <?php esc_html_e('Progressive enhancement on single product pages, no extra markup needed: the native attribute dropdowns become accessible pill buttons and every quantity field gets minus/plus buttons. WooCommerce\'s variation logic stays in charge — a pill click sets the native select, so price, stock and availability keep updating exactly as before. Styling uses your design tokens (--primary, --space-*, --radius) with plain fallbacks and can be overridden via the .w4e-pill / .w4e-qty classes. For hand-built swatch markup use the always-on swatches bridge (data-w4e-swatch) instead — one or the other per form. Developers: woo4etch/enqueue_pills filter.', 'woo4etch'); ?>
-                        </p>
+                        <?php self::setting_description(
+                            __('Progressive enhancement on single product pages, no extra markup needed — WooCommerce\'s variation logic stays in charge, so price, stock and availability keep updating exactly as before.', 'woo4etch'),
+                            __('A pill click sets the native select underneath. Styling uses your design tokens (--primary, --space-*, --radius) with plain fallbacks and can be overridden via the .w4e-pill / .w4e-qty classes. For hand-built swatch markup use the always-on swatches bridge (data-w4e-swatch) instead — one or the other per form. Developers: woo4etch/enqueue_pills filter.', 'woo4etch')
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e('Store API cart interactions', 'woo4etch'); ?></th>
+                    <th scope="row"><?php esc_html_e('Store API interactions', 'woo4etch'); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="store_api_cart" value="1" <?php checked($store_api); ?>>
-                            <?php esc_html_e('Cart actions without page reloads via WooCommerce\'s Store API (recommended)', 'woo4etch'); ?>
+                            <?php esc_html_e('Cart and checkout actions without page reloads via WooCommerce\'s Store API (recommended)', 'woo4etch'); ?>
                         </label>
-                        <p class="description">
-                            <?php esc_html_e('Quantity changes, item removal, coupons and add-to-cart go through WooCommerce\'s modern Store API — with Woo\'s native validation, error messages and Store API rate limiting — and the page then re-renders its own server-side Etch HTML in place. Your markup stays 100% yours: the script binds to the standard WooCommerce field names and swaps the [data-w4e-cart-region] containers with the fresh server render; it never generates cart markup itself. Forms carrying third-party fields (custom product options) automatically fall back to the classic submit so nothing is lost, and everything keeps working without JavaScript. Developers: woo4etch/enqueue_store_api filter, woo4etch:cart-updated event.', 'woo4etch'); ?>
-                        </p>
+                        <?php self::setting_description(
+                            __('Quantity changes, item removal, coupons, add-to-cart — and on the ready-made checkout layout also shipping selection and placing the order — go through WooCommerce\'s modern Store API, with Woo\'s native validation, error messages and rate limiting.', 'woo4etch'),
+                            __('After each write the page re-renders its own server-side Etch HTML in place: the script binds to the standard WooCommerce field names and swaps the [data-w4e-cart-region] / [data-w4e-checkout-region] containers with the fresh server render; it never generates markup itself. Forms carrying third-party fields automatically fall back to the classic submit, and everything keeps working without JavaScript. Turning this off also returns the checkout layout to classic full-page submits. Developers: woo4etch/enqueue_store_api filter, woo4etch:cart-updated event.', 'woo4etch')
+                        ); ?>
                     </td>
                 </tr>
                 <tr>
@@ -370,11 +461,12 @@ final class Woo4Etch_Admin {
                     <td>
                         <label>
                             <input type="checkbox" name="checkout_rate_limit" value="1" <?php checked($rate_limit); ?>>
-                            <?php esc_html_e('Rate-limit place-order attempts on the classic checkout (3 attempts per minute per client)', 'woo4etch'); ?>
+                            <?php esc_html_e('Rate-limit place-order attempts on the classic checkout path (3 attempts per minute per client)', 'woo4etch'); ?>
                         </label>
-                        <p class="description">
-                            <?php esc_html_e('Protection against card-testing attacks: WooCommerce\'s own checkout rate limiting (WooCommerce → Settings → Advanced → Features) only covers the block-based checkout — the classic shortcode checkout this plugin\'s templates use has no native protection. This limit mirrors WooCommerce\'s block defaults and rejects further attempts with a checkout error once a client (IP + browser fingerprint) exceeds 3 submits in 60 seconds. Legitimate customers are unaffected — a normal purchase is a single submit. Developers: woo4etch/checkout_rate_limit filter (enabled/limit/window).', 'woo4etch'); ?>
-                        </p>
+                        <?php self::setting_description(
+                            __('Protection against card-testing attacks on the classic (non-Store-API) checkout path, which has no native WooCommerce protection.', 'woo4etch'),
+                            __('Orders placed through the Store API — the ready-made checkout layout with Store API interactions enabled — are already covered by WooCommerce\'s own Store API rate limiting; this toggle protects the classic shortcode checkout and the no-JavaScript fallback. It mirrors WooCommerce\'s block defaults and rejects further attempts with a checkout error once a client (IP + browser fingerprint) exceeds 3 submits in 60 seconds. Legitimate customers are unaffected — a normal purchase is a single submit. Developers: woo4etch/checkout_rate_limit filter (enabled/limit/window).', 'woo4etch')
+                        ); ?>
                     </td>
                 </tr>
             </table>
@@ -384,26 +476,11 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * Ready-made layouts: one-click pattern install + copy/paste JSON.
+     * Ready-made layouts: one-click push + copy/paste JSON.
      */
     private static function render_layouts_section() {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flags.
-        $pushed_flag     = isset($_GET['w4e_pushed']) ? sanitize_text_field(wp_unslash($_GET['w4e_pushed'])) : '';
-        $push_error_flag = isset($_GET['w4e_push_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_push_error'])) : '';
-        $component_error = isset($_GET['w4e_component_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_component_error'])) : '';
-        // phpcs:enable
         ?>
         <h2 class="category-heading"><?php esc_html_e('Ready-made layouts', 'woo4etch'); ?></h2>
-
-        <?php if ($pushed_flag !== '') : ?>
-            <div class="notice notice-success inline"><p><?php echo esc_html($pushed_flag); ?></p></div>
-        <?php endif; ?>
-        <?php if ($push_error_flag !== '') : ?>
-            <div class="notice notice-error inline"><p><?php echo esc_html($push_error_flag); ?></p></div>
-        <?php endif; ?>
-        <?php if ($component_error !== '') : ?>
-            <div class="notice notice-error inline"><p><?php echo esc_html($component_error); ?></p></div>
-        <?php endif; ?>
 
         <p class="woo4etch-intro">
             <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Add to page/template” puts the layout straight where it renders: WooCommerce’s assigned page (cart, account — from WooCommerce → Settings → Advanced) or the Etch template for the area (shop archive, single product, order confirmation). It only ever appends — existing content is preserved, and a target that already contains the layout is left untouched. “Copy JSON” puts the layout on your clipboard for pasting onto the Etch canvas instead. In every route, existing styles with the same selectors are reused, never overwritten.', 'woo4etch'); ?>
@@ -489,10 +566,6 @@ final class Woo4Etch_Admin {
                 <?php endforeach; ?>
             </tbody>
         </table>
-
-        <?php self::render_wc_templates_section(); ?>
-
-        <?php self::render_health_section(); ?>
         <?php
     }
 
@@ -500,68 +573,11 @@ final class Woo4Etch_Admin {
      * Page health check: are the expected elements present on the pages
      * WooCommerce is configured to use?
      */
-    /**
-     * WooCommerce templates → Etch hub. WooCommerce registers these template
-     * types, but Etch's picker only offers the standard hierarchy — so until
-     * a wp_template post exists they're editable only via the WP Site Editor.
-     * One click materializes them; existing ones deep-link into the editor.
-     */
-    private static function render_wc_templates_section() {
-        if (!class_exists('Woo4Etch_Health')) {
-            return;
-        }
-        ?>
-        <h2><?php esc_html_e('WooCommerce templates in Etch', 'woo4etch'); ?></h2>
-        <p class="description" style="max-width: 820px;">
-            <?php esc_html_e('WooCommerce registers these template types, but Etch’s “new template” picker only knows the standard WordPress hierarchy — so they normally have to be created once through the WP Site Editor before Etch can edit them. “Make editable in Etch” does that step for you: frames (cart/checkout) start as a clone of your generic “page” template, everything else starts from WooCommerce’s default. Heads-up: templates like these can’t be removed by deleting them — WooCommerce falls back to its own plugin default (generic header/footer parts) instead.', 'woo4etch'); ?>
-        </p>
-        <table class="widefat striped" style="max-width: 980px;">
-            <thead>
-                <tr>
-                    <th><?php esc_html_e('Template', 'woo4etch'); ?></th>
-                    <th><?php esc_html_e('What it renders', 'woo4etch'); ?></th>
-                    <th style="width:220px;"><?php esc_html_e('Status', 'woo4etch'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach (Woo4Etch_Health::wc_templates() as $slug => $meta) :
-                    $post = Woo4Etch_Health::find_template($slug);
-                    ?>
-                    <tr>
-                        <td><strong><?php echo esc_html($meta['name']); ?></strong><br><code><?php echo esc_html($slug); ?></code></td>
-                        <td><?php echo esc_html($meta['description']); ?></td>
-                        <td>
-                            <?php if ($post) : ?>
-                                <a class="woo4etch-installed" href="<?php echo esc_url((string) get_edit_post_link($post->ID, 'raw')); ?>">
-                                    <?php esc_html_e('✓ In Etch — open in editor', 'woo4etch'); ?>
-                                </a>
-                            <?php else : ?>
-                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-                                    <input type="hidden" name="action" value="woo4etch_materialize_template">
-                                    <input type="hidden" name="template" value="<?php echo esc_attr($slug); ?>">
-                                    <?php wp_nonce_field('woo4etch_materialize_' . $slug); ?>
-                                    <button type="submit" class="button button-small">
-                                        <?php esc_html_e('Make editable in Etch', 'woo4etch'); ?>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php
-    }
-
     private static function render_health_section() {
         $targets = Woo4Etch_Health::targets();
         if (empty($targets)) {
             return;
         }
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flags.
-        $ok_flag    = isset($_GET['w4e_health_ok']) ? sanitize_text_field(wp_unslash($_GET['w4e_health_ok'])) : '';
-        $error_flag = isset($_GET['w4e_health_error']) ? sanitize_text_field(wp_unslash($_GET['w4e_health_error'])) : '';
-        // phpcs:enable
 
         $insert_button = static function ($slug, $area, $label) {
             ?>
@@ -575,25 +591,10 @@ final class Woo4Etch_Admin {
             <?php
         };
         ?>
-        <h3><?php esc_html_e('Page health check', 'woo4etch'); ?></h3>
+        <h2 class="category-heading"><?php esc_html_e('Shop status', 'woo4etch'); ?></h2>
         <p class="woo4etch-intro">
-            <?php esc_html_e('Checks the pages WooCommerce is configured to use (WooCommerce → Settings → Advanced) for the elements each page needs — searched in the page content and in Etch templates. “Insert” appends the missing element directly to the assigned page (append-only; existing content is preserved). If the page is rendered by an Etch template, add the element to that template in the builder instead.', 'woo4etch'); ?>
+            <?php esc_html_e('Checks the pages WooCommerce is configured to use (WooCommerce → Settings → Advanced) for the elements each page needs — searched in the page content and in Etch templates. “Add layout” pushes the ready-made layout straight to where the area renders; “Insert notices” appends the notices region to the assigned page. Both only ever append — existing content is preserved.', 'woo4etch'); ?>
         </p>
-
-        <?php if ($ok_flag !== '') : ?>
-            <div class="notice notice-success inline"><p>
-                <?php
-                printf(
-                    /* translators: %s: "layout:area" that was inserted */
-                    esc_html__('Inserted (%s). Reload the page in the builder to arrange it.', 'woo4etch'),
-                    esc_html($ok_flag)
-                );
-                ?>
-            </p></div>
-        <?php endif; ?>
-        <?php if ($error_flag !== '') : ?>
-            <div class="notice notice-error inline"><p><?php echo esc_html($error_flag); ?></p></div>
-        <?php endif; ?>
 
         <table class="widefat striped">
             <thead>
@@ -628,11 +629,14 @@ final class Woo4Etch_Admin {
                                 <?php echo 'page' === $layout_loc['where'] ? esc_html__('found in page', 'woo4etch') : esc_html(sprintf(/* translators: %s: Etch template title */ __('found in template “%s”', 'woo4etch'), $layout_loc['where'])); ?>
                             <?php else : ?>
                                 <strong><?php esc_html_e('missing', 'woo4etch'); ?></strong>
-                                <?php
-                                if ($target['layout'] !== '') {
-                                    $insert_button($target['layout'], $area, __('Insert layout', 'woo4etch'));
-                                }
-                                ?>
+                                <?php if ($target['layout'] !== '') : ?>
+                                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                                        <input type="hidden" name="action" value="woo4etch_push_layout">
+                                        <input type="hidden" name="layout" value="<?php echo esc_attr($target['layout']); ?>">
+                                        <?php wp_nonce_field('woo4etch_push_layout_' . $target['layout']); ?>
+                                        <button type="submit" class="button button-small"><?php esc_html_e('Add layout', 'woo4etch'); ?></button>
+                                    </form>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -654,17 +658,57 @@ final class Woo4Etch_Admin {
     }
 
     /**
-     * Render the shortcode reference.
+     * Success/error notices from the admin-post redirects, rendered once
+     * under the H1 so every tab shows the outcome of its actions.
      */
-    public static function render_page() {
-        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
-            wp_die(esc_html__('You do not have permission to view this page.', 'woo4etch'));
-        }
+    private static function render_notices() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notice flags.
+        $success = [];
+        $errors  = [];
 
-        $under_etch = self::detect_etch_menu_slug() !== null
-            || in_array(self::resolve_parent_slug(), (array) apply_filters('woo4etch/etch_menu_slugs', ['etch', 'etch-builder', 'etch-settings', 'etchwp']), true);
-        $catalog       = Woo4Etch::get_shortcode_catalog();
-        $by_category   = [];
+        if (isset($_GET['w4e_settings_saved'])) {
+            $success[] = __('Settings saved.', 'woo4etch');
+        }
+        if (isset($_GET['w4e_pushed'])) {
+            $success[] = sanitize_text_field(wp_unslash($_GET['w4e_pushed']));
+        }
+        if (isset($_GET['w4e_health_ok'])) {
+            $success[] = sprintf(
+                /* translators: %s: "layout:area" that was inserted */
+                __('Inserted (%s). Reload the page in the builder to arrange it.', 'woo4etch'),
+                sanitize_text_field(wp_unslash($_GET['w4e_health_ok']))
+            );
+        }
+        foreach (['w4e_push_error', 'w4e_component_error', 'w4e_health_error'] as $key) {
+            if (isset($_GET[$key]) && '' !== $_GET[$key]) {
+                $errors[] = sanitize_text_field(wp_unslash($_GET[$key]));
+            }
+        }
+        // phpcs:enable
+
+        foreach ($success as $message) {
+            echo '<div class="notice notice-success inline"><p>' . esc_html($message) . '</p></div>';
+        }
+        foreach ($errors as $message) {
+            echo '<div class="notice notice-error inline"><p>' . esc_html($message) . '</p></div>';
+        }
+    }
+
+    /**
+     * Overview tab: the shop status — the question this page is opened for.
+     * (WooCommerce's own template types are handled where they're edited:
+     * the "WooCommerce" group in Etch's template hub.)
+     */
+    private static function render_overview_section() {
+        self::render_health_section();
+    }
+
+    /**
+     * Shortcode reference tab.
+     */
+    private static function render_shortcodes_section() {
+        $catalog     = Woo4Etch::get_shortcode_catalog();
+        $by_category = [];
 
         foreach ($catalog as $tag => $entry) {
             $category = $entry['category'];
@@ -673,38 +717,14 @@ final class Woo4Etch_Admin {
             }
             $by_category[$category][$tag] = $entry;
         }
-
         ?>
-        <div class="wrap woo4etch-shortcodes">
-            <h1><?php esc_html_e('Woo4Etch — Shortcodes', 'woo4etch'); ?></h1>
+        <div class="woo4etch-intro notice notice-info inline">
+            <p>
+                <?php esc_html_e('Drop these shortcodes into Etch templates and pages wherever WooCommerce needs PHP output (forms, formatted prices, hooks, cart state). When id is omitted, shortcodes use the current product (global $product or the single product being viewed).', 'woo4etch'); ?>
+            </p>
+        </div>
 
-            <div class="woo4etch-intro notice notice-info inline">
-                <p>
-                    <?php
-                    if ($under_etch) {
-                        esc_html_e('Drop these shortcodes into Etch templates and pages wherever WooCommerce needs PHP output (forms, formatted prices, hooks, cart state).', 'woo4etch');
-                    } else {
-                        esc_html_e('Etch was not detected in the admin menu — this page is listed under WooCommerce. Install and activate Etch to move it under the Etch menu automatically.', 'woo4etch');
-                    }
-                    ?>
-                </p>
-                <p>
-                    <?php esc_html_e('When id is omitted, shortcodes use the current product (global $product or the single product being viewed).', 'woo4etch'); ?>
-                    <a href="<?php echo esc_url(WOO4ETCH_ETCH_AFFILIATE_URL); ?>" target="_blank" rel="noopener noreferrer sponsored">
-                        <?php esc_html_e('Get Etch', 'woo4etch'); ?>
-                    </a>
-                    ·
-                    <a href="https://github.com/tobiashaas/woo4etch" target="_blank" rel="noopener noreferrer">
-                        <?php esc_html_e('Documentation on GitHub', 'woo4etch'); ?>
-                    </a>
-                </p>
-            </div>
-
-            <?php self::render_settings_section(); ?>
-
-            <?php self::render_layouts_section(); ?>
-
-            <?php foreach ($by_category as $category => $shortcodes) : ?>
+        <?php foreach ($by_category as $category => $shortcodes) : ?>
                 <h2 class="category-heading"><?php echo esc_html($category); ?></h2>
                 <table class="widefat striped">
                     <thead>
@@ -736,6 +756,69 @@ final class Woo4Etch_Admin {
                     </tbody>
                 </table>
             <?php endforeach; ?>
+        <?php
+    }
+
+    /**
+     * Render the Woo4Etch admin page (tabbed).
+     */
+    public static function render_page() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_die(esc_html__('You do not have permission to view this page.', 'woo4etch'));
+        }
+
+        $tab        = self::current_tab();
+        $under_etch = self::detect_etch_menu_slug() !== null
+            || in_array(self::resolve_parent_slug(), (array) apply_filters('woo4etch/etch_menu_slugs', ['etch', 'etch-builder', 'etch-settings', 'etchwp']), true);
+        ?>
+        <div class="wrap woo4etch-shortcodes">
+            <h1>
+                <?php esc_html_e('Woo4Etch', 'woo4etch'); ?>
+                <span class="woo4etch-header-links">
+                    <a href="https://github.com/tobiashaas/woo4etch" target="_blank" rel="noopener noreferrer">
+                        <?php esc_html_e('Documentation on GitHub', 'woo4etch'); ?>
+                    </a>
+                </span>
+            </h1>
+
+            <?php if (!$under_etch) : ?>
+                <div class="notice notice-info inline">
+                    <p>
+                        <?php esc_html_e('Etch was not detected in the admin menu — this page is listed under WooCommerce. Install and activate Etch to move it under the Etch menu automatically.', 'woo4etch'); ?>
+                        <a href="<?php echo esc_url(WOO4ETCH_ETCH_AFFILIATE_URL); ?>" target="_blank" rel="noopener noreferrer sponsored">
+                            <?php esc_html_e('Get Etch', 'woo4etch'); ?>
+                        </a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php self::render_notices(); ?>
+
+            <nav class="nav-tab-wrapper woo4etch-tabs">
+                <?php foreach (self::tabs() as $slug => $label) : ?>
+                    <a class="nav-tab <?php echo $tab === $slug ? 'nav-tab-active' : ''; ?>"
+                       href="<?php echo esc_url(admin_url('admin.php?page=' . self::PAGE_SLUG . '&tab=' . $slug)); ?>">
+                        <?php echo esc_html($label); ?>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+
+            <?php
+            switch ($tab) {
+                case 'layouts':
+                    self::render_layouts_section();
+                    break;
+                case 'settings':
+                    self::render_settings_section();
+                    break;
+                case 'shortcodes':
+                    self::render_shortcodes_section();
+                    break;
+                default:
+                    self::render_overview_section();
+                    break;
+            }
+            ?>
         </div>
 
         <script>

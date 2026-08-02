@@ -116,6 +116,15 @@ A user (or Woo4Etch programmatically, via the existing `POST /etch-api/templates
 > Until then, Woo4Etch bridges it by injecting a "WooCommerce" group into
 > `.etch-templates__content` with deep links (assets/etch-hub-templates.js)
 > — happy to retire that the moment the hub lists unknown slugs natively.
+>
+> **One correction to the note below, verified live:** the *creation* side is
+> already solved by Etch, not just "90 % there". `ensure_templates_saved()`
+> runs on every hub render, and it materializes WooCommerce's registered
+> templates into `wp_template` posts by itself — deleting `coming-soon` and
+> reloading the builder recreated it within one request, unprompted. So the
+> whole gap really is display-only: the posts exist, Etch created them, and
+> the hub still doesn't show them because their slugs aren't in the catalog.
+> A catch-all group would surface work Etch is already doing.
 
 Etch's "new template" picker (`Templates.svelte`) is a static catalog — site
 templates (index, 404, search, front-page, …) plus generated entries for CPTs

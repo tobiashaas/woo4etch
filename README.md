@@ -59,13 +59,13 @@ Install **one** Woo4Etch package from [`plugin/woo4etch/`](./plugin/woo4etch/):
 
 Copy PHP snippets from [`templates/functions-snippets.md`](./templates/functions-snippets.md) into **`includes/customizations.php`** inside that folder — not into a second plugin or loose `functions.php`, unless you prefer the theme.
 
-Admin shortcode reference: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch).
+Admin page: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch), organized in four tabs — **Overview** (shop status), **Layouts**, **Settings** and the **Shortcodes** reference. WooCommerce's own template types (thank-you, product search results, coming soon) are managed inside Etch itself: the plugin adds a **"WooCommerce" group** to the builder's template hub that opens them — or creates them on click if they don't exist yet.
 
 ## Ready-made layouts — one-click shop
 
 The plugin ships complete, editable Etch layouts for every shop area: **shop archive** (with a working filter sidebar — category counts, dual-handle price slider — and a category slider), **category archive** (SEO intro copy + `{term.description}` + filtered grid), **single product** (gallery, type-aware add-to-cart, notices), **cart** (quantity steppers, coupon, cross-sells, empty state), **header mini-cart** (hover dropdown with a proper empty state), **My Account** (login gate, dashboard, orders) and **thank-you**.
 
-Under **Etch → Woo4Etch → Ready-made layouts**, **Add to page/template** installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without ever touching existing content, and refuses double-inserts. **Copy JSON** exports Etch's native paste format instead (also committed under [`templates/etch-copy/`](./templates/etch-copy/README.md)). Everything renders live in the builder via the plugin's dynamic-data bridges and is restyled through plain classes — existing styles with the same selectors are reused, never overwritten.
+On the **Layouts** tab (Etch → Woo4Etch), **Add to page/template** installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without ever touching existing content, and refuses double-inserts. **Copy JSON** exports Etch's native paste format instead (also committed under [`templates/etch-copy/`](./templates/etch-copy/README.md)). Everything renders live in the builder via the plugin's dynamic-data bridges and is restyled through plain classes — existing styles with the same selectors are reused, never overwritten.
 
 Optional frontend enhancements (Settings / automatic): variation pills + quantity stepper, WooCommerce gallery scripts, price-range slider — their styling ships **as Etch class records inside the layouts** (editable in the builder's style panel), never as plugin stylesheets. Third-party compatibility notes: [`templates/15-woo4etch-plugin.md`](./templates/15-woo4etch-plugin.md#third-party-woocommerce-plugins).
 

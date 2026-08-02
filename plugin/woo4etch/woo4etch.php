@@ -994,10 +994,17 @@ final class Woo4Etch {
     /**
      * Surface WooCommerce templates inside Etch's template hub (builder
      * shell only). Etch's hub renders only slugs its catalog knows —
-     * Woo-registered templates (page-cart, order-confirmation, …) exist in
-     * the REST list but are never displayed. The bridge script appends a
-     * "WooCommerce" group with ?etch=magic&post_id= edit links (Etch's own
-     * deep-link scheme). Disable: woo4etch/etch_hub_templates filter.
+     * Woo-registered templates (order-confirmation, coming-soon, …) exist in
+     * the REST list but are never displayed, and types that have no
+     * wp_template post yet aren't offered at all.
+     *
+     * The bridge script appends a "WooCommerce" group covering both cases:
+     * existing templates get Etch's own ?etch=magic&post_id= deep link,
+     * missing ones a nonce-protected link that creates the template and then
+     * opens it in the builder. This is the only place these templates are
+     * managed — there is no wp-admin duplicate.
+     *
+     * Disable: woo4etch/etch_hub_templates filter.
      */
     public static function enqueue_etch_hub_templates() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -1010,19 +1017,30 @@ final class Woo4Etch {
 
         $items = [];
         foreach (Woo4Etch_Health::wc_templates() as $slug => $meta) {
-            // Frame templates opt out of the hub group ('hub' => false) —
-            // they stay manageable via the wp-admin table.
+            // 'hub' => false keeps a template out of the group — the page
+            // frames, which exist for WooCommerce's sake and are rarely
+            // edited. Opt one back in via the woo4etch/wc_templates filter.
             if (isset($meta['hub']) && false === $meta['hub']) {
                 continue;
             }
             $post = Woo4Etch_Health::find_template($slug);
-            if (!$post) {
-                continue;
-            }
             $items[] = [
-                'slug' => $slug,
-                'name' => $meta['name'],
-                'url'  => add_query_arg(['etch' => 'magic', 'post_id' => $post->ID], home_url('/')),
+                'slug'   => $slug,
+                'name'   => $meta['name'],
+                'exists' => (bool) $post,
+                // Built with add_query_arg, not wp_nonce_url: the latter runs
+                // the URL through esc_html, and the resulting &amp; would be
+                // taken literally when the script assigns location.href.
+                'url'    => $post
+                    ? add_query_arg(['etch' => 'magic', 'post_id' => $post->ID], home_url('/'))
+                    : add_query_arg(
+                        [
+                            'action'   => 'woo4etch_materialize_template',
+                            'template' => $slug,
+                            '_wpnonce' => wp_create_nonce('woo4etch_materialize_' . $slug),
+                        ],
+                        admin_url('admin-post.php')
+                    ),
             ];
         }
         if (!$items) {
@@ -1037,9 +1055,10 @@ final class Woo4Etch {
             true
         );
         wp_localize_script('woo4etch-etch-hub-templates', 'w4eHubTemplates', [
-            'groupLabel' => __('WooCommerce', 'woo4etch'),
-            'editLabel'  => __('Edit', 'woo4etch'),
-            'items'      => $items,
+            'groupLabel'  => __('WooCommerce', 'woo4etch'),
+            'editLabel'   => __('Edit', 'woo4etch'),
+            'createLabel' => __('Create', 'woo4etch'),
+            'items'       => $items,
         ]);
     }
 

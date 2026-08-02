@@ -50,10 +50,10 @@ final class Woo4Etch_Health {
             'checkout' => [
                 'label'   => __('Checkout page', 'woo4etch'),
                 'page_id' => (int) wc_get_page_id('checkout'),
-                // No Woo4Etch checkout layout — the check is informational
-                // (native Woo checkout shortcode/block present?).
-                'layout'  => '',
-                'markers' => ['[woocommerce_checkout', 'wp:woocommerce/checkout', '[woo_checkout'],
+                'layout'  => 'checkout',
+                // Any checkout counts as present — the ready-made layout as
+                // well as the native shortcode/block a site may already use.
+                'markers' => ['w4e-checkout-form', '[woocommerce_checkout', 'wp:woocommerce/checkout', '[woo_checkout'],
                 'notices' => true,
             ],
             'myaccount' => [
@@ -318,9 +318,12 @@ final class Woo4Etch_Health {
      */
     public static function wc_templates() {
         return apply_filters('woo4etch/wc_templates', [
-            // 'hub' => false keeps a template out of the builder-hub group
-            // (it stays manageable in this admin table) — frames are rarely
-            // edited and would only add noise next to the content templates.
+            // 'hub' => false keeps a template out of the builder-hub group,
+            // which is the only place these are surfaced: the page frames
+            // exist for WooCommerce's sake, are rarely edited, and would add
+            // noise next to the content templates. Sites that do want to
+            // shape a frame flip this via the woo4etch/wc_templates filter
+            // (or create it in the WP Site Editor).
             'page-cart' => [
                 'name'        => __('Page: Cart (frame)', 'woo4etch'),
                 'description' => __('The frame around the cart PAGE (any slug — WooCommerce maps it to the assigned page). Created as a clone of your generic “page” template; edit it only for a cart-specific frame.', 'woo4etch'),
