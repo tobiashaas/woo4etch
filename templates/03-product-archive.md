@@ -143,7 +143,7 @@ On product archives the plugin automatically enhances this form with a **dual-ha
 
 **Attribute checkboxes** — a second GET form whose checkboxes are named `filter_<attribute-slug>` (one checked value per name wins; for multi-select OR, comma-join the values with a few lines of JS, or simply render each term as a **link** carrying the parameter). Term lists come from an Etch `wp-terms` loop over `pa_<attribute>`. Note the "brand" filter in typical designs is exactly this: a `pa_brand`-style attribute + `filter_brand` links.
 
-The ready-made product-grid layout ships the heading + category slider + sidebar (categories, price form) pre-wired.
+The ready-made product-grid layout ships the heading + category slider + sidebar (categories, price form) + `[woo_pagination]` under the grid pre-wired.
 
 ## Category archive pages (SEO)
 
@@ -230,6 +230,8 @@ add_filter('loop_shop_per_page', function () {
     return 24;
 });
 ```
+
+This filter controls Woo's **main query** — the query `[woo_pagination]` and `[woo_result_count]` count from. Etch's main-query loop re-runs the request as its own (secondary) query, which Woo's per-page never reaches: left alone, the loop would fall back to Settings → Reading (usually 10 per page) while the pagination counts pages at Woo's columns × rows (default 16) — the last products become unreachable ("missing products"). The Woo4Etch plugin therefore syncs the main query's per-page onto the Etch loop automatically, so one `loop_shop_per_page` filter keeps grid, result count, and pagination in step. The sync only touches loops that don't set an explicit page size themselves; disable it with `add_filter('woo4etch/sync_secondary_per_page', '__return_false');`.
 
 ### Columns
 
