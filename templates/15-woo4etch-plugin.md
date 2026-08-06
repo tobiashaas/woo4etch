@@ -92,7 +92,7 @@ These ship with the plugin and never output HTML — they only support your own 
 
 ## Ready-made layouts (one-click page install)
 
-On the **Layouts** tab (Etch → Woo4Etch) the plugin ships complete, editable Etch layouts for every shop area — cart, **checkout (Store API / option A+: live shipping recalc, natively rate-limited order placement, Germanized legal checkboxes — see [`06-checkout.md`](./06-checkout.md))**, single product, shop archive (working filter sidebar + category slider), category archive (SEO intro + `{term.description}`), header mini-cart (hover dropdown with empty state), My Account (login gate for guests), thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
+On the **Layouts** tab (Etch → Woo4Etch) the plugin ships complete, editable Etch layouts for every shop area — cart, **checkout (Store API / option A+: live shipping recalc, natively rate-limited order placement, Germanized legal checkboxes — see [`06-checkout.md`](./06-checkout.md))**, single product, shop archive (working filter sidebar + category slider + pagination), category archive (SEO intro + `{term.description}`), header mini-cart (hover dropdown with empty state), My Account (login gate for guests), thank-you and the Woo notices region. All of them are built on the dynamic-data bridges (no shortcodes except where real Woo PHP is required), so they render live in the builder canvas.
 
 Two ways to use them:
 

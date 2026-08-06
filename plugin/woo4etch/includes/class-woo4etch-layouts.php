@@ -921,7 +921,22 @@ final class Woo4Etch_Layouts {
         $fapply    = self::cls($s, 'w4e-filter__apply', 'width: 100%;');
         $freset    = self::cls($s, 'w4e-filter__reset', 'font-size: var(--text-xs, 13px); color: var(--text-dark-muted, #6b7280); text-align: center; text-decoration: underline;');
 
+        $maincol = self::cls($s, 'w4e-shop-main', 'display: flex; flex-direction: column; gap: var(--space-l, 32px); min-width: 0;');
         $grid    = self::cls($s, 'w4e-shopgrid', 'display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--grid-gap, 16px); @media (min-width: 768px) { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--grid-gap, 24px); }');
+        // Styles Woo's own pagination markup ([woo_pagination] →
+        // woocommerce_pagination(): nav.woocommerce-pagination >
+        // ul.page-numbers > li > a/span.page-numbers). Hidden while empty —
+        // the template renders nothing when there is only one page.
+        $pagwrap = self::cls(
+            $s,
+            'w4e-shop-pagination',
+            '&:not(:has(.page-numbers)) { display: none; }'
+            . ' & ul { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs, 8px); list-style: none; margin: 0; padding: 0; }'
+            . ' & li { margin: 0; }'
+            . ' & a.page-numbers, & span.page-numbers { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: 0 var(--space-xs, 12px); border: var(--border, 1px solid #e6e7eb); border-radius: 999px; background: var(--white, #fff); color: var(--text-dark, #16181d); font-size: var(--text-s, 14px); font-weight: 600; text-decoration: none; transition: .15s; }'
+            . ' & a.page-numbers:hover { border-color: var(--primary, #111827); }'
+            . ' & span.page-numbers.current { background: var(--primary, #111827); border-color: var(--primary, #111827); color: var(--white, #fff); }'
+        );
         $card    = self::cls($s, 'w4e-card', 'display: flex; flex-direction: column; gap: 4px;');
         $media   = self::cls($s, 'w4e-card__media', 'position: relative; display: block; background: var(--neutral-ultra-light, #f0f0f1); border-radius: var(--radius, 14px); padding: var(--space-m, 24px); margin-bottom: 8px;');
         $img     = self::cls($s, 'w4e-card__img', 'aspect-ratio: 1; width: 100%; object-fit: contain; mix-blend-mode: multiply;');
@@ -975,6 +990,7 @@ final class Woo4Etch_Layouts {
                         ], 'Price'),
                     ], 'Filter sidebar'),
 
+                    self::el('div', ['class' => 'w4e-shop-main'], [$maincol], [
                     self::el('div', ['class' => 'w4e-shopgrid products'], [$grid], [
                         self::preset_loop(self::ensure_main_query_loop(), 'item', [
                             self::el('article', ['class' => 'w4e-card product'], [$card], [
@@ -1004,6 +1020,13 @@ final class Woo4Etch_Layouts {
                             ], 'W4e Card'),
                         ]),
                     ]),
+                    // Woo's pagination for the main product query — the Etch
+                    // loop rides on the same per-page (sync_per_page_on_
+                    // secondary_queries), so the page count always matches.
+                    self::el('div', ['class' => 'w4e-shop-pagination'], [$pagwrap], [
+                        self::raw('[woo_pagination]', 'Pagination'),
+                    ], 'Pagination'),
+                    ], 'Main column'),
 
         ]);
     }
