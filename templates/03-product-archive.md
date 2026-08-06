@@ -143,7 +143,7 @@ On product archives the plugin automatically enhances this form with a **dual-ha
 
 **Attribute checkboxes** — a second GET form whose checkboxes are named `filter_<attribute-slug>` (one checked value per name wins; for multi-select OR, comma-join the values with a few lines of JS, or simply render each term as a **link** carrying the parameter). Term lists come from an Etch `wp-terms` loop over `pa_<attribute>`. Note the "brand" filter in typical designs is exactly this: a `pa_brand`-style attribute + `filter_brand` links.
 
-The ready-made product-grid layout ships the heading + category slider + sidebar (categories, price form) pre-wired.
+The ready-made product-grid layout ships the heading + category slider + sidebar (categories, price form) + `[woo_pagination]` under the grid pre-wired.
 
 ## Category archive pages (SEO)
 
