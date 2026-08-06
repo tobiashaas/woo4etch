@@ -257,6 +257,12 @@ final class Woo4Etch {
         //   add_filter('woo4etch/filter_secondary_product_queries', '__return_false');
         add_action('pre_get_posts', [__CLASS__, 'apply_attribute_filters_to_secondary_queries'], 20);
         add_filter('posts_clauses', [__CLASS__, 'apply_price_filter_to_secondary_queries'], 20, 2);
+        // Same seam for the page size: Woo's per-page (loop_shop_per_page)
+        // also reaches the main query only, so Etch's loop falls back to the
+        // blog reading setting while [woo_pagination] counts pages from Woo's
+        // per-page — tail products become unreachable. Disable:
+        //   add_filter('woo4etch/sync_secondary_per_page', '__return_false');
+        add_action('pre_get_posts', [__CLASS__, 'sync_per_page_on_secondary_queries'], 20);
 
         // Product fields ({this.price}, {this.is_on_sale}, …) on the post root —
         // the same seam Etch's own integration uses for gallery_images.
@@ -3509,6 +3515,44 @@ final class Woo4Etch {
             ];
         }
         $query->set('tax_query', $tax_query);
+    }
+
+    /**
+     * Page-size sync for secondary product queries. Etch's main-query loop
+     * re-runs the request as a NEW WP_Query, which never passes through
+     * WC_Query::product_query() — Woo's per-page (the loop_shop_per_page
+     * filter, default columns × rows from the Customizer, typically 16)
+     * applies to the main query only, so the loop falls back to the blog
+     * reading setting (usually 10). [woo_pagination] counts pages from the
+     * MAIN query's per-page; with the two out of sync, tail products are
+     * unreachable ("missing" products past the last pagination link).
+     *
+     * Only queries that arrive WITHOUT an explicit page size are touched —
+     * an Etch wp-query loop (or any custom loop) that sets its own
+     * posts_per_page keeps it.
+     *
+     * @param WP_Query $query
+     */
+    public static function sync_per_page_on_secondary_queries($query) {
+        if (!self::is_filterable_secondary_query($query)) {
+            return;
+        }
+        if (!apply_filters('woo4etch/sync_secondary_per_page', true)) {
+            return;
+        }
+        $raw = (array) $query->query;
+        if (isset($raw['posts_per_page']) || isset($raw['numberposts']) || !empty($raw['nopaging'])) {
+            return;
+        }
+        $main     = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+        $per_page = ($main instanceof WP_Query) ? (int) $main->get('posts_per_page') : 0;
+        if ($per_page === 0 && function_exists('wc_get_default_products_per_row') && function_exists('wc_get_default_product_rows_per_page')) {
+            // Same computation WC_Query::product_query() uses for the main query.
+            $per_page = (int) apply_filters('loop_shop_per_page', wc_get_default_products_per_row() * wc_get_default_product_rows_per_page());
+        }
+        if ($per_page !== 0) {
+            $query->set('posts_per_page', $per_page);
+        }
     }
 
     /**

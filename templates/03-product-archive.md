@@ -231,6 +231,8 @@ add_filter('loop_shop_per_page', function () {
 });
 ```
 
+This filter controls Woo's **main query** — the query `[woo_pagination]` and `[woo_result_count]` count from. Etch's main-query loop re-runs the request as its own (secondary) query, which Woo's per-page never reaches: left alone, the loop would fall back to Settings → Reading (usually 10 per page) while the pagination counts pages at Woo's columns × rows (default 16) — the last products become unreachable ("missing products"). The Woo4Etch plugin therefore syncs the main query's per-page onto the Etch loop automatically, so one `loop_shop_per_page` filter keeps grid, result count, and pagination in step. The sync only touches loops that don't set an explicit page size themselves; disable it with `add_filter('woo4etch/sync_secondary_per_page', '__return_false');`.
+
 ### Columns
 
 ```php
