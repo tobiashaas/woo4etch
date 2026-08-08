@@ -17,6 +17,8 @@ Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (up
 | Path | What it is |
 |---|---|
 | `README.md` | Entry point + template index |
+| `docs/PRODUCT-PRINCIPLES.md` | **Merchant and Builder Freedom** — primary review lens |
+| `docs/ADR-001-no-template-overrides.md` | Never override WooCommerce PHP templates |
 | `WooCommerce-in-Etch-Knowledgebase.md` | Long-form research notes (the "why") |
 | `templates/00-README.md` | Conventions + **Shared foundations** (theme support, wrappers, quantity hooks) |
 | `templates/01..09-*.md` | One template per Woo area (single product, cart, checkout, etc.) |
@@ -38,6 +40,10 @@ Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (up
 4. **`{this.*}` vs `{item.*}`**: `this` = current Single template context; `item` = current loop iteration inside `{#loop … as item}`. Mixing them up is the #1 cause of empty fields. See `templates/10-etch-context-and-templates.md`.
 
 5. The only *required* shared-foundation snippet is `add_theme_support('woocommerce')`. Everything else under "Shared foundations" (disabling Woo CSS, replacing content wrappers, quantity-button hooks) is optional.
+
+## Primary product principle (non-negotiable)
+
+**Merchant and Builder Freedom** — full text in [`docs/PRODUCT-PRINCIPLES.md`](docs/PRODUCT-PRINCIPLES.md). Woo4Etch's goal is not only that WooCommerce *works* in Etch; builders must keep creating, structuring, styling, extending, and maintaining shop layouts in Etch. A fix that restores a storefront by hard-coding output, forcing Woo blocks/PHP templates, bypassing Etch layouts, or stripping hooks / dynamic-data / portable copy-paste artifacts is a high-severity regression even if commerce still "works". Prefer explicit Etch placement, documented contracts, progressive enhancement, and standard Woo extension points. See also [`docs/ADR-001-no-template-overrides.md`](docs/ADR-001-no-template-overrides.md).
 
 ## Conventions when editing
 

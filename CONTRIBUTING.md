@@ -24,6 +24,10 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 Keep changes focused. Prefer small, reviewable PRs over large rewrites. Match the existing tone: practical, copy-ready templates, minimal PHP unless the bridge plugin is the right place.
 
+## Product principles (review lens)
+
+Before opening a PR — especially plugin or layout changes — check [`docs/PRODUCT-PRINCIPLES.md`](docs/PRODUCT-PRINCIPLES.md). The primary principle is **Merchant and Builder Freedom**: WooCommerce must stay correct *and* shop UI must remain meaningfully editable in Etch. Do not “fix” commerce bugs by hard-coding markup, forcing Woo blocks/PHP templates, or removing hooks, dynamic-data contracts, or portable layout artifacts.
+
 ## Releases (maintainers)
 
 After your PR is merged to `main`:

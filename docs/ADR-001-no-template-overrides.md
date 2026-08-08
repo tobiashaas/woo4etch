@@ -34,3 +34,4 @@ At the same time, Woo4Etch users must be able to customise their layouts in Etch
 ## Related notes
 
 - The WooCommerce status-page warnings ("page does not contain the [woocommerce_cart] shortcode") are informational checks only. Cart/checkout logic runs server-side regardless; with correctly attributed Etch markup these warnings are safe to ignore.
+- Broader review lens: [`PRODUCT-PRINCIPLES.md`](./PRODUCT-PRINCIPLES.md) (**Merchant and Builder Freedom**) — correctness without sacrificing Etch editability.
