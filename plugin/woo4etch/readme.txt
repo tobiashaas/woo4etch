@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -141,6 +141,11 @@ WooCommerce must be installed and active.
 In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when Etch is not active) — four tabs: Overview (shop status), Layouts, Settings, and the Shortcodes reference with copy buttons. WooCommerce's own template types are handled inside the builder: Etch's template hub gets a "WooCommerce" group that opens them, or creates them on click.
 
 == Changelog ==
+
+= 1.9.1 =
+* Fix: the shop and category layouts now ship pagination — neither archive layout contained [woo_pagination], so with more products than one page holds, everything past page 1 was unreachable from the ready-made layouts. Both now render pill-style page links under the product grid (Woo's native pagination markup, ACSS-tokenized, hidden when there is only one page). Existing installs: re-push the layout from the Layouts tab.
+* Fix: [woo_pagination] and the Etch product loop no longer disagree on the page count. WooCommerce's products-per-page applies to the main query only — Etch's main-query loop re-runs the request as a secondary query and fell back to the blog reading setting, so the grid showed fewer products per page than the pagination assumed and tail products became unreachable. The plugin now syncs the main query's per-page onto such loops on shop/taxonomy archives; loops with an explicit page size are left alone. loop_shop_per_page is now the single knob for grid and pagination together. Disable: add_filter('woo4etch/sync_secondary_per_page', '__return_false');
+
 
 = 1.9.0 =
 * New: ready-made CHECKOUT layout ("option A+") — the last shop area gets its one-click layout: contact/billing fields, country select, live shipping selector, payment methods with logos, Germanized legal checkboxes and a sticky order summary with coupon field, all as hand-written Etch blocks over the checkout bridge. Mobile-first, checked states rendered server-side (correct before any JS runs), classic no-JS fallback. New bridge keys: {options.checkout.countries} and payment_methods[].selected.
