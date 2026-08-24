@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  # Release directly from main: the tag is derived from the plugin's
+  # Version: header and created by action-gh-release at the dispatched
+  # commit. Equivalent to pushing the matching v* tag by hand.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,9 +32,19 @@ jobs:
           VERSION=$(grep -m1 '^[[:space:]]*\*[[:space:]]Version:' plugin/woo4etch/woo4etch.php | sed 's/.*Version:[[:space:]]*//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="v${{ steps.version.outputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
       - name: Verify tag matches plugin version
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_VERSION="${RELEASE_TAG#v}"
           PLUGIN_VERSION="${{ steps.version.outputs.version }}"
           STABLE_TAG=$(grep -m1 '^Stable tag:' plugin/woo4etch/readme.txt | sed 's/.*Stable tag:[[:space:]]*//')
           echo "Tag: ${TAG_VERSION} | woo4etch.php: ${PLUGIN_VERSION} | readme.txt: ${STABLE_TAG}"
@@ -42,6 +56,8 @@ jobs:
             echo "::error::Stable tag in readme.txt (${STABLE_TAG}) does not match Version in woo4etch.php (${PLUGIN_VERSION})."
             exit 1
           fi
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
 
       - name: Lint plugin PHP
         run: |
@@ -55,7 +71,10 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          # Only used when the tag doesn't exist yet (workflow_dispatch);
+          # ignored for tag-push runs where the tag already points somewhere.
+          target_commitish: ${{ github.sha }}
           name: Woo4Etch ${{ steps.version.outputs.version }}
           generate_release_notes: true
           files: woo4etch.zip
@@ -63,6 +82,6 @@ jobs:
           # Tags with a suffix (v1.5.0-beta.1) become GitHub pre-releases.
           # The updater reads releases/latest, which skips pre-releases, so
           # betas are never offered to installed sites automatically.
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
