@@ -11,6 +11,8 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 ## Contents
 
 - [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md) — research notes covering the "do I have to use the WooCommerce blocks?" question, accessibility, hook strategy, JS globals, and the final Custom Layouts Guide.
+- [`docs/PRODUCT-PRINCIPLES.md`](./docs/PRODUCT-PRINCIPLES.md) — **Merchant and Builder Freedom**: shop UI stays editable in Etch; do not trade layout control for a short-term WooCommerce fix.
+- [`docs/ADR-001-no-template-overrides.md`](./docs/ADR-001-no-template-overrides.md) — why Woo4Etch never overrides WooCommerce PHP templates.
 - [`plugin/woo4etch/`](./plugin/woo4etch/README.md) — **Woo4Etch plugin**. Shortcodes plus `includes/customizations.php` for hook snippets from the templates.
 - [`templates/`](./templates/00-README.md) — ready-to-use templates per WooCommerce area:
 
