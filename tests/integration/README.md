@@ -35,6 +35,11 @@ The runner copies `checks/*.php` to a remote temp dir, runs each through
 | `02-woo-root-shape.php` | 4 | `Woo4Etch_Woo_Root::build_data()` with WooCommerce active: all documented keys (`cart.items`, `checkout.url`, `account.menu`, …) exist and are shaped as the templates rely on. Read-only. |
 | `03-external-customizations.php` | 4 | `wp-content/woo4etch-customizations.php` is loaded when present (verified in a freshly booted WP process), and no longer after removal. |
 | `04-frontend-smoke.php` | 5 | WooCommerce's assigned pages respond 200; installed layouts render their markers; a single product page renders the Woo add-to-cart contract (`form.cart`, add-to-cart control). Layouts not installed on the target are skipped, not failed. |
+| `05-checkout-rate-limit.php` | 4 | The classic-checkout sliding-window counter and its validation hook, exercised with a synthetic client fingerprint. Settings restored, transients removed. |
+| `06-store-api.php` | 5 | The Store API cart layer's dependencies: the cart endpoints answer, the script/settings wiring is in place, the cart bridge exposes the coupon keys, and the shipped layouts carry the region markers. |
+| `07-store-api-checkout.php` | 5 | The A+ checkout bridge: the routes the frontend module writes to, the Germanized guard pieces, and the gateway allowlist wiring. |
+| `08-secondary-per-page.php` | 4 | Etch's main-query loop re-runs the request as a secondary `WP_Query` that `loop_shop_per_page` never reaches; asserts the plugin's sync so the grid and `[woo_pagination]` agree. Simulated in memory, read-only. |
+| `09-checkout-address-locale.php` | 4 | **The state/province premise itself**, asked of WooCommerce rather than restated: AU's locale override renames `state` and leaves it *required*, DE hides it, AT has no state list. Then the `{options.checkout}` payload the layout loops over (states with `code`/`name`/`selected`, the label/required/hidden flags, `address_2_*`) plus the cart's shipping keys. Billing country, base country and cart restored in `finally`. |
 
 ## Why not wp-phpunit on the staging server
 
