@@ -6,6 +6,32 @@ Classic shortcode checkout. Billing/shipping form, order review, payment methods
 >
 > If you want to use the block anyway, that's a separate topic (block extensions via `@woocommerce/blocks-registry`). This doc covers only the classic setup.
 
+> **The ready-made layout — don't reach for it when** any of these three apply.
+> Woo4Etch ships a complete *Checkout (Store API / option A+)* layout, and it
+> is the right answer for a lot of shops — but it makes three assumptions:
+>
+> 1. **Your gateway redirects or is offline.** Only redirect/offline gateways
+>    are offered (`woo4etch/store_api_checkout_gateways`). Stripe Elements,
+>    PayPal's inline buttons and every other gateway that tokenizes *in the
+>    page* need their own `payment_fields()` markup and client JS, which a
+>    hand-built form does not have — offering them would sell a broken option.
+>    On those, use `[woo_checkout_block]` (option B) or Woo's own checkout.
+> 2. **You don't need a state/province field.** The form carries the minimal
+>    European set — **no `billing_state`, no `billing_address_2`** — and
+>    `{options.checkout}` exposes **no `states` key** to loop over. WooCommerce's
+>    locale overrides only *rename* `state` for countries like AU; they never
+>    set `required => false`. So wherever Woo requires a state (AU, US, CA, ES,
+>    IN, JP …) the order fails validation on **both** the classic and the Store
+>    API path, and adding the field means new PHP
+>    (`WC()->countries->get_states($code)` → your own dynamic-data key), not
+>    builder work.
+> 3. **Germanized is installed, or you don't need a terms checkbox.** The legal
+>    checkbox loop is fed by Germanized; without it
+>    `{options.checkout.checkboxes}` is empty, so a terms-and-conditions
+>    checkbox has to be hand-built *and* validated yourself.
+>
+> Full list: [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Checkout page (`/checkout`) with shortcode `[woocommerce_checkout]`.

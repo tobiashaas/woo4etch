@@ -31,53 +31,70 @@ final class Woo4Etch_Layouts {
     /**
      * All shippable layouts.
      *
-     * @return array<string, array{name: string, description: string, area: string}>
+     * Every entry carries a `limits` note: the shortest honest answer to
+     * "when should I NOT reach for this layout?". The layouts are complete
+     * for a straightforward store; each one also *drops* something the
+     * WooCommerce default renders, and that omission is silent — nothing
+     * errors, the markup is simply not there. Naming it here (and in the
+     * admin table, and in the matching templates/*.md) is the difference
+     * between a considered trade-off and a trap.
+     *
+     * @return array<string, array{name: string, description: string, limits: string, area: string}>
      */
     public static function catalog() {
         return [
             'cart' => [
                 'name'        => 'Cart — items, coupon, totals, cross-sells',
                 'description' => 'Complete cart page as an Etch loop over {options.cart_items}: quantity update + coupon form (classic submit), order summary, checkout button, cross-sells.',
+                'limits'      => 'The summary goes subtotal → total with no shipping row between them. Any shipping cost, tax, or free-shipping threshold shows up only as an unexplained difference between the two numbers, and there is no shipping calculator. If what shipping costs is part of the buying decision — flat rates, per-class rates, zone-limited delivery — add a row from {options.cart_shipping_total} or use [woo_cart_totals] (subtotal, shipping, total) instead of the hand-built summary.',
                 'area'        => 'Cart',
             ],
             'product-single' => [
                 'name'        => 'Single product — gallery + buy box',
                 'description' => 'Featured image + gallery loop in Woo\'s gallery markup (zoom/lightbox/slider work when the gallery scripts are enabled in Settings), title, formatted price with sale badge, stock label, type-aware add-to-cart (hand-built form for simple products, Woo\'s native form for variable/grouped/external — variations fully working), SKU. Uses {this.*} product keys.',
+                'limits'      => 'Buy box only. No reviews, no product tabs, no long description (the short description/excerpt is what renders), no related products or upsells — add those yourself with [woo_template], [do_action] or your own markup. The gallery loop needs Etch 1.4.20+ ({this.gallery_images}); on 1.4.19 only the featured image appears. For variable/grouped/external products the form is Woo\'s own native markup behind the data-w4e-add-to-cart marker, so inside that block you are styling Woo\'s HTML, not yours.',
                 'area'        => 'Single product',
             ],
             'category' => [
                 'name'        => 'Category archive — SEO intro + filtered grid',
                 'description' => 'Category page template: term title, an editable intro copy block (placeholder text — write category-specific SEO copy), the term description from Products → Categories, then the same working filter sidebar + product grid as the shop. Installs into taxonomy-product_cat (all categories); duplicate as taxonomy-product_cat-{slug} in the editor for per-category pages.',
+                'limits'      => 'Same grid as the shop archive, so the same gaps: no sorting control ("Default sorting"), no result count, and the sidebar filters on category and price only — attribute, brand or stock filters are not in it. The intro block ships lorem ipsum on purpose; installing it and leaving it there puts placeholder text on an indexable page.',
                 'area'        => 'Category',
             ],
             'product-grid' => [
                 'name'        => 'Shop archive — product grid',
                 'description' => 'Product cards over the main archive query: image, sale badge, title, price, AJAX add-to-cart button. Uses {item.*} product keys.',
+                'limits'      => 'No sorting control and no result count — the shopper cannot re-order the grid by price or popularity the way Woo\'s default archive lets them. The sidebar filters on category and price only (a plain GET form on min_price/max_price); attribute, brand and stock filters are not in it. Pagination is [woo_pagination] — Woo\'s numbered links, not infinite scroll or load-more.',
                 'area'        => 'Archive',
             ],
             'checkout' => [
                 'name'        => 'Checkout — Store API (option A+)',
                 'description' => 'Complete hand-written checkout on the Store API layer: contact + billing fields, country select, live shipping selector, payment methods, legal checkboxes (Germanized) and an order summary — all as Etch loops over {options.checkout.*}. Address edits recalculate shipping/totals without a reload; the order is placed through WooCommerce\'s natively rate-limited Store API endpoint (redirect/offline gateways; others submit classically). Works as a classic form without JS.',
+                'limits'      => 'Three things to check before you install it. (1) Gateways: only redirect/offline ones are offered (see store_api_checkout_gateways) — Stripe Elements, PayPal\'s inline buttons and every other gateway that tokenizes in the page need their own payment_fields markup and client JS, which a hand-built form does not have. On those, use [woo_checkout_block] or Woo\'s own checkout. (2) Address fields: the form carries the minimal European set — no billing_state and no billing_address_2 — and {options.checkout} exposes no states key to loop over. Wherever WooCommerce requires a state or province (AU, US, CA, ES, IN, JP and others) the order fails validation on both the classic and the Store API path, and building that select means new PHP, not builder work. (3) The legal checkboxes loop is fed by Germanized; without that plugin {options.checkout.checkboxes} is empty, so a terms-and-conditions checkbox has to be hand-built and validated yourself.',
                 'area'        => 'Checkout',
             ],
             'mini-cart' => [
                 'name'        => 'Header mini-cart (link + dropdown)',
                 'description' => 'Cart link with live item count plus a hover/focus dropdown: item rows, subtotal, view-cart/checkout buttons — and a friendly message instead of an empty box when the cart is empty. Pure CSS reveal (keyboard-accessible via :focus-within); the count span carries the mini-cart-count class used by the fragment snippet.',
+                'limits'      => 'Read-only: item rows have no quantity control and no remove link — every change happens on the cart page. The reveal is pure CSS hover/:focus-within, so there is no click or tap toggle; on touch devices the first tap follows the cart link instead of opening the dropdown. And the count only stays current if the Store API cart layer is on or the fragment snippet is in place — without either it is whatever the page was cached with.',
                 'area'        => 'Header',
             ],
             'account' => [
                 'name'        => 'My Account — nav + endpoint views',
                 'description' => 'Account navigation from {options.account_menu}; dashboard and orders views switched via {options.account_endpoint}; remaining endpoints fall back to [woo_account_content].',
+                'limits'      => 'The trade is markup control over the nav and the orders list, paid for on the post-purchase surface. The orders list is capped (10 by default, woo4etch/account_orders_limit) with no pagination, and each row links to the order and nothing else — Woo\'s row actions are gone, so a customer cannot pay or cancel a pending bank-transfer order from the list. The Etch dashboard replaces Woo\'s, so anything hooked to woocommerce_account_dashboard renders nothing. Everything else (downloads, addresses, account details, view-order) already falls through to [woo_account_content], so on those screens the layout changes nothing.',
                 'area'        => 'Account',
             ],
             'thank-you' => [
                 'name'        => 'Thank-you / order received',
                 'description' => 'Order confirmation from {options.order}: notice, order overview (number, date, total, payment), line items loop. Shows only when an order is in context.',
+                'limits'      => 'The layout renders order data and fires no thank-you hooks. WooCommerce\'s own order-confirmation template fires woocommerce_thankyou_{payment_method} and then woocommerce_thankyou; this one fires neither, so a gateway\'s post-order instructions — BACS bank details, COD notes — and anything a tracking or ERP plugin hangs there render nothing, with no error to notice it by. On a prepayment or bank-transfer flow that silence costs money. Fix it by adding both hooks to the layout: [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"] and [do_action hook="woocommerce_thankyou" args="{options.order.id}"]. Note that {this.id} is the checkout page\'s ID here, not the order\'s — passing it hands the callbacks the wrong order.',
                 'area'        => 'Thank-you',
             ],
             'notices' => [
                 'name'        => 'Woo notices — feedback messages',
                 'description' => 'Queued WooCommerce feedback ("Cart updated.", coupon/form/security errors) as styleable .w4e-notice markup via [woo_notices format="plain"]. Already included in the cart, single-product and account layouts; insert this standalone version near the top of any other page layout — or use "Woo Notices as an Etch component" below to manage the region globally.',
+                'limits'      => 'Printing notices also clears the queue, so exactly one of these belongs on a page — a second block further down renders nothing. format="plain" deliberately drops Woo\'s own notice markup (.woocommerce-message and friends), so theme or plugin CSS written against those classes will not apply; style .w4e-notice instead. Don\'t add this to the cart, single-product or account layouts — they already carry it.',
                 'area'        => 'Global',
             ],
         ];

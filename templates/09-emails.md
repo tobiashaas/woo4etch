@@ -4,6 +4,12 @@ Order confirmation, processing, completed, shipping notifications, password rese
 
 > **Important:** Etch and Dynamic Keys do **not** apply here. Email markup must be inline-styled, table-based HTML — Outlook on Windows still uses Microsoft Word's rendering engine for HTML, which means no flexbox, no grid, no modern CSS. Override the PHP templates instead.
 
+> **There is no ready-made layout for emails, by design** — and this is the one
+> place where that's worth stating outright, so nobody goes looking on the
+> Layouts tab. WooCommerce emails are rendered by Woo's PHP templates in a
+> context Etch never runs in; a layout could not exist. Everything on this page
+> is the whole story: template overrides plus the `woocommerce_email_*` hooks.
+
 ## When to use
 
 - Customizing order confirmation, processing, completed, refunded, etc.

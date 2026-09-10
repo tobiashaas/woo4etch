@@ -2,6 +2,15 @@
 
 Small cart indicator in the header with live update via Woo fragments. Counter + dropdown with cart content.
 
+> **The ready-made layout — don't reach for it when:** the shipped *Header
+> mini-cart* is **read-only** — item rows have no quantity control and no
+> remove link; every change happens on the cart page. Its reveal is pure CSS
+> hover/`:focus-within`, so there is no click or tap toggle: on touch devices
+> the first tap follows the cart link instead of opening the dropdown. And the
+> count only stays current with the Store API cart layer on or the fragment
+> snippet in place. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Visible in the site header on every page.

@@ -2,6 +2,16 @@
 
 Product page without variations. Image, title, price, short description, quantity, add-to-cart, description tab.
 
+> **The ready-made layout — don't reach for it when:** Woo4Etch ships a
+> one-click *Single product* layout (Etch → Woo4Etch → Layouts). It is a **buy
+> box**: no reviews, no product tabs, no long description (the short
+> description is what renders), no related products or upsells — build those
+> from this doc and add them around it. Its gallery loop needs **Etch 1.4.20+**
+> (`{this.gallery_images}`); on 1.4.19 only the featured image appears. And for
+> variable/grouped/external products the form is Woo's own native markup behind
+> the `data-w4e-add-to-cart` marker, so inside that block you style Woo's HTML,
+> not yours. Full list: [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Product without options (e.g. a single stainless-steel container).

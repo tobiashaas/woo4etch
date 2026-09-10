@@ -2,6 +2,31 @@
 
 Order confirmation page shown after a successful checkout. Order summary, customer details, payment instructions (for offline payment methods like bank transfer).
 
+> **The ready-made layout — don't reach for it when** your gateway has anything
+> to say after the order. This is the sharpest edge in the whole layout set.
+> WooCommerce's own order-confirmation template fires
+> `woocommerce_thankyou_{payment_method}` and then `woocommerce_thankyou`; the
+> shipped *Thank-you* layout renders order data and fires **neither**. So a
+> gateway's post-order instructions — BACS bank details, COD notes — and
+> anything a tracking or ERP plugin hangs on those hooks render **nothing**,
+> with no error to notice it by. On a prepayment or bank-transfer flow that is
+> a silence that costs money.
+>
+> It's fixable, but only if you know to fix it. Place both hooks in the layout,
+> above the order overview:
+>
+> ```text
+> [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+> [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+> ```
+>
+> **Not `{this.id}`** — on this endpoint `this` is the *checkout page*, so
+> `{this.id}` hands the callbacks the wrong order (see
+> [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md)).
+> `{options.order.id}` and `{options.order.payment_method_id}` are filled by
+> Woo4Etch only on `order-received` / `view-order`. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - After successful checkout — WooCommerce redirects to `/checkout/order-received/<order_id>/?key=<order_key>`.

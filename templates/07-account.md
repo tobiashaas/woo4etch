@@ -2,6 +2,18 @@
 
 Customer account area: dashboard, orders, downloads, addresses, account details, logout. Built on top of WooCommerce's `[woocommerce_my_account]` shortcode.
 
+> **The ready-made layout — don't reach for it when** the post-purchase surface
+> matters. The shipped *My Account* layout trades markup control over the nav
+> and the orders list for two real losses: the orders list is **capped** (10 by
+> default, `woo4etch/account_orders_limit`) with **no pagination**, and each row
+> carries a view link and nothing else — **Woo's Pay / Cancel row actions are
+> gone**, so a customer cannot pay a pending bank-transfer order from the list.
+> The Etch dashboard also *replaces* Woo's, so anything hooked to
+> `woocommerce_account_dashboard` renders nothing. Note that four of the six
+> screens (downloads, addresses, account details, view-order) fall through to
+> `[woo_account_content]` anyway — the layout changes nothing there. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - On the My Account page (`/my-account`).

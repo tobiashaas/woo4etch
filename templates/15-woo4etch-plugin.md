@@ -99,6 +99,38 @@ Two ways to use them:
 - **Add to page/template** — installs the layout straight where it renders: WooCommerce's assigned page (cart, account — from WooCommerce → Settings → Advanced) or the Etch `wp_template` for the area (`archive-product`, `single-product`, `order-confirmation`; created bare when missing). Strictly **append-only**: existing content is preserved, and a target that already contains the layout is refused instead of double-inserted ("On its page ✓"). The layout's classes are merged into Etch's style system; **existing styles with the same selector are reused, never overwritten**, so installing won't fight your design system.
 - **Copy JSON** — puts the layout on your clipboard in Etch's native copy/paste format; paste straight onto the canvas. The same files live in [`templates/etch-copy/`](./etch-copy/README.md) for use without wp-admin access.
 
+### Where each layout stops
+
+These are complete layouts for a straightforward store. Every one of them also
+**leaves out something WooCommerce's own template renders** — and the omission
+is silent: nothing errors, the markup is simply not there. The Layouts tab
+prints a *"Don't reach for this when"* line under each entry; it is repeated
+here and at the top of the matching template doc.
+
+| Layout | Don't reach for it when |
+|---|---|
+| **Cart** ([04](./04-cart.md)) | Shipping cost is part of the buying decision. The summary goes subtotal → total with **no shipping row**; a flat rate, a free-shipping threshold or per-class rates show up only as an unexplained difference between the two numbers, and there is no shipping calculator. `{options.cart_shipping_total}` exists — the layout just doesn't use it. Add a row, or use `[woo_cart_totals]`. |
+| **Checkout** ([06](./06-checkout.md)) | (1) You're on an **inline-tokenizing gateway** (Stripe Elements, PayPal's inline buttons) — only redirect/offline gateways are offered, because a hand-built form has no `payment_fields` markup or client JS. (2) You sell into a country where Woo **requires a state/province** (AU, US, CA, ES, IN, JP …) — the form has no `billing_state` (nor `billing_address_2`) and `{options.checkout}` exposes no `states` key, so the order fails validation on both the classic and the Store API path. Adding it is new PHP, not builder work. (3) You need a **terms checkbox** without Germanized — `{options.checkout.checkboxes}` is empty without it. |
+| **Single product** ([01](./01-single-product-simple.md), [02](./02-single-product-variable.md)) | You need reviews, product tabs, the long description or related/upsell products — it's a buy box, none of those are in it. Also: the gallery loop needs **Etch 1.4.20+**, and for variable/grouped/external products the form is Woo's own native markup behind `data-w4e-add-to-cart`. |
+| **Shop / category archive** ([03](./03-product-archive.md)) | Shoppers need to **sort** the grid or see a result count — neither control is in it — or you need attribute/brand/stock filters (the sidebar does category and price only). The category layout additionally ships lorem ipsum in its intro block; installing and forgetting it puts placeholder text on an indexable page. |
+| **Mini-cart** ([05](./05-mini-cart.md)) | You want quantity edit or remove-from-header — it's read-only. The reveal is pure CSS hover/`:focus-within`, so there's no tap toggle: on touch the first tap follows the cart link. |
+| **My Account** ([07](./07-account.md)) | The post-purchase surface matters. The orders list is capped (10, `woo4etch/account_orders_limit`) with **no pagination**, and rows carry a view link only — Woo's Pay / Cancel actions are gone, so a customer can't pay a pending bank-transfer order from the list. The Etch dashboard replaces Woo's, so anything on `woocommerce_account_dashboard` disappears. Four of the six screens fall through to `[woo_account_content]` anyway. |
+| **Thank-you** ([08](./08-thank-you.md)) | **Read this one before installing.** The layout fires *neither* `woocommerce_thankyou_{payment_method}` nor `woocommerce_thankyou`, so a gateway's post-order instructions — BACS bank details, COD notes — and anything a tracking or ERP plugin hangs there render nothing. On a prepayment/bank-transfer flow that silence costs money. See the fix below. |
+| **Notices** | It's already on the page — the cart, single-product and account layouts include it, and printing notices *clears the queue*, so a second block renders nothing. |
+| **Emails** ([09](./09-emails.md)) | There is no layout, by design — WooCommerce emails are rendered by Woo's PHP templates, not by Etch. Style them via the template overrides in [`09-emails.md`](./09-emails.md); nothing on the Layouts tab applies. |
+
+**Restoring the thank-you hooks.** Both are one shortcode each — place them in
+the layout above the order overview:
+
+```text
+[do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+[do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+```
+
+> `{this.id}` is the **checkout page's** ID on this endpoint, not the order's —
+> passing it hands the callbacks the wrong order. Use `{options.order.id}`,
+> which Woo4Etch fills only on `order-received` / `view-order`.
+
 **WooCommerce templates in Etch** (in the builder, not in wp-admin): WooCommerce *registers* template types like `order-confirmation`, `product-search-results` and `coming-soon`, but Etch's template hub renders only slugs from its own catalog — so these never appeared there. The plugin injects a **"WooCommerce" group** into the hub (admins only, builder shell only), built by cloning Etch's own DOM so it looks and behaves native. Existing templates open in the builder; a type that has no `wp_template` post yet is created on click and opens right away. The page frames (`page-cart`, `page-checkout`) are deliberately left out — they exist for WooCommerce's sake and are rarely edited; to shape one anyway, flip `'hub' => true` via the `woo4etch/wc_templates` filter or create it in the WP Site Editor. Frames are created as a clone of your generic `page` template so your house frame applies; everything else starts from WooCommerce's default content. Heads-up: these templates can't be removed by deleting them — WooCommerce backfills its plugin default (generic header/footer template parts) instead; keep them as thin clones.
 
 The **Woo notices** row additionally offers **Install as component**: the notices region as a real Etch component (one globally editable definition — place instances from the builder's component library; reinstalling updates it in place).
@@ -176,10 +208,16 @@ This fires `do_action('woocommerce_before_add_to_cart_button')` at the exact spo
 With arguments:
 
 ```text
-[do_action hook="woocommerce_thankyou" args="{this.id}"]
+[do_action hook="woocommerce_thankyou" args="{options.order.id}"]
 ```
 
-`args` is a comma-separated string list passed as positional arguments. Use Etch's Dynamic Keys to inject context-specific values like `{this.id}`.
+`args` is a comma-separated string list passed as positional arguments. Use Etch's Dynamic Keys to inject context-specific values.
+
+> **Pick the key that actually holds what the hook expects.** `{this.id}` is
+> the *queried object's* id — the product on a Single template, but the
+> **checkout page** on the `order-received` endpoint. Thank-you hooks want
+> `{options.order.id}`; passing `{this.id}` there hands the callbacks the
+> wrong order and they render nothing.
 
 ### Hook markers — when `[do_action]` output gets stripped
 

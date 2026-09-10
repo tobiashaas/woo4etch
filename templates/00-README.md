@@ -55,6 +55,14 @@ All templates follow the same structure:
 
 The plugin lives at [`../plugin/woo4etch/`](../plugin/woo4etch/).
 
+**Ready-made layout or hand-built?** The plugin ships a one-click layout for
+most of these areas, and each one states **where it stops** — every layout
+leaves out something WooCommerce's own template renders, silently. That note
+opens each area's template doc and is collected in
+[`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+Read it first: it's what decides whether you install the layout or build the
+surface from the doc.
+
 ---
 
 ## Shared foundations
