@@ -5,6 +5,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [Unreleased]
+
+### Added
+
+- **Every ready-made layout now states where it stops.** The layouts are complete for a straightforward store, and each one also *drops* something WooCommerce's own template renders — silently: nothing errors, the markup is simply not there. Each catalog entry gained a `limits` note ("Don't reach for this when …"), rendered under the description on the **Layouts** tab, repeated at the top of the matching `templates/*.md`, and collected as a table in [`templates/15-woo4etch-plugin.md`](templates/15-woo4etch-plugin.md#where-each-layout-stops). What it names, per surface: **checkout** — redirect/offline gateways only (the reasoning that was buried in the `store_api_checkout_gateways` docblock), no `billing_state`/`billing_address_2` field and no `states` bridge key, so countries where WooCommerce requires a state (AU, US, CA, ES, IN, JP …) fail validation on both paths, plus the Germanized dependency for legal checkboxes; **thank-you** — fires neither `woocommerce_thankyou_{payment_method}` nor `woocommerce_thankyou`, so offline gateways' payment instructions vanish without a trace; **cart** — no shipping row between subtotal and total, and no calculator; **My Account** — orders list capped with no pagination and no Pay/Cancel row actions, and the Etch dashboard replaces Woo's (`woocommerce_account_dashboard` never fires); **archives** — no sorting control or result count; **single product** — buy box only; **mini-cart** — read-only, CSS-hover reveal; **notices** — printing clears the queue. `templates/09-emails.md` and the readmes now say outright that transactional emails have **no** layout by design, so nobody goes looking for one. A fast-check asserts every catalog entry carries the note.
+- **`{options.order.id}` and `{options.order.payment_method_id}`** — the two keys needed to restore the thank-you hooks from the layout itself:
+
+  ```text
+  [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+  [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+  ```
+
+  Previously the only documented argument was `{this.id}`, which on the `order-received` endpoint is the **checkout page's** ID, not the order's — passing it hands the callbacks the wrong order. Both keys are filled only on `order-received` / `view-order`, exactly like the rest of `{options.order}`.
+
+### Fixed
+
+- **Docblock drift**: `expose_checkout_data()` never listed the `countries` key it has exposed since 1.9.0, and `expose_account_order_data()` now lists the full `{options.order}` payload.
+
 ## [1.9.1] — 2026-08-24
 
 ### Fixed

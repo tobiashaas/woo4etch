@@ -4,6 +4,16 @@ Classic cart page. Item list with quantity update, coupon code, cart totals, upd
 
 > **Note:** with WooCommerce ≥ 8, the **Cart block** is the default for new shops. This doc shows the **classic shortcode cart** because you're building custom HTML in Etch. If you want the block instead, switch the cart page back to `[woocommerce_cart]` in WooCommerce.
 
+> **The ready-made layout — don't reach for it when:** shipping cost is part of
+> the buying decision. The shipped *Cart* layout's summary goes **subtotal →
+> total with no shipping row between them**, and there is no shipping
+> calculator — so a flat rate, a free-shipping threshold, or per-class rates
+> appear only as an unexplained difference between two numbers. The data is
+> there (`{options.cart_shipping_total}`, `{options.cart_discount}`); the layout
+> just doesn't render it. Add the row yourself, or use `[woo_cart_totals]`
+> (subtotal, shipping, total) instead of the hand-built summary. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - On the cart page (`/cart`).

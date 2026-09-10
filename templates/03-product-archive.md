@@ -2,6 +2,17 @@
 
 Loop with product cards for `/shop`, categories, and tag pages. AJAX add-to-cart from the loop, semantic list structure, filter/sort bar as a hook point.
 
+> **The ready-made layouts — don't reach for them when:** the shipped *Shop
+> archive* and *Category archive* layouts have **no sorting control and no
+> result count** — a shopper can't re-order the grid by price or popularity the
+> way Woo's default archive lets them (`[woo_catalog_ordering]` and
+> `[woo_result_count]` exist; the layouts just don't place them). The sidebar
+> filters on **category and price only** — attribute, brand and stock filters
+> are not in it. Pagination is `[woo_pagination]`, i.e. numbered links, not
+> load-more. And the category layout ships **lorem ipsum** in its intro block:
+> installing it and forgetting puts placeholder text on an indexable page. Full
+> list: [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Main shop page (`/shop`).

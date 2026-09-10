@@ -108,7 +108,21 @@ function w4e_any_element($root, callable $pred) {
 
 function w4e_test_layouts() {
     w4e_check(class_exists('Woo4Etch_Layouts'), 'Woo4Etch_Layouts class loaded');
-    $slugs = array_keys(Woo4Etch_Layouts::catalog());
+    $catalog = Woo4Etch_Layouts::catalog();
+    $slugs   = array_keys($catalog);
+
+    /* ---- Every layout states where it stops ---- */
+    // The layouts each drop something WooCommerce's own template renders, and
+    // the omission is silent. The `limits` note is what the admin table and
+    // the templates/*.md callouts render, so an entry without one ships a
+    // trap instead of a trade-off.
+    w4e_section('Catalog: every layout carries a "limits" note');
+    foreach ($catalog as $slug => $meta) {
+        w4e_check(
+            isset($meta['limits']) && is_string($meta['limits']) && strlen(trim($meta['limits'])) >= 40,
+            "{$slug}: catalog entry has a non-trivial 'limits' note"
+        );
+    }
 
     /* ---- Generic invariants for every live layout ---- */
     foreach ($slugs as $slug) {

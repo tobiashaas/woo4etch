@@ -1555,7 +1555,12 @@ final class Woo4Etch {
      *
      * Examples:
      *   [do_action hook="woocommerce_before_add_to_cart_button"]
-     *   [do_action hook="woocommerce_thankyou" args="{this.id}"]
+     *   [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+     *
+     * `args` is comma-separated and positional. Pick the key that actually
+     * holds what the hook expects: {this.id} is the queried object's id, so
+     * it is the product on a Single template — but the checkout PAGE on the
+     * order-received endpoint. Thank-you hooks want {options.order.id}.
      *
      * Restrict allowed hooks via the `woo4etch/allow_do_action` filter:
      *   add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
@@ -2955,8 +2960,17 @@ final class Woo4Etch {
      *   shipping_rates  — array; each: id, package, label, price, selected
      *   checkboxes      — array (Germanized legal checkboxes when active);
      *                     each: id, label (HTML), error
+     *   countries       — allowed countries; each: code, name, selected
      *   needs_shipping  — bool
      *   nonce           — classic checkout nonce (for the no-JS fallback form)
+     *
+     * There is deliberately NO states key, and the ready-made checkout layout
+     * carries no billing_state (nor billing_address_2) field. WooCommerce's
+     * locale overrides only rename `state` for countries like AU — they never
+     * set required => false — so wherever Woo requires a state or province
+     * the order fails validation on both the classic and the Store API path.
+     * Serving those countries means adding the field AND the states payload:
+     * new PHP (WC()->countries->get_states($code)), not builder work.
      *
      * Disable: add_filter('woo4etch/expose_checkout_data','__return_false').
      * Reshape: add_filter('woo4etch/checkout_data', fn($d) => $d).
@@ -3292,8 +3306,17 @@ final class Woo4Etch {
      *   {options.account_orders}   — array: id, number, date, status, status_name,
      *                                total, item_count, view_url
      *   {options.order}          — current order (thank-you / view-order):
-     *                              number, date, status, status_name, total, email,
-     *                              payment_method, billing_address, items[]
+     *                              id, number, date, status, status_name, total,
+     *                              email, payment_method, payment_method_id,
+     *                              billing_address, items[]
+     *
+     * The ready-made thank-you layout renders this data and fires no hooks.
+     * WooCommerce's own order-confirmation template fires
+     * woocommerce_thankyou_{payment_method} and then woocommerce_thankyou —
+     * where offline gateways print their bank details and payment
+     * instructions. To keep those, place both in the layout:
+     *   [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+     *   [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
      *
      * Real data on the frontend; sample data in the Etch builder so the loops
      * preview. Disable: add_filter('woo4etch/expose_account_data','__return_false').
@@ -3661,30 +3684,40 @@ final class Woo4Etch {
             ];
         }
         return [
-            'number'          => $o->get_order_number(),
-            'date'            => wc_format_datetime($o->get_date_created()),
-            'status'          => $o->get_status(),
-            'status_name'     => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($o->get_status()) : $o->get_status(),
-            'total'           => self::plain($o->get_formatted_order_total()),
-            'email'           => $o->get_billing_email(),
-            'payment_method'  => $o->get_payment_method_title(),
-            'billing_address' => self::plain($o->get_formatted_billing_address()),
-            'items'           => $items,
+            // id + payment_method_id exist so the thank-you hooks can be
+            // fired from the layout:
+            //   [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+            //   [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+            // {this.id} is the checkout PAGE's id on this endpoint, not the
+            // order's — passing it hands the callbacks the wrong order.
+            'id'                 => $o->get_id(),
+            'number'             => $o->get_order_number(),
+            'date'               => wc_format_datetime($o->get_date_created()),
+            'status'             => $o->get_status(),
+            'status_name'        => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($o->get_status()) : $o->get_status(),
+            'total'              => self::plain($o->get_formatted_order_total()),
+            'email'              => $o->get_billing_email(),
+            'payment_method'     => $o->get_payment_method_title(),
+            'payment_method_id'  => $o->get_payment_method(),
+            'billing_address'    => self::plain($o->get_formatted_billing_address()),
+            'items'              => $items,
         ];
     }
 
     private static function sample_order($size) {
         $ph = function_exists('wc_placeholder_img_src') ? wc_placeholder_img_src($size) : '';
         return apply_filters('woo4etch/order_sample', [
-            'number'          => '1042',
-            'date'            => 'June 1, 2026',
-            'status'          => 'processing',
-            'status_name'     => 'Processing',
-            'total'           => self::plain(wc_price(81)),
-            'email'           => 'jane@example.com',
-            'payment_method'  => 'Direct bank transfer',
-            'billing_address' => "Jane Doe, 123 Demo Street, 12345 Sampletown",
-            'items'           => [
+            'id'                => 0,
+            'number'            => '1042',
+            'date'              => 'June 1, 2026',
+            'status'            => 'processing',
+            'status_name'       => 'Processing',
+            'total'             => self::plain(wc_price(81)),
+            'email'             => 'jane@example.com',
+            'payment_method'    => 'Direct bank transfer',
+            'payment_method_id' => 'bacs',
+            'billing_address'   => "Jane Doe, 123 Demo Street, 12345 Sampletown",
+            'items'             => [
                 ['name' => 'Logo T-Shirt', 'quantity' => 2, 'total' => self::plain(wc_price(36)), 'image' => $ph],
                 ['name' => 'Zip Hoodie',   'quantity' => 1, 'total' => self::plain(wc_price(45)), 'image' => $ph],
             ],
