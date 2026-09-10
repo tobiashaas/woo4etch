@@ -292,8 +292,8 @@ final class Woo4Etch {
             'do_action' => [
                 'method'      => 'shortcode_do_action',
                 'category'    => __('Hooks', 'woo4etch'),
-                'attributes'  => 'hook (required), args',
-                'description' => __('Fires any WordPress or WooCommerce action hook.', 'woo4etch'),
+                'attributes'  => 'hook (required), args, skip_defaults (yes|no)',
+                'description' => __('Fires any WordPress or WooCommerce action hook. args is a comma-separated positional list; skip_defaults="yes" suppresses WooCommerce core\'s own template callbacks so only third-party output renders.', 'woo4etch'),
                 'example'     => '[do_action hook="woocommerce_before_add_to_cart_button"]',
             ],
 
@@ -1366,6 +1366,16 @@ final class Woo4Etch {
                         $product = $maybe instanceof WC_Product ? $maybe : null;
                     }
 
+                    // data-w4e-args: positional arguments, comma-separated.
+                    // Hooks that take one are useless without it — worse than
+                    // useless: woocommerce_thankyou's callbacks declare
+                    // $order_id as required, so firing it bare is an
+                    // ArgumentCountError in PHP 8, not a silent no-op.
+                    $args = [];
+                    if (preg_match('/data-w4e-args="([^"]*)"/', $extra_attrs, $am)) {
+                        $args = self::parse_hook_args($am[1]);
+                    }
+
                     // data-w4e-skip-defaults: temporarily unhook WooCommerce
                     // core's own template callbacks so the hook renders ONLY
                     // what third parties added. Essential for hooks like
@@ -1373,29 +1383,20 @@ final class Woo4Etch {
                     // duplicate the layout's title/price/excerpt/form but
                     // plugins (e.g. Germanized: unit price, tax notice,
                     // delivery time) attach their extras between them.
-                    $removed = [];
-                    if (strpos($extra_attrs, 'data-w4e-skip-defaults') !== false) {
-                        $defaults = apply_filters('woo4etch/hook_core_defaults', self::CORE_HOOK_DEFAULTS, $hook);
-                        foreach (isset($defaults[$hook]) ? $defaults[$hook] : [] as $cb) {
-                            if (remove_action($hook, $cb[0], $cb[1])) {
-                                $removed[] = $cb;
-                            }
-                        }
-                    }
+                    $skip    = strpos($extra_attrs, 'data-w4e-skip-defaults') !== false;
+                    $removed = $skip ? self::unhook_core_defaults($hook) : [];
 
                     if ($product) {
-                        $out = self::with_product($product, static function () use ($hook) {
-                            do_action($hook);
+                        $out = self::with_product($product, static function () use ($hook, $args) {
+                            do_action($hook, ...$args);
                         });
                     } else {
                         ob_start();
-                        do_action($hook);
+                        do_action($hook, ...$args);
                         $out = ob_get_clean();
                     }
 
-                    foreach ($removed as $cb) {
-                        add_action($hook, $cb[0], $cb[1]);
-                    }
+                    self::rehook_core_defaults($hook, $removed);
 
                     return '<' . $m[1] . $m[2] . ' data-w4e-hook="' . esc_attr($hook) . '"' . $m[4] . '>' . $out . '</' . $m[1] . '>';
                 },
@@ -1407,12 +1408,71 @@ final class Woo4Etch {
     }
 
     /**
+     * Parse a comma-separated positional argument list for a fired hook.
+     * Numeric strings become ints — an order or product id passed as "1042"
+     * would fail a callback's strict comparison.
+     *
+     * @param string $raw Raw attribute/shortcode value.
+     * @return array<int,mixed>
+     */
+    private static function parse_hook_args($raw) {
+        $raw = trim(html_entity_decode((string) $raw, ENT_QUOTES));
+        if ('' === $raw) {
+            return [];
+        }
+        $out = [];
+        foreach (explode(',', $raw) as $arg) {
+            $arg   = trim($arg);
+            $out[] = is_numeric($arg) ? (int) $arg : $arg;
+        }
+        return $out;
+    }
+
+    /**
+     * Temporarily remove WooCommerce core's own callbacks from a hook.
+     *
+     * @param string $hook Hook name.
+     * @return array<int,array{0:string,1:int}> Removed callbacks, for rehooking.
+     */
+    private static function unhook_core_defaults($hook) {
+        $defaults = apply_filters('woo4etch/hook_core_defaults', self::CORE_HOOK_DEFAULTS, $hook);
+        $removed  = [];
+        foreach (isset($defaults[$hook]) ? $defaults[$hook] : [] as $cb) {
+            if (remove_action($hook, $cb[0], $cb[1])) {
+                $removed[] = $cb;
+            }
+        }
+        return $removed;
+    }
+
+    /**
+     * Restore what unhook_core_defaults() removed.
+     *
+     * @param string                           $hook    Hook name.
+     * @param array<int,array{0:string,1:int}> $removed Callbacks to re-add.
+     * @return void
+     */
+    private static function rehook_core_defaults($hook, array $removed) {
+        foreach ($removed as $cb) {
+            add_action($hook, $cb[0], $cb[1]);
+        }
+    }
+
+    /**
      * WooCommerce core template callbacks per hook — the ones
      * data-w4e-skip-defaults unhooks (the layout already renders that content
      * itself). Third-party callbacks on the same hooks are untouched.
      * Filterable: woo4etch/hook_core_defaults.
      */
     const CORE_HOOK_DEFAULTS = [
+        // woocommerce_order_details_table renders Woo's full order table
+        // (items, totals, customer details). A layout that already renders
+        // its own order overview would print it twice — but the hook must
+        // still fire, because it is where offline gateways and tracking
+        // plugins put their post-order output.
+        'woocommerce_thankyou' => [
+            ['woocommerce_order_details_table', 10],
+        ],
         'woocommerce_single_product_summary' => [
             ['woocommerce_template_single_title', 5],
             ['woocommerce_template_single_rating', 10],
@@ -1569,8 +1629,9 @@ final class Woo4Etch {
      */
     public static function shortcode_do_action($atts) {
         $atts = shortcode_atts([
-            'hook' => '',
-            'args' => '',
+            'hook'          => '',
+            'args'          => '',
+            'skip_defaults' => '',
         ], $atts, 'do_action');
 
         $hook = sanitize_key($atts['hook']);
@@ -1582,14 +1643,21 @@ final class Woo4Etch {
             return '';
         }
 
-        $args = [];
-        if ($atts['args'] !== '') {
-            $args = array_map('trim', explode(',', $atts['args']));
-        }
+        $args = self::parse_hook_args($atts['args']);
+
+        // Same escape hatch as data-w4e-skip-defaults: fire the hook for
+        // third-party callbacks without WooCommerce core's own template
+        // output, which a hand-built layout already renders itself.
+        $skip    = in_array(strtolower((string) $atts['skip_defaults']), ['1', 'yes', 'true'], true);
+        $removed = $skip ? self::unhook_core_defaults($hook) : [];
 
         ob_start();
         do_action($hook, ...$args);
-        return ob_get_clean();
+        $out = ob_get_clean();
+
+        self::rehook_core_defaults($hook, $removed);
+
+        return $out;
     }
 
     /* ============================================================
@@ -2810,7 +2878,13 @@ final class Woo4Etch {
      *   {options.cart_count} {options.cart_subtotal} {options.cart_total}
      *   {options.cart_coupons}   — array; each: code, amount, remove_url
      *   {options.cart_discount}  — formatted total discount ('' when none)
-     *   {options.cart_shipping_total} — formatted shipping ('' when nothing ships)
+     *   {options.cart_needs_shipping}  — bool; the cart contains shippable items
+     *   {options.cart_show_shipping}   — bool; Woo will disclose the cost here
+     *                              (false while "hide shipping costs until an
+     *                              address is entered" holds and there is none)
+     *   {options.cart_shipping_total}  — formatted shipping ('' unless shown)
+     *   {options.cart_shipping_notice} — "Calculated at checkout" for exactly
+     *                              the needs-shipping-but-not-yet-known case
      *   {options.cart_url} {options.checkout_url} {options.shop_url}
      *   {options.cart_is_empty}
      *
@@ -2848,7 +2922,22 @@ final class Woo4Etch {
             $data['cart_coupons']  = self::cart_coupons($cart);
             $discount              = $cart->get_discount_total() + ($cart->display_cart_ex_tax ? 0 : $cart->get_discount_tax());
             $data['cart_discount'] = $discount > 0 ? self::plain(wc_price($discount)) : '';
-            $data['cart_shipping_total'] = $cart->needs_shipping() ? self::plain($cart->get_cart_shipping_total()) : '';
+            // Shipping. Woo's own cart-totals template gates the row on
+            // needs_shipping() AND show_shipping() — the latter is false while
+            // "hide shipping costs until an address is entered" holds and the
+            // customer has none, and get_cart_shipping_total() would happily
+            // return "Free!" in that state. A cart that prints a subtotal and
+            // a total with nothing between them tells the customer a flat
+            // rate or a free-shipping threshold does not exist, so hand the
+            // layout both the amount and the not-yet-known case as flat keys.
+            $needs_shipping = $cart->needs_shipping();
+            $show_shipping  = $needs_shipping && $cart->show_shipping();
+            $data['cart_needs_shipping']  = $needs_shipping;
+            $data['cart_show_shipping']   = $show_shipping;
+            $data['cart_shipping_total']  = $show_shipping ? self::plain($cart->get_cart_shipping_total()) : '';
+            $data['cart_shipping_notice'] = ($needs_shipping && !$show_shipping)
+                ? __('Calculated at checkout', 'woo4etch')
+                : '';
             $data['cart_is_empty'] = false;
         } elseif (self::is_etch_builder()) {
             // Builder canvas → sample rows so the loop has something to preview.
@@ -2860,7 +2949,10 @@ final class Woo4Etch {
             $data['cart_total']    = '';
             $data['cart_coupons']  = [];
             $data['cart_discount'] = '';
-            $data['cart_shipping_total'] = '';
+            $data['cart_needs_shipping']  = false;
+            $data['cart_show_shipping']   = false;
+            $data['cart_shipping_total']  = '';
+            $data['cart_shipping_notice'] = '';
             $data['cart_is_empty'] = true;
         }
 
@@ -2998,17 +3090,18 @@ final class Woo4Etch {
             return $data;
         }
 
-        $cart  = (function_exists('WC') && WC()) ? WC()->cart : null;
-        $empty = [
-            'payment_methods' => [],
-            'shipping_rates'  => [],
-            'checkboxes'      => [],
-            'countries'       => [],
-            'needs_shipping'  => false,
-            'nonce'           => '',
-        ];
+        $cart = (function_exists('WC') && WC()) ? WC()->cart : null;
         if (!$cart instanceof WC_Cart || $cart->is_empty() || !WC()->session) {
-            $checkout = $empty;
+            // Still carry the address-locale keys: the layout's conditions
+            // read them, and a missing key is not the same as a false one.
+            $checkout = array_merge([
+                'payment_methods' => [],
+                'shipping_rates'  => [],
+                'checkboxes'      => [],
+                'countries'       => [],
+                'needs_shipping'  => false,
+                'nonce'           => '',
+            ], self::checkout_address_locale(''));
             $data['checkout'] = $checkout;
             return $data;
         }
@@ -3042,6 +3135,7 @@ final class Woo4Etch {
         // Allowed countries for a hand-built country <select> — Etch loop with
         // per-option selected conditions ({options.checkout.countries}).
         $countries = [];
+        $current   = '';
         if (WC()->countries) {
             $current = WC()->customer ? WC()->customer->get_billing_country() : '';
             if ('' === $current) {
@@ -3081,7 +3175,7 @@ final class Woo4Etch {
             }
         }
 
-        $checkout = apply_filters('woo4etch/checkout_data', [
+        $checkout = apply_filters('woo4etch/checkout_data', array_merge([
             'payment_methods' => $methods,
             'shipping_rates'  => $rates,
             'checkboxes'      => self::checkout_checkboxes(),
@@ -3090,9 +3184,93 @@ final class Woo4Etch {
             // For the no-JS fallback: a hand-built form posting classically to
             // ?wc-ajax=checkout needs this as woocommerce-process-checkout-nonce.
             'nonce'           => wp_create_nonce('woocommerce-process_checkout'),
-        ]);
+        ], self::checkout_address_locale($current)));
         $data['checkout'] = $checkout;
         return $data;
+    }
+
+    /**
+     * Locale-aware state + address_2 config for a hand-built billing form.
+     *
+     * WooCommerce's per-country locale overrides decide whether a state or
+     * province field exists, what it's called, and whether it's required —
+     * and for countries like AU the override only *renames* `state`, it never
+     * sets `required => false`. A hand-built form that omits the field
+     * therefore fails validation on BOTH the classic and the Store API path,
+     * silently, in AU, US, CA, ES, IN, JP and many more.
+     *
+     * Rather than reimplement that table, this asks WooCommerce for the
+     * merged field config (`get_address_fields()` applies the locale overlay
+     * itself) and hands the layout everything it needs to render the field:
+     *
+     *   states           — array; each: code, name, selected (empty when the
+     *                      country has no state list → free-text input)
+     *   has_states       — bool; true when `states` should render as a select
+     *   state            — current value, so the field survives a region swap
+     *   state_label      — locale label ("State", "Province", "Suburb" …)
+     *   state_required   — bool
+     *   state_hidden     — bool; true where Woo hides the field (e.g. DE)
+     *   address_2_label  — locale placeholder ("Apartment, suite, unit …")
+     *   address_2_hidden — bool
+     *
+     * Reshape via the `woo4etch/checkout_data` filter like any other key.
+     *
+     * @param string $country Country code; '' falls back to Woo's base country.
+     * @return array<string,mixed>
+     */
+    private static function checkout_address_locale($country) {
+        $blank = [
+            'states'           => [],
+            'has_states'       => false,
+            'state'            => '',
+            'state_label'      => '',
+            'state_required'   => false,
+            'state_hidden'     => true,
+            'address_2_label'  => '',
+            'address_2_hidden' => false,
+        ];
+
+        if (!function_exists('WC') || !WC() || !WC()->countries) {
+            return $blank;
+        }
+        if ('' === $country) {
+            $country = (string) WC()->countries->get_base_country();
+        }
+        if ('' === $country) {
+            return $blank;
+        }
+
+        // Woo's own locale overlay — never hand-rolled.
+        $fields = WC()->countries->get_address_fields($country, 'billing_');
+        $state  = isset($fields['billing_state']) && is_array($fields['billing_state']) ? $fields['billing_state'] : [];
+        $addr2  = isset($fields['billing_address_2']) && is_array($fields['billing_address_2']) ? $fields['billing_address_2'] : [];
+
+        $current = WC()->customer ? (string) WC()->customer->get_billing_state() : '';
+
+        // get_states() returns false for countries with no list at all and an
+        // empty array for those Woo deliberately blanks — both mean free text.
+        $list   = WC()->countries->get_states($country);
+        $states = [];
+        if (is_array($list)) {
+            foreach ($list as $code => $label) {
+                $states[] = [
+                    'code'     => (string) $code,
+                    'name'     => html_entity_decode((string) $label, ENT_QUOTES),
+                    'selected' => (string) $code === $current,
+                ];
+            }
+        }
+
+        return [
+            'states'           => $states,
+            'has_states'       => !empty($states),
+            'state'            => $current,
+            'state_label'      => self::plain((string) ($state['label'] ?? '')),
+            'state_required'   => !empty($state['required']),
+            'state_hidden'     => !empty($state['hidden']),
+            'address_2_label'  => self::plain((string) ($addr2['placeholder'] ?? $addr2['label'] ?? '')),
+            'address_2_hidden' => !empty($addr2['hidden']),
+        ];
     }
 
     /**
@@ -3139,9 +3317,24 @@ final class Woo4Etch {
                 ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => '', 'selected' => false],
             ],
             'countries'       => [
-                ['code' => 'DE', 'name' => 'Germany', 'selected' => true],
-                ['code' => 'AT', 'name' => 'Austria', 'selected' => false],
+                ['code' => 'AU', 'name' => 'Australia', 'selected' => true],
+                ['code' => 'DE', 'name' => 'Germany', 'selected' => false],
             ],
+            // A country WITH states, so the state select is visible and
+            // styleable in the builder canvas — the field is easy to miss
+            // when the sample country hides it (Germany does).
+            'states'           => [
+                ['code' => 'NSW', 'name' => 'New South Wales', 'selected' => true],
+                ['code' => 'VIC', 'name' => 'Victoria', 'selected' => false],
+                ['code' => 'QLD', 'name' => 'Queensland', 'selected' => false],
+            ],
+            'has_states'       => true,
+            'state'            => 'NSW',
+            'state_label'      => __('State', 'woo4etch'),
+            'state_required'   => true,
+            'state_hidden'     => false,
+            'address_2_label'  => __('Apartment, suite, unit, etc. (optional)', 'woo4etch'),
+            'address_2_hidden' => false,
             'shipping_rates'  => [
                 ['id' => 'flat_rate:1', 'package' => 0, 'label' => __('Standard shipping', 'woo4etch'), 'price' => self::plain(wc_price(4.9)), 'selected' => true],
                 ['id' => 'flat_rate:2', 'package' => 0, 'label' => __('Express', 'woo4etch'), 'price' => self::plain(wc_price(12.9)), 'selected' => false],
@@ -3188,7 +3381,10 @@ final class Woo4Etch {
                 ['code' => 'welcome10', 'amount' => self::plain(wc_price(5)), 'remove_url' => '#'],
             ],
             'cart_discount' => self::plain(wc_price(5)),
-            'cart_shipping_total' => self::plain(wc_price(4.9)),
+            'cart_needs_shipping'  => true,
+            'cart_show_shipping'   => true,
+            'cart_shipping_total'  => self::plain(wc_price(4.9)),
+            'cart_shipping_notice' => '',
             'cart_total'    => self::plain(wc_price(96.9)),
             'cart_is_empty' => false,
         ]);
