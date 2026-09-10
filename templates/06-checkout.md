@@ -6,6 +6,42 @@ Classic shortcode checkout. Billing/shipping form, order review, payment methods
 >
 > If you want to use the block anyway, that's a separate topic (block extensions via `@woocommerce/blocks-registry`). This doc covers only the classic setup.
 
+> **The ready-made layout — don't reach for it when** either of these applies.
+> Woo4Etch ships a complete *Checkout (Store API / option A+)* layout, and it
+> is the right answer for a lot of shops — but it makes two assumptions:
+>
+> 1. **Your gateway redirects or is offline.** Only redirect/offline gateways
+>    are offered (`woo4etch/store_api_checkout_gateways`). Stripe Elements,
+>    PayPal's inline buttons and every other gateway that tokenizes *in the
+>    page* need their own `payment_fields()` markup and client JS, which a
+>    hand-built form does not have — offering them would sell a broken option.
+>    On those, use `[woo_checkout_block]` (option B) or Woo's own checkout.
+> 2. **Germanized is installed, or you don't need a terms checkbox.** The legal
+>    checkbox loop is fed by Germanized; without it
+>    `{options.checkout.checkboxes}` is empty, so a terms-and-conditions
+>    checkbox has to be hand-built *and* validated yourself.
+>
+> It is also **billing-only** — no separate shipping address, no
+> `ship_to_different_address` toggle — so orders always ship to the billing
+> address.
+>
+> **State/province is handled** (as of the version that ships
+> `{options.checkout.states}`). WooCommerce's locale overrides only *rename*
+> `state` for countries like AU; they never set `required => false`, so a form
+> without the field fails validation on **both** the classic and the Store API
+> path in AU, US, CA, ES, IN, JP and more. The layout now renders
+> `billing_state` — a `<select>` over `{options.checkout.states}` where the
+> country has a list, a free-text input where it doesn't, hidden where Woo
+> hides it (Germany) — plus `billing_address_2`. The field sits in its own
+> `data-w4e-checkout-region="billing-state"`, so changing the country
+> re-renders it server-side with that country's list.
+>
+> **Installed the checkout before that?** Updating the plugin does not touch
+> blocks already on your checkout page — the Layouts tab flags the old copy;
+> delete it in the Etch builder and press **Add to page/template** again.
+>
+> Full list: [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Checkout page (`/checkout`) with shortcode `[woocommerce_checkout]`.

@@ -369,6 +369,10 @@ final class Woo4Etch_Admin {
             . '.woo4etch-shortcodes .woo4etch-details{max-width:60em;margin:.4em 0 0;}'
             . '.woo4etch-shortcodes .woo4etch-details summary{cursor:pointer;color:#2271b1;font-size:12px;}'
             . '.woo4etch-shortcodes .woo4etch-header-links{font-size:13px;font-weight:400;margin-left:12px;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-limits{margin:.7em 0 0;padding-left:10px;border-left:3px solid #dba617;color:#50575e;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-limits strong{color:#1d2327;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-outdated{margin:.6em 0 0;padding:8px 10px;border-left:3px solid #d63638;background:#fcf0f1;color:#50575e;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-outdated strong{color:#d63638;}'
         );
     }
 
@@ -486,6 +490,10 @@ final class Woo4Etch_Admin {
             <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Add to page/template” puts the layout straight where it renders: WooCommerce’s assigned page (cart, account — from WooCommerce → Settings → Advanced) or the Etch template for the area (shop archive, single product, order confirmation). It only ever appends — existing content is preserved, and a target that already contains the layout is left untouched. “Copy JSON” puts the layout on your clipboard for pasting onto the Etch canvas instead. In every route, existing styles with the same selectors are reused, never overwritten.', 'woo4etch'); ?>
         </p>
 
+        <p class="woo4etch-intro">
+            <?php esc_html_e('Each layout also says where it stops. These are complete layouts for a straightforward store, and every one of them leaves out something WooCommerce’s own template renders — silently, with no error to notice it by. Read the “Don’t reach for this when” line before you install: it is the difference between a trade-off you chose and one you discover in production.', 'woo4etch'); ?>
+        </p>
+
         <table class="widefat striped">
             <thead>
                 <tr>
@@ -507,7 +515,15 @@ final class Woo4Etch_Admin {
                     <tr>
                         <td><?php echo esc_html($meta['area']); ?></td>
                         <td><strong><?php echo esc_html($meta['name']); ?></strong></td>
-                        <td><?php echo esc_html($meta['description']); ?></td>
+                        <td>
+                            <?php echo esc_html($meta['description']); ?>
+                            <?php if (!empty($meta['limits'])) : ?>
+                                <p class="woo4etch-layout-limits">
+                                    <strong><?php esc_html_e('Don’t reach for this when:', 'woo4etch'); ?></strong>
+                                    <?php echo esc_html($meta['limits']); ?>
+                                </p>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <?php if (!empty($push['available'])) : ?>
                                 <?php if ($push['present']) : ?>
@@ -521,6 +537,18 @@ final class Woo4Etch_Admin {
                                            title="<?php esc_attr_e('Open in the editor to arrange it (Etch picks it up from there).', 'woo4etch'); ?>"><?php echo esc_html($present_label); ?></a>
                                     <?php else : ?>
                                         <span class="woo4etch-installed"><?php echo esc_html($present_label); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($push['outdated'])) : ?>
+                                        <p class="woo4etch-layout-outdated">
+                                            <strong><?php esc_html_e('Older version installed.', 'woo4etch'); ?></strong>
+                                            <?php
+                                            printf(
+                                                /* translators: %s: what the installed revision is missing */
+                                                esc_html__('It was %s. Updating the plugin does not change blocks already on the page: delete this layout in the Etch builder, then use “Add to page/template” again. Your styles are kept — existing style records are reused, never overwritten.', 'woo4etch'),
+                                                esc_html($push['outdated'])
+                                            );
+                                            ?>
+                                        </p>
                                     <?php endif; ?>
                                 <?php else : ?>
                                     <form method="post"

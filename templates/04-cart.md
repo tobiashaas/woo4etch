@@ -4,6 +4,21 @@ Classic cart page. Item list with quantity update, coupon code, cart totals, upd
 
 > **Note:** with WooCommerce ≥ 8, the **Cart block** is the default for new shops. This doc shows the **classic shortcode cart** because you're building custom HTML in Etch. If you want the block instead, switch the cart page back to `[woocommerce_cart]` in WooCommerce.
 
+> **The ready-made layout — don't reach for it when:** the shipped *Cart*
+> layout's summary now discloses shipping — the amount, or "Calculated at
+> checkout" for exactly the case where WooCommerce withholds it (the
+> *"hide shipping costs until an address is entered"* setting with no address
+> on file). What it still has **no** room for is a shipping *calculator*: the
+> customer cannot enter a postcode or pick a rate on the cart page, only at
+> checkout, and tax is folded into the total rather than broken out. If either
+> needs to be visible and changeable before checkout, use `[woo_cart_totals]` —
+> Woo's full totals block, rate picker and calculator form included.
+>
+> **Installed it before this was fixed?** Updating the plugin does not touch
+> blocks already on your cart page. The Layouts tab flags the old copy; delete
+> it in the Etch builder and press **Add to page/template** again. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - On the cart page (`/cart`).

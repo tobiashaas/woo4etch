@@ -12,6 +12,14 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 > plugin's layout definitions via `tools/generate-etch-copy.php` — edit there,
 > not here.
 
+> **Before you paste, read where the layout stops.** Each of these leaves out
+> something WooCommerce's own template renders — silently. The thank-you
+> snippet fires no `woocommerce_thankyou` hooks, the checkout has no
+> state/province field and offers redirect/offline gateways only, the cart
+> summary has no shipping row, the account orders list has no pagination. Full
+> list: [`../15-woo4etch-plugin.md`](../15-woo4etch-plugin.md#where-each-layout-stops),
+> and at the top of each area's template doc.
+
 ## How to use (manual paste)
 
 1. Open the JSON file (e.g. [`cart.json`](./cart.json)) and copy its **entire contents**.

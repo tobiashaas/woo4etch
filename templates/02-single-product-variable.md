@@ -2,6 +2,14 @@
 
 Product page with variations. Size, color, material, etc. — live update of price and availability via the `wc-add-to-cart-variation` script.
 
+> **The ready-made layout — don't reach for it when:** the shipped *Single
+> product* layout handles variable products by rendering **Woo's own native
+> add-to-cart form** behind the `data-w4e-add-to-cart` marker (that's what makes
+> variations work out of the box) — so inside that block the markup is Woo's,
+> and hand-built variation UI is what this doc is for. It's also a buy box
+> only: no reviews, tabs, long description or related products. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
 ## When to use
 
 - Product with at least one attribute (e.g. size, color, capacity).

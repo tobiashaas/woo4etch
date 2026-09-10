@@ -2,6 +2,48 @@
 
 Order confirmation page shown after a successful checkout. Order summary, customer details, payment instructions (for offline payment methods like bank transfer).
 
+> **The ready-made layout fires the thank-you hooks.** It reproduces
+> WooCommerce's own order-confirmation template: `woocommerce_before_thankyou`,
+> then `woocommerce_thankyou_{payment_method}`, then `woocommerce_thankyou` —
+> so offline gateways' payment instructions (BACS bank details, COD notes) and
+> anything a tracking or ERP plugin hangs there all render. Two details worth
+> knowing:
+>
+> - The generic hook is fired with `data-w4e-skip-defaults`, which suppresses
+>   Woo's `woocommerce_order_details_table`. Without that you'd get a second
+>   copy of the whole order below the layout's own. The side effect: the
+>   **customer block** that table prints (billing/shipping address) is gone.
+>   `{options.order.billing_address}` is exposed if you want it back.
+> - The hooks are fired through **markers**, not `[do_action]` — the output
+>   goes in after Etch has rendered, so its raw-HTML sanitizer never sees the
+>   `<form>`/`<input>` markup some gateways emit.
+>
+> **Don't reach for it when** you need Woo's customer-details block as-is, or
+> when the order isn't in context: the whole layout is gated on
+> `{options.order.number}`, so a bare `/checkout/order-received/` hit without a
+> valid key renders nothing.
+>
+> **Installed it before the hooks were added?** Updating the plugin does not
+> touch blocks already on your `order-confirmation` template — the Layouts tab
+> flags the old copy; delete it in the Etch builder and press **Add to
+> page/template** again. Full list:
+> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+
+> **Firing these hooks in a hand-built layout of your own:** use
+> `{options.order.id}`, never `{this.id}` — on this endpoint `this` is the
+> *checkout page*, so `{this.id}` hands the callbacks the wrong order (see
+> [`10-etch-context-and-templates.md`](./10-etch-context-and-templates.md)).
+>
+> ```text
+> [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
+> [do_action hook="woocommerce_thankyou" args="{options.order.id}" skip_defaults="yes"]
+> ```
+>
+> `args` is required, not optional: `woocommerce_thankyou`'s callbacks declare
+> `$order_id`, so firing it bare is an `ArgumentCountError` on PHP 8, not a
+> quiet no-op. And drop `skip_defaults="yes"` only if your layout does *not*
+> render the order itself — otherwise Woo prints it a second time.
+
 ## When to use
 
 - After successful checkout — WooCommerce redirects to `/checkout/order-received/<order_id>/?key=<order_key>`.
