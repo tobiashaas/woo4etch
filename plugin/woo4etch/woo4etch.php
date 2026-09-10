@@ -3214,11 +3214,14 @@ final class Woo4Etch {
      *   address_2_hidden — bool
      *
      * Reshape via the `woo4etch/checkout_data` filter like any other key.
+     * Public so a filter (or a check) can ask for another country directly —
+     * `{options.checkout}` itself is memoized per request and only ever
+     * describes the customer's current one.
      *
      * @param string $country Country code; '' falls back to Woo's base country.
      * @return array<string,mixed>
      */
-    private static function checkout_address_locale($country) {
+    public static function checkout_address_locale($country) {
         $blank = [
             'states'           => [],
             'has_states'       => false,
@@ -3240,10 +3243,25 @@ final class Woo4Etch {
             return $blank;
         }
 
-        // Woo's own locale overlay — never hand-rolled.
+        // Woo's own locale overlay for label/required/placeholder — never
+        // hand-rolled.
         $fields = WC()->countries->get_address_fields($country, 'billing_');
         $state  = isset($fields['billing_state']) && is_array($fields['billing_state']) ? $fields['billing_state'] : [];
         $addr2  = isset($fields['billing_address_2']) && is_array($fields['billing_address_2']) ? $fields['billing_address_2'] : [];
+
+        // `hidden` does NOT survive get_address_fields(). It merges the locale
+        // with wc_array_overlay(), which iterates the DEFAULT field config and
+        // skips any key the defaults don't already have — and
+        // get_default_address_fields() has no `hidden` key at all. So a locale
+        // that hides `state` (Germany) comes back through that call looking
+        // exactly like one that doesn't, and the field would render on a
+        // German checkout. Read this one straight from the locale table, the
+        // same source Woo's own country-select script reads it from.
+        $locale = WC()->countries->get_country_locale();
+        $entry  = isset($locale[$country]) && is_array($locale[$country]) ? $locale[$country] : [];
+        $hidden = static function ($field) use ($entry) {
+            return isset($entry[$field]) && is_array($entry[$field]) && !empty($entry[$field]['hidden']);
+        };
 
         $current = WC()->customer ? (string) WC()->customer->get_billing_state() : '';
 
@@ -3267,9 +3285,9 @@ final class Woo4Etch {
             'state'            => $current,
             'state_label'      => self::plain((string) ($state['label'] ?? '')),
             'state_required'   => !empty($state['required']),
-            'state_hidden'     => !empty($state['hidden']),
+            'state_hidden'     => $hidden('state'),
             'address_2_label'  => self::plain((string) ($addr2['placeholder'] ?? $addr2['label'] ?? '')),
-            'address_2_hidden' => !empty($addr2['hidden']),
+            'address_2_hidden' => $hidden('address_2'),
         ];
     }
 
