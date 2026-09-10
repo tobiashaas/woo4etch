@@ -46,20 +46,46 @@ $au_states = WC()->countries->get_states('AU');
 w4e_it(is_array($au_states) && !empty($au_states), 'AU: WooCommerce has a state list (so the field renders as a select)');
 
 // The opposite case, and the reason the layout cannot simply always render
-// the field: some countries hide it entirely. Germany is the canonical one,
-// but assert the CLASS of case rather than one country — Woo's locale table
-// is theirs to change, and a rename there is not a Woo4Etch regression.
+// the field: some countries hide it entirely.
+//
+// `hidden` lives ONLY in the locale table. get_address_fields() merges with
+// wc_array_overlay(), which iterates the default field config and skips keys
+// the defaults don't have — and get_default_address_fields() has no `hidden`
+// key — so a hidden field comes back from that call looking exactly like a
+// visible one. Asserting through the wrong accessor is how this shipped
+// broken the first time; assert through the locale table, and then assert
+// the bridge agrees.
+$locale    = (array) WC()->countries->get_country_locale();
 $hidden_in = [];
-foreach (['DE', 'AT', 'BE', 'DK', 'NO', 'PL', 'SE', 'CH', 'CZ', 'FI'] as $cc) {
-    $fields = WC()->countries->get_address_fields($cc, 'billing_');
-    if (!empty($fields['billing_state']['hidden'])) {
-        $hidden_in[] = $cc;
+foreach ($locale as $cc => $config) {
+    if (is_array($config) && isset($config['state']) && is_array($config['state']) && !empty($config['state']['hidden'])) {
+        $hidden_in[] = (string) $cc;
     }
 }
 w4e_it(
     !empty($hidden_in),
-    'some countries hide billing_state, so state_hidden is load-bearing (hidden in: ' . implode(', ', $hidden_in) . ')'
+    'some countries hide billing_state in the locale table, so state_hidden is load-bearing (' . count($hidden_in) . ' of them)'
 );
+
+// get_address_fields() must NOT be trusted for this — pin the trap so a
+// future refactor back to it fails here instead of on a German checkout.
+if (!empty($hidden_in)) {
+    $cc     = $hidden_in[0];
+    $merged = WC()->countries->get_address_fields($cc, 'billing_');
+    w4e_it(
+        empty($merged['billing_state']['hidden']),
+        "{$cc}: get_address_fields() drops the `hidden` flag (wc_array_overlay skips keys the defaults lack) — the bridge must not read it from there"
+    );
+
+    // The round trip that matters: the bridge reports what the locale says.
+    $payload = Woo4Etch::checkout_address_locale($cc);
+    w4e_it_equals(true, (bool) $payload['state_hidden'], "{$cc}: the bridge reports state_hidden = true");
+}
+
+$au_payload = Woo4Etch::checkout_address_locale('AU');
+w4e_it_equals(false, (bool) $au_payload['state_hidden'], 'AU: the bridge reports state_hidden = false');
+w4e_it_equals(true, (bool) $au_payload['state_required'], 'AU: the bridge reports state_required = true');
+w4e_it_equals(true, (bool) $au_payload['has_states'], 'AU: the bridge reports has_states = true');
 
 // A country with no state list at all → the layout's free-text branch.
 $stateless = 0;
