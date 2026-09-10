@@ -18,6 +18,8 @@ The plugin is ready to use: all shortcodes register on `plugins_loaded` once Woo
 
 Each entry also carries a **"Don't reach for this when"** line: every layout leaves out something WooCommerce's own template renders, and the omission is silent. Read it before installing — collected in [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4etch-plugin.md#where-each-layout-stops). Transactional emails have no layout by design (Woo renders those from PHP templates).
 
+**Updating the plugin does not update a layout already on your page** — the push route is append-only so it can never overwrite builder work. The Layouts tab flags an installed copy that predates a fix; delete the layout's section in Etch and press **Add to page/template** again. Style records are reused, never overwritten.
+
 ## Dynamic data bridges (no shortcode needed)
 
 Beyond shortcodes, the plugin exposes WooCommerce data as **Etch Dynamic Keys**, so it renders live in the builder canvas:

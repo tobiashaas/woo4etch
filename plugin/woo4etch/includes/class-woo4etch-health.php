@@ -181,12 +181,12 @@ final class Woo4Etch_Health {
      * Target + presence info for the admin UI.
      *
      * @param string $slug Layout catalog key.
-     * @return array{available: bool, label: string, present: bool, where: string, target_exists: bool, edit_url: string}
+     * @return array{available: bool, label: string, present: bool, where: string, target_exists: bool, edit_url: string, outdated: string}
      */
     public static function push_status($slug) {
         $target = self::push_target($slug);
         if ($target === null) {
-            return ['available' => false, 'label' => '', 'present' => false, 'where' => '', 'target_exists' => false, 'edit_url' => ''];
+            return ['available' => false, 'label' => '', 'present' => false, 'where' => '', 'target_exists' => false, 'edit_url' => '', 'outdated' => ''];
         }
 
         $post     = null;
@@ -199,14 +199,69 @@ final class Woo4Etch_Health {
             $edit_url = $post ? admin_url('site-editor.php?postId=' . rawurlencode(get_stylesheet() . '//' . $target['template_slug']) . '&postType=wp_template&canvas=edit') : '';
         }
 
+        $content = $post ? (string) $post->post_content : '';
+        $present = $post ? self::content_has($content, $target['markers']) : false;
+
         return [
             'available'     => true,
             'label'         => $target['label'],
-            'present'       => $post ? self::content_has((string) $post->post_content, $target['markers']) : false,
+            'present'       => $present,
             'where'         => $post ? ('page' === $target['kind'] ? get_the_title($post) : $target['template_slug']) : '',
             'target_exists' => (bool) $post,
             'edit_url'      => $edit_url,
+            'outdated'      => $present ? self::outdated_reason($slug, $content) : '',
         ];
+    }
+
+    /**
+     * Is the layout ALREADY on the page an older revision, missing something
+     * a later release added?
+     *
+     * The push route is append-only and refuses a target that already
+     * carries the layout, so a fix shipped inside a layout does not reach
+     * anyone who installed it earlier — they keep the old blocks and report
+     * the bug as unfixed. Rather than version-stamping every block, each
+     * entry below names a marker that a current install must contain plus
+     * what is missing without it. Add one whenever a release changes a
+     * layout's markup in a way that matters.
+     *
+     * @param string $slug    Layout catalog key.
+     * @param string $content The target's stored post content.
+     * @return string Empty when current; otherwise a human-readable reason.
+     */
+    private static function outdated_reason($slug, $content) {
+        $revisions = self::layout_revisions($slug);
+        $revision  = isset($revisions[$slug]) ? $revisions[$slug] : null;
+        if (!$revision || '' === $content) {
+            return '';
+        }
+        return strpos($content, (string) $revision['marker']) === false ? (string) $revision['note'] : '';
+    }
+
+    /**
+     * Marker + explanation per layout whose markup changed in a way that
+     * matters. The marker MUST exist in the layout as it ships today — a
+     * fast-check asserts exactly that, because a stale marker here would
+     * report every fresh install as outdated.
+     *
+     * @param string $slug Layout catalog key (passed to the filter as context).
+     * @return array<string, array{marker: string, note: string}>
+     */
+    public static function layout_revisions($slug = '') {
+        return (array) apply_filters('woo4etch/layout_revisions', [
+            'checkout' => [
+                'marker' => 'billing_state',
+                'note'   => __('installed before the state/province and address-line-2 fields existed — in countries where WooCommerce requires a state (AU, US, CA, ES, IN, JP …) orders from this checkout fail validation', 'woo4etch'),
+            ],
+            'thank-you' => [
+                'marker' => 'woocommerce_thankyou',
+                'note'   => __('installed before the payment-instruction hooks existed — offline gateways (bank transfer, cash on delivery) render no instructions on it', 'woo4etch'),
+            ],
+            'cart' => [
+                'marker' => 'cart_show_shipping',
+                'note'   => __('installed before the summary disclosed shipping — it shows subtotal and total with nothing between them', 'woo4etch'),
+            ],
+        ], $slug);
     }
 
     /**

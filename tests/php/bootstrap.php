@@ -91,25 +91,64 @@ if (!function_exists('absint')) {
     function absint($n) { return abs((int) $n); }
 }
 
-/* ---- Hook system: record nothing, just don't fatal ---- */
+/* ---- Hook system ----
+ * Actions are a real (if tiny) registry: the hook-marker renderer fires
+ * do_action() with positional arguments and unhooks/rehooks core defaults
+ * around it, and a stub that swallows all of that would assert nothing.
+ * Filters stay pass-through — catalogs and flags resolve to their defaults.
+ */
+$GLOBALS['w4e_test_actions'] = [];
 if (!function_exists('add_action')) {
-    function add_action($hook, $cb, $priority = 10, $args = 1) { return true; }
+    function add_action($hook, $cb, $priority = 10, $args = 1) {
+        $GLOBALS['w4e_test_actions'][$hook][$priority][] = $cb;
+        return true;
+    }
 }
 if (!function_exists('add_filter')) {
     function add_filter($hook, $cb, $priority = 10, $args = 1) { return true; }
 }
 if (!function_exists('do_action')) {
-    function do_action($hook, ...$args) {}
+    function do_action($hook, ...$args) {
+        $registered = $GLOBALS['w4e_test_actions'][$hook] ?? [];
+        ksort($registered);
+        foreach ($registered as $callbacks) {
+            foreach ($callbacks as $cb) {
+                if (is_callable($cb)) {
+                    $cb(...$args);
+                }
+            }
+        }
+    }
 }
 if (!function_exists('apply_filters')) {
     // Return the value unchanged — catalogs/flags resolve to their defaults.
     function apply_filters($hook, $value = null, ...$args) { return $value; }
 }
 if (!function_exists('remove_action')) {
-    function remove_action($hook, $cb, $priority = 10) { return true; }
+    function remove_action($hook, $cb, $priority = 10) {
+        $bucket = $GLOBALS['w4e_test_actions'][$hook][$priority] ?? [];
+        $index  = array_search($cb, $bucket, true);
+        if (false === $index) {
+            return false;
+        }
+        unset($GLOBALS['w4e_test_actions'][$hook][$priority][$index]);
+        return true;
+    }
 }
 if (!function_exists('has_action')) {
-    function has_action($hook, $cb = false) { return false; }
+    function has_action($hook, $cb = false) {
+        $registered = $GLOBALS['w4e_test_actions'][$hook] ?? [];
+        if (false === $cb) {
+            foreach ($registered as $callbacks) {
+                if ($callbacks) { return true; }
+            }
+            return false;
+        }
+        foreach ($registered as $priority => $callbacks) {
+            if (in_array($cb, $callbacks, true)) { return $priority; }
+        }
+        return false;
+    }
 }
 if (!function_exists('register_activation_hook')) {
     function register_activation_hook($file, $cb) {}

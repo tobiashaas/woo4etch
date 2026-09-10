@@ -91,6 +91,16 @@ function w4e_assert_classes_bound($root, $styles, $where) {
     );
 }
 
+/** True when any etch/loop in the tree targets the given data path. */
+function w4e_any_loop_target($root, $target) {
+    foreach (w4e_collect_blocks($root, 'etch/loop') as $loop) {
+        if ((string) ($loop['attrs']['target'] ?? '') === $target) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** True when any etch/element in the tree has an attribute matching a predicate. */
 function w4e_any_element($root, callable $pred) {
     $hit = false;
@@ -104,6 +114,14 @@ function w4e_any_element($root, callable $pred) {
         }
     });
     return $hit;
+}
+
+// Stand-in for WooCommerce core's own thank-you callback, so the
+// skip-defaults assertion below has something real to suppress.
+if (!function_exists('woocommerce_order_details_table')) {
+    function woocommerce_order_details_table($order_id = 0) {
+        echo '<table class="CORE-ORDER-TABLE" data-order="' . (int) $order_id . '"></table>';
+    }
 }
 
 function w4e_test_layouts() {
@@ -276,6 +294,198 @@ function w4e_test_layouts() {
             }
         }
         w4e_check($excerpt_raw, 'short description rendered via etch/raw-html ({this.excerpt})');
+    }
+
+    /* ---- Outdated-install detection points at markers that exist ---- */
+    // The Layouts tab warns when the blocks already on a page predate a fix
+    // (updating the plugin does not rewrite installed blocks). A marker that
+    // no longer appears in the shipped layout would flag EVERY install,
+    // including fresh ones, as outdated — worse than not warning at all.
+    w4e_section('Outdated-layout markers exist in the layouts they describe');
+    if (class_exists('Woo4Etch_Health')) {
+        foreach (Woo4Etch_Health::layout_revisions() as $slug => $revision) {
+            $layout = Woo4Etch_Layouts::get($slug);
+            $marker = (string) ($revision['marker'] ?? '');
+            w4e_check($marker !== '', "{$slug}: revision entry names a marker");
+            w4e_check(
+                trim((string) ($revision['note'] ?? '')) !== '',
+                "{$slug}: revision entry explains what an old install is missing"
+            );
+            w4e_check(
+                is_array($layout) && $marker !== ''
+                    && strpos((string) json_encode($layout['block']), $marker) !== false,
+                "{$slug}: marker '{$marker}' is present in the layout as shipped"
+            );
+        }
+    }
+
+    /* ---- Checkout: the address fields Woo validates against ---- */
+    // WooCommerce's locale overrides for AU, US, CA, ES, IN, JP … rename
+    // `state` without dropping `required`, so a form that omits the field
+    // fails validation on both the classic and the Store API path — silently,
+    // and only for customers in those countries.
+    w4e_section("Layout 'checkout' carries the locale-dependent address fields");
+    $co = Woo4Etch_Layouts::get('checkout');
+    if (is_array($co) && isset($co['block'])) {
+        $root = $co['block'];
+        foreach (['billing_state', 'billing_address_2'] as $name) {
+            w4e_check(
+                w4e_any_element($root, static function ($a) use ($name) {
+                    return isset($a['name']) && $a['name'] === $name;
+                }),
+                "has a {$name} field"
+            );
+        }
+        // Both shapes must exist: a select where the country has a state list
+        // (AU, US …) and a free-text input where it does not.
+        w4e_check(
+            w4e_any_element($root, static function ($a, $b) {
+                return ($b['attrs']['tag'] ?? '') === 'select'
+                    && isset($a['name']) && $a['name'] === 'billing_state';
+            }),
+            'renders billing_state as a <select> for countries with a state list'
+        );
+        w4e_check(
+            w4e_any_element($root, static function ($a, $b) {
+                return ($b['attrs']['tag'] ?? '') === 'input'
+                    && isset($a['name']) && $a['name'] === 'billing_state';
+            }),
+            'renders billing_state as a free-text <input> for countries without one'
+        );
+        // The state list depends on the chosen country, so the field has to
+        // re-render server-side after update-customer — that needs a region.
+        w4e_check(
+            w4e_any_element($root, static function ($a) {
+                return isset($a['data-w4e-checkout-region']) && $a['data-w4e-checkout-region'] === 'billing-state';
+            }),
+            'the state field sits in its own checkout region (re-renders on country change)'
+        );
+        w4e_check(
+            !empty(w4e_collect_blocks($root, 'etch/loop')) && w4e_any_loop_target($root, 'options.checkout.states'),
+            'the state select loops {options.checkout.states}'
+        );
+    }
+
+    /* ---- Cart: the summary discloses shipping ---- */
+    // Subtotal → total with nothing between them tells the customer a flat
+    // rate or a free-shipping threshold does not exist.
+    w4e_section("Layout 'cart' summary discloses shipping");
+    $ca = Woo4Etch_Layouts::get('cart');
+    if (is_array($ca) && isset($ca['block'])) {
+        $texts = [];
+        w4e_walk_blocks($ca['block'], static function ($b) use (&$texts) {
+            if (($b['blockName'] ?? '') === 'etch/text') {
+                $texts[] = (string) ($b['attrs']['content'] ?? '');
+            }
+        });
+        w4e_check(in_array('{options.cart_shipping_total}', $texts, true), 'renders {options.cart_shipping_total}');
+        w4e_check(in_array('{options.cart_shipping_notice}', $texts, true), 'renders {options.cart_shipping_notice} for the not-yet-known case');
+
+        $conditions = [];
+        w4e_walk_blocks($ca['block'], static function ($b) use (&$conditions) {
+            if (($b['blockName'] ?? '') === 'etch/condition') {
+                $conditions[] = (string) ($b['attrs']['conditionString'] ?? '');
+            }
+        });
+        w4e_check(
+            in_array('options.cart_show_shipping', $conditions, true),
+            'the shipping row is gated on cart_show_shipping (Woo hides costs until an address is known)'
+        );
+    }
+
+    /* ---- Thank-you: the payment-instruction hooks actually fire ---- */
+    // The whole failure mode here is silence: a marker whose markup the
+    // placeholder renderer's regex does not match renders an empty div, and
+    // an offline gateway's bank details are simply gone with no error. So
+    // assert against the RENDERED markup and the real renderer, not the
+    // block tree.
+    w4e_section("Layout 'thank-you' fires the payment-instruction hooks");
+    $ty = Woo4Etch_Layouts::get('thank-you');
+    if (is_array($ty) && isset($ty['block'])) {
+        $markers = [];
+        w4e_walk_blocks($ty['block'], static function ($b) use (&$markers) {
+            $a = $b['attrs']['attributes'] ?? [];
+            if (is_array($a) && isset($a['data-w4e-hook'])) {
+                $markers[(string) $a['data-w4e-hook']] = $a;
+            }
+        });
+
+        w4e_check(isset($markers['woocommerce_thankyou']), 'has a woocommerce_thankyou marker');
+        w4e_check(isset($markers['woocommerce_before_thankyou']), 'has a woocommerce_before_thankyou marker');
+        w4e_check(
+            isset($markers['woocommerce_thankyou_{options.order.payment_method_id}']),
+            'has a gateway-specific woocommerce_thankyou_{payment_method} marker'
+        );
+
+        // {this.id} is the checkout PAGE's id on this endpoint — passing it
+        // hands the callbacks the wrong order, which is worse than passing
+        // none at all.
+        $args = [];
+        foreach ($markers as $hook => $a) {
+            $args[$hook] = (string) ($a['data-w4e-args'] ?? '');
+        }
+        w4e_equals(
+            [
+                'woocommerce_before_thankyou'                           => '{options.order.id}',
+                'woocommerce_thankyou_{options.order.payment_method_id}' => '{options.order.id}',
+                'woocommerce_thankyou'                                  => '{options.order.id}',
+            ],
+            $args,
+            'every marker passes {options.order.id}, never {this.id}'
+        );
+
+        // Woo's own order table must be suppressed on the generic hook (the
+        // layout already renders the order) but NOT on the gateway-specific
+        // one, whose only callback is the gateway's own instructions.
+        w4e_check(
+            isset($markers['woocommerce_thankyou']['data-w4e-skip-defaults']),
+            'the generic hook skips core defaults (no duplicated order table)'
+        );
+        w4e_check(
+            !isset($markers['woocommerce_thankyou_{options.order.payment_method_id}']['data-w4e-skip-defaults']),
+            'the gateway-specific hook keeps its callbacks'
+        );
+
+        // End-to-end through the real renderer, on markup shaped exactly like
+        // the marker element with its dynamic keys already resolved: the
+        // failure mode is an empty div and total silence, so a structural
+        // assertion alone would not catch a regex that stopped matching.
+        $html = '';
+        foreach (['woocommerce_thankyou_{options.order.payment_method_id}', 'woocommerce_thankyou'] as $hook) {
+            $attributes = $markers[$hook] ?? [];
+            $html .= '<div';
+            foreach ($attributes as $name => $value) {
+                $html .= ' ' . $name . '="' . htmlspecialchars((string) $value, ENT_QUOTES) . '"';
+            }
+            $html .= '></div>';
+        }
+        $html = str_replace(
+            ['{options.order.payment_method_id}', '{options.order.id}'],
+            ['bacs', '1042'],
+            $html
+        );
+
+        $seen = [];
+        add_action('woocommerce_thankyou', static function ($order_id) use (&$seen) {
+            $seen[] = $order_id;
+            echo '<p class="bank-details">IBAN</p>';
+        }, 10);
+        add_action('woocommerce_thankyou', 'woocommerce_order_details_table', 10);
+        add_action('woocommerce_thankyou_bacs', static function ($order_id) use (&$seen) {
+            $seen[] = 'bacs:' . $order_id;
+            echo '<h2>Our bank details</h2>';
+        }, 10);
+
+        $out = Woo4Etch::render_etch_placeholders($html);
+
+        w4e_check(strpos($out, '<p class="bank-details">IBAN</p>') !== false, 'woocommerce_thankyou output lands inside the marker');
+        w4e_check(strpos($out, '<h2>Our bank details</h2>') !== false, 'gateway-specific output lands inside its marker');
+        w4e_equals(['bacs:1042', 1042], $seen, 'both callbacks receive the order id, gateway hook first');
+        w4e_check(strpos($out, 'CORE-ORDER-TABLE') === false, 'core\'s order-details callback is suppressed');
+        w4e_check(
+            has_action('woocommerce_thankyou', 'woocommerce_order_details_table') !== false,
+            'core defaults are rehooked after the marker rendered'
+        );
     }
 
     /* ---- Shipped copy/paste artifacts: same loop invariant ---- */

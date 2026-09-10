@@ -46,7 +46,7 @@ final class Woo4Etch_Layouts {
             'cart' => [
                 'name'        => 'Cart — items, coupon, totals, cross-sells',
                 'description' => 'Complete cart page as an Etch loop over {options.cart_items}: quantity update + coupon form (classic submit), order summary, checkout button, cross-sells.',
-                'limits'      => 'The summary goes subtotal → total with no shipping row between them. Any shipping cost, tax, or free-shipping threshold shows up only as an unexplained difference between the two numbers, and there is no shipping calculator. If what shipping costs is part of the buying decision — flat rates, per-class rates, zone-limited delivery — add a row from {options.cart_shipping_total} or use [woo_cart_totals] (subtotal, shipping, total) instead of the hand-built summary.',
+                'limits'      => 'The summary discloses shipping (amount, or "Calculated at checkout" while Woo withholds it) but there is no shipping CALCULATOR on the cart page: the customer cannot enter a postcode or pick a rate here, only at checkout. Taxes are likewise folded into the total rather than broken out. If either needs to be visible and changeable before checkout, use [woo_cart_totals], which renders Woo\'s full totals block including the rate picker and the calculator form.',
                 'area'        => 'Cart',
             ],
             'product-single' => [
@@ -70,7 +70,7 @@ final class Woo4Etch_Layouts {
             'checkout' => [
                 'name'        => 'Checkout — Store API (option A+)',
                 'description' => 'Complete hand-written checkout on the Store API layer: contact + billing fields, country select, live shipping selector, payment methods, legal checkboxes (Germanized) and an order summary — all as Etch loops over {options.checkout.*}. Address edits recalculate shipping/totals without a reload; the order is placed through WooCommerce\'s natively rate-limited Store API endpoint (redirect/offline gateways; others submit classically). Works as a classic form without JS.',
-                'limits'      => 'Three things to check before you install it. (1) Gateways: only redirect/offline ones are offered (see store_api_checkout_gateways) — Stripe Elements, PayPal\'s inline buttons and every other gateway that tokenizes in the page need their own payment_fields markup and client JS, which a hand-built form does not have. On those, use [woo_checkout_block] or Woo\'s own checkout. (2) Address fields: the form carries the minimal European set — no billing_state and no billing_address_2 — and {options.checkout} exposes no states key to loop over. Wherever WooCommerce requires a state or province (AU, US, CA, ES, IN, JP and others) the order fails validation on both the classic and the Store API path, and building that select means new PHP, not builder work. (3) The legal checkboxes loop is fed by Germanized; without that plugin {options.checkout.checkboxes} is empty, so a terms-and-conditions checkbox has to be hand-built and validated yourself.',
+                'limits'      => 'Two things to check before you install it. (1) Gateways: only redirect/offline ones are offered (see store_api_checkout_gateways) — Stripe Elements, PayPal\'s inline buttons and every other gateway that tokenizes in the page need their own payment_fields markup and client JS, which a hand-built form does not have. On those, use [woo_checkout_block] or Woo\'s own checkout. (2) The legal checkboxes loop is fed by Germanized; without that plugin {options.checkout.checkboxes} is empty, so a terms-and-conditions checkbox has to be hand-built and validated yourself. Also note the form is billing-only: there is no separate shipping address and no ship_to_different_address toggle, so orders always ship to the billing address.',
                 'area'        => 'Checkout',
             ],
             'mini-cart' => [
@@ -88,7 +88,7 @@ final class Woo4Etch_Layouts {
             'thank-you' => [
                 'name'        => 'Thank-you / order received',
                 'description' => 'Order confirmation from {options.order}: notice, order overview (number, date, total, payment), line items loop. Shows only when an order is in context.',
-                'limits'      => 'The layout renders order data and fires no thank-you hooks. WooCommerce\'s own order-confirmation template fires woocommerce_thankyou_{payment_method} and then woocommerce_thankyou; this one fires neither, so a gateway\'s post-order instructions — BACS bank details, COD notes — and anything a tracking or ERP plugin hangs there render nothing, with no error to notice it by. On a prepayment or bank-transfer flow that silence costs money. Fix it by adding both hooks to the layout: [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"] and [do_action hook="woocommerce_thankyou" args="{options.order.id}"]. Note that {this.id} is the checkout page\'s ID here, not the order\'s — passing it hands the callbacks the wrong order.',
+                'limits'      => 'Fires woocommerce_before_thankyou, woocommerce_thankyou_{payment_method} and woocommerce_thankyou, so offline gateways\' payment instructions and tracking/ERP callbacks all render. What it does NOT show is the customer block WooCommerce\'s own order-details table prints — the billing and shipping address the order will go to (that table is suppressed on purpose, or it would print a second copy of the order below the layout\'s own). {options.order.billing_address} is exposed if you want it back. Note the whole layout is gated on an order being in context, so nothing renders on a bare /checkout/order-received/ hit without a valid key.',
                 'area'        => 'Thank-you',
             ],
             'notices' => [
@@ -1112,6 +1112,68 @@ final class Woo4Etch_Layouts {
             ], $extra), [$field], [], $placeholder ?: $name);
         };
 
+        /* State / province. WooCommerce's per-country locale decides whether
+           this field exists, what it's called and whether it's required — for
+           AU it only RENAMES `state`, it never drops the requirement, so a
+           form without it fails validation on both the classic and the Store
+           API path. The bridge hands over the merged config
+           (checkout_address_locale()); the four branches below cover
+           select/free-text × required/optional, all rendered server-side so
+           the form is correct before any script runs. */
+        $state_select = static function ($required) use ($field) {
+            $attributes = ['class' => 'w4e-field', 'name' => 'billing_state', 'autocomplete' => 'address-level1'];
+            if ($required) {
+                $attributes['required'] = 'required';
+            }
+            return self::el('select', $attributes, [$field], [
+                // Nothing chosen yet → a blank option carrying the locale
+                // label, so the browser can't submit the first state by
+                // accident (and `required` actually bites).
+                self::cond('options.checkout.state', 'isFalsy', null, [
+                    self::text_el('option', '{options.checkout.state_label}', ['value' => '', 'selected' => 'selected'], [], 'Placeholder option'),
+                ], 'No state chosen'),
+                self::loop('options.checkout.states', 'st', [
+                    self::cond('st.selected', 'isTruthy', null, [
+                        self::text_el('option', '{st.name}', ['value' => '{st.code}', 'selected' => 'selected'], [], 'Selected state'),
+                    ], 'Selected'),
+                    self::cond('st.selected', 'isFalsy', null, [
+                        self::text_el('option', '{st.name}', ['value' => '{st.code}'], [], 'State'),
+                    ], 'Not selected'),
+                ]),
+            ], 'State select');
+        };
+        $state_input = static function ($required) use ($field) {
+            $attributes = [
+                'class'        => 'w4e-field',
+                'type'         => 'text',
+                'name'         => 'billing_state',
+                'value'        => '{options.checkout.state}',
+                'placeholder'  => '{options.checkout.state_label}',
+                'autocomplete' => 'address-level1',
+            ];
+            if ($required) {
+                $attributes['required'] = 'required';
+            }
+            return self::el('input', $attributes, [$field], [], 'State');
+        };
+        // No class on the wrapper: it exists only to give the region swap a
+        // stable target. A country change fires update-customer, the layer
+        // re-fetches the page and replaces this element with the new
+        // country's state list — server-rendered, so the no-JS form is
+        // simply the base country's field.
+        $state_field = self::cond('options.checkout.state_hidden', 'isFalsy', null, [
+            self::el('div', ['data-w4e-checkout-region' => 'billing-state'], [], [
+                self::cond('options.checkout.has_states', 'isTruthy', null, [
+                    self::cond('options.checkout.state_required', 'isTruthy', null, [$state_select(true)], 'Required'),
+                    self::cond('options.checkout.state_required', 'isFalsy', null, [$state_select(false)], 'Optional'),
+                ], 'Has a state list'),
+                self::cond('options.checkout.has_states', 'isFalsy', null, [
+                    self::cond('options.checkout.state_required', 'isTruthy', null, [$state_input(true)], 'Required'),
+                    self::cond('options.checkout.state_required', 'isFalsy', null, [$state_input(false)], 'Optional'),
+                ], 'Free-text state'),
+            ], 'State region'),
+        ], 'State field shown');
+
         $block = self::el('section', ['data-etch-element' => 'section', 'class' => 'w4e-checkout'], ['etch-section-style', $section], [
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
                 self::text_el('h1', '{this.title}', ['class' => 'w4e-page__title'], [$title], 'Title'),
@@ -1136,6 +1198,9 @@ final class Woo4Etch_Layouts {
                                     $field_el('text', 'billing_last_name', 'Last name', ['required' => 'required', 'autocomplete' => 'family-name']),
                                 ], 'Name row'),
                                 $field_el('text', 'billing_address_1', 'Street and number', ['required' => 'required', 'autocomplete' => 'address-line1']),
+                                self::cond('options.checkout.address_2_hidden', 'isFalsy', null, [
+                                    $field_el('text', 'billing_address_2', '{options.checkout.address_2_label}', ['autocomplete' => 'address-line2']),
+                                ], 'Address line 2 shown'),
                                 self::el('div', ['class' => 'w4e-fieldrow'], [$fieldrow], [
                                     $field_el('text', 'billing_postcode', 'Postcode', ['required' => 'required', 'autocomplete' => 'postal-code']),
                                     $field_el('text', 'billing_city', 'City', ['required' => 'required', 'autocomplete' => 'address-level2']),
@@ -1150,6 +1215,7 @@ final class Woo4Etch_Layouts {
                                         ], 'Not selected'),
                                     ]),
                                 ], 'Country'),
+                                $state_field,
                                 $field_el('tel', 'billing_phone', 'Phone (optional)', ['autocomplete' => 'tel']),
 
                                 self::cond('options.checkout.needs_shipping', 'isTruthy', null, [
@@ -1400,6 +1466,19 @@ final class Woo4Etch_Layouts {
         $itemimg  = self::cls($s, 'w4e-orderitem__img', 'width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius, 8px); background: var(--neutral-ultra-light, #f3f4f6);');
         $itemname = self::cls($s, 'w4e-orderitem__name', 'font-weight: 600;');
         $itemtot  = self::cls($s, 'w4e-orderitem__total', 'font-weight: 700; white-space: nowrap;');
+        // Gateway/plugin output arrives as Woo's own template markup (BACS
+        // prints an <h2> + <ul class="wc-bacs-bank-details">), so style the
+        // container generously and collapse it while empty — most orders on
+        // a redirect gateway have nothing to show here.
+        $instruct = self::cls(
+            $s,
+            'w4e-thankyou__instructions',
+            '&:empty { display: none; }'
+            . ' & h2, & h3 { margin: 8px 0 0; font-size: var(--text-l, 18px); letter-spacing: var(--heading-letter-spacing, -0.01em); }'
+            . ' & ul { list-style: none; margin: var(--space-xs, 10px) 0 0; padding: var(--space-s, 14px) var(--space-s, 16px); border: var(--border, 1px solid #e6e7eb); border-radius: var(--radius, 12px); background: var(--white, #fff); display: flex; flex-direction: column; gap: 6px; }'
+            . ' & li { display: flex; justify-content: space-between; gap: var(--space-xs, 12px); }'
+            . ' & strong { font-weight: 700; }'
+        );
 
         $cellblock = static function ($label, $value, $name) use ($cell, $celllab, $cellval) {
             return self::el('li', ['class' => 'w4e-order-overview__item'], [$cell], [
@@ -1412,6 +1491,12 @@ final class Woo4Etch_Layouts {
             self::el('div', ['data-etch-element' => 'container'], ['etch-container-style'], [
                 self::cond('options.order.number', 'isTruthy', null, [
                     self::el('div', ['class' => 'w4e-order'], [$wrap], [
+                        self::el('div', [
+                            'class'         => 'w4e-thankyou__instructions',
+                            'data-w4e-hook' => 'woocommerce_before_thankyou',
+                            'data-w4e-args' => '{options.order.id}',
+                        ], [$instruct], [], 'Hook: before thank-you'),
+
                         self::text_el('p', 'Thank you. Your order has been received.', ['class' => 'w4e-thankyou__notice woocommerce-thankyou-order-received'], [$notice], 'Notice'),
                         self::el('ul', ['class' => 'w4e-order-overview order_details'], [$overview], [
                             $cellblock('Order', '#{options.order.number}', 'Order no'),
@@ -1419,6 +1504,26 @@ final class Woo4Etch_Layouts {
                             $cellblock('Total', '{options.order.total}', 'Total'),
                             $cellblock('Payment', '{options.order.payment_method}', 'Payment'),
                         ], 'Overview'),
+                        // Payment instructions. WooCommerce's own order-
+                        // confirmation template fires these two, in this
+                        // order, and offline gateways put their whole
+                        // post-order output there — BACS bank details, COD
+                        // notes — as do tracking and ERP plugins. A layout
+                        // that renders order data but fires neither loses all
+                        // of it with no error to notice it by.
+                        //
+                        // Markers, not [do_action]: the output goes in after
+                        // Etch has rendered, so its sanitizer never sees the
+                        // <form>/<input> markup some gateways emit. The
+                        // gateway-specific hook takes core's defaults as they
+                        // are; the generic one skips woocommerce_order_details_table,
+                        // which would print a second copy of the order below.
+                        self::el('div', [
+                            'class'          => 'w4e-thankyou__instructions',
+                            'data-w4e-hook'  => 'woocommerce_thankyou_{options.order.payment_method_id}',
+                            'data-w4e-args'  => '{options.order.id}',
+                        ], [$instruct], [], 'Hook: gateway instructions'),
+
                         self::text_el('h2', 'Order details', ['class' => 'w4e-thankyou__heading'], [$heading], 'Heading'),
                         self::el('ul', ['class' => 'w4e-orderitems'], [$items], [
                             self::loop('options.order.items', 'it', [
@@ -1429,6 +1534,13 @@ final class Woo4Etch_Layouts {
                                 ], 'Item'),
                             ]),
                         ], 'Items'),
+
+                        self::el('div', [
+                            'class'                  => 'w4e-thankyou__instructions',
+                            'data-w4e-hook'          => 'woocommerce_thankyou',
+                            'data-w4e-args'          => '{options.order.id}',
+                            'data-w4e-skip-defaults' => '1',
+                        ], [$instruct], [], 'Hook: woocommerce_thankyou'),
                     ], 'Order'),
                 ], 'options.order.number'),
             ]),
