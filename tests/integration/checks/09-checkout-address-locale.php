@@ -48,13 +48,14 @@ w4e_it(is_array($au_states) && !empty($au_states), 'AU: WooCommerce has a state 
 // The opposite case, and the reason the layout cannot simply always render
 // the field: some countries hide it entirely.
 //
-// `hidden` lives ONLY in the locale table. get_address_fields() merges with
-// wc_array_overlay(), which iterates the default field config and skips keys
-// the defaults don't have — and get_default_address_fields() has no `hidden`
-// key — so a hidden field comes back from that call looking exactly like a
-// visible one. Asserting through the wrong accessor is how this shipped
-// broken the first time; assert through the locale table, and then assert
-// the bridge agrees.
+// The locale table is the one source that answers this on every version.
+// get_address_fields() merges with wc_array_overlay(), which iterates the
+// default field config and skips keys the defaults don't have — and
+// get_default_address_fields() has no `hidden` key — so before WooCommerce
+// 11.x a hidden field came back from that call looking exactly like a
+// visible one (11.x seeds the key first, so there it survives). Asserting
+// through the wrong accessor is how this shipped broken the first time;
+// assert through the locale table, and then assert the bridge agrees.
 $locale    = (array) WC()->countries->get_country_locale();
 $hidden_in = [];
 foreach ($locale as $cc => $config) {
@@ -67,15 +68,32 @@ w4e_it(
     'some countries hide billing_state in the locale table, so state_hidden is load-bearing (' . count($hidden_in) . ' of them)'
 );
 
-// get_address_fields() must NOT be trusted for this — pin the trap so a
-// future refactor back to it fails here instead of on a German checkout.
+// get_address_fields() cannot be trusted for `hidden` ACROSS VERSIONS, and
+// that — not one release's behaviour — is why the bridge reads the locale
+// table instead.
+//
+// wc_array_overlay() only copies keys the base array already has, and
+// get_default_address_fields() carries no `hidden` key, so for years that
+// call silently dropped the flag: a hidden field came back looking exactly
+// like a visible one. WooCommerce 11.x seeds `hidden => false` into the
+// defaults before the overlay, so there it survives. The plugin declares no
+// minimum WooCommerce version, so both behaviours are in the wild and the
+// bridge has to be right on either. Assert the bridge unconditionally; pin
+// the pre-11.x trap only where this install still has it, rather than
+// asserting a bug upstream has since fixed.
 if (!empty($hidden_in)) {
     $cc     = $hidden_in[0];
     $merged = WC()->countries->get_address_fields($cc, 'billing_');
-    w4e_it(
-        empty($merged['billing_state']['hidden']),
-        "{$cc}: get_address_fields() drops the `hidden` flag (wc_array_overlay skips keys the defaults lack) — the bridge must not read it from there"
-    );
+    if (empty($merged['billing_state']['hidden'])) {
+        w4e_it(
+            true,
+            "{$cc}: get_address_fields() drops the `hidden` flag (wc_array_overlay skips keys the defaults lack) — the bridge must not read it from there"
+        );
+    } else {
+        w4e_it_skip(
+            "{$cc}: get_address_fields() preserves `hidden` on this WooCommerce (11.x seeds it before the overlay) — the pre-11.x trap has nothing to pin here"
+        );
+    }
 
     // The round trip that matters: the bridge reports what the locale says.
     $payload = Woo4Etch::checkout_address_locale($cc);

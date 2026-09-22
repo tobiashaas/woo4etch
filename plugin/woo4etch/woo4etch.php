@@ -3252,14 +3252,17 @@ final class Woo4Etch {
         $state  = isset($fields['billing_state']) && is_array($fields['billing_state']) ? $fields['billing_state'] : [];
         $addr2  = isset($fields['billing_address_2']) && is_array($fields['billing_address_2']) ? $fields['billing_address_2'] : [];
 
-        // `hidden` does NOT survive get_address_fields(). It merges the locale
-        // with wc_array_overlay(), which iterates the DEFAULT field config and
-        // skips any key the defaults don't already have — and
-        // get_default_address_fields() has no `hidden` key at all. So a locale
-        // that hides `state` (Germany) comes back through that call looking
-        // exactly like one that doesn't, and the field would render on a
-        // German checkout. Read this one straight from the locale table, the
-        // same source Woo's own country-select script reads it from.
+        // `hidden` is not safe to read from get_address_fields() across
+        // versions. That call merges the locale with wc_array_overlay(),
+        // which iterates the DEFAULT field config and skips any key the
+        // defaults don't already have — and get_default_address_fields()
+        // has no `hidden` key at all, so before WooCommerce 11.x a locale
+        // that hides `state` (Germany) came back looking exactly like one
+        // that doesn't, and the field would render on a German checkout.
+        // 11.x seeds `hidden => false` into the defaults first, so there it
+        // survives. The plugin declares no minimum WooCommerce version, so
+        // read this one straight from the locale table — correct on both,
+        // and the same source Woo's own country-select script reads.
         $locale = WC()->countries->get_country_locale();
         $entry  = isset($locale[$country]) && is_array($locale[$country]) ? $locale[$country] : [];
         $hidden = static function ($field) use ($entry) {
