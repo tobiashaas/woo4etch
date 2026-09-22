@@ -363,6 +363,10 @@ final class Woo4Etch_Admin {
             '.woo4etch-shortcodes .widefat code{background:#f6f7f7;padding:2px 6px;border-radius:3px;}'
             . '.woo4etch-shortcodes .woo4etch-copy{margin-left:6px;}'
             . '.woo4etch-shortcodes .category-heading{margin:2em 0 .5em;font-size:1.1em;}'
+            . '.woo4etch-shortcodes .woo4etch-fold{margin:2em 0 .5em;}'
+            . '.woo4etch-shortcodes .woo4etch-fold>summary{cursor:pointer;font-size:1.1em;font-weight:600;padding:.4em 0;}'
+            . '.woo4etch-shortcodes .woo4etch-fold>p.description{max-width:60em;margin:.2em 0 .8em;}'
+            . '.woo4etch-shortcodes .woo4etch-prefer{background:#f0f6fc;}'
             . '.woo4etch-shortcodes .woo4etch-intro{max-width:72em;}'
             . '.woo4etch-shortcodes .woo4etch-installed{color:#00a32a;font-weight:700;margin-left:4px;}'
             . '.woo4etch-shortcodes .woo4etch-tabs{margin-bottom:1.2em;}'
@@ -735,15 +739,28 @@ final class Woo4Etch_Admin {
      * Shortcode reference tab.
      */
     private static function render_shortcodes_section() {
-        $catalog     = Woo4Etch::get_shortcode_catalog();
-        $by_category = [];
+        $catalog = Woo4Etch::get_shortcode_catalog();
+
+        // Three audiences, three levels of prominence:
+        //   primary  — renders real WooCommerce PHP; there is no other way to
+        //              get it, so these are what the tab is for.
+        //   data     — predates the dynamic-data bridges. Still supported (and
+        //              still the answer outside Etch), but inside Etch a
+        //              Dynamic Key does the same thing without a shortcode,
+        //              so they are folded away with that key named.
+        //   native   — WooCommerce's own tags, listed for reference only.
+        $primary = [];
+        $data    = [];
+        $native  = [];
 
         foreach ($catalog as $tag => $entry) {
-            $category = $entry['category'];
-            if (!isset($by_category[$category])) {
-                $by_category[$category] = [];
+            if (!empty($entry['native'])) {
+                $native[$tag] = $entry;
+            } elseif (!empty($entry['prefer'])) {
+                $data[$tag] = $entry;
+            } else {
+                $primary[$entry['category']][$tag] = $entry;
             }
-            $by_category[$category][$tag] = $entry;
         }
         ?>
         <div class="woo4etch-intro notice notice-info inline">
@@ -752,38 +769,95 @@ final class Woo4Etch_Admin {
             </p>
         </div>
 
-        <?php foreach ($by_category as $category => $shortcodes) : ?>
+        <?php foreach ($primary as $category => $shortcodes) : ?>
                 <h2 class="category-heading"><?php echo esc_html($category); ?></h2>
-                <table class="widefat striped">
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width:14%"><?php esc_html_e('Shortcode', 'woo4etch'); ?></th>
-                            <th scope="col" style="width:22%"><?php esc_html_e('Attributes', 'woo4etch'); ?></th>
-                            <th scope="col"><?php esc_html_e('Description', 'woo4etch'); ?></th>
-                            <th scope="col" style="width:32%"><?php esc_html_e('Example', 'woo4etch'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($shortcodes as $tag => $entry) : ?>
-                            <tr>
-                                <td><code>[<?php echo esc_html($tag); ?>]</code></td>
-                                <td><?php echo esc_html($entry['attributes']); ?></td>
-                                <td><?php echo esc_html($entry['description']); ?></td>
-                                <td>
-                                    <code class="woo4etch-example" id="woo4etch-ex-<?php echo esc_attr($tag); ?>">
-                                        <?php echo esc_html($entry['example']); ?>
-                                    </code>
-                                    <button type="button"
-                                            class="button button-small woo4etch-copy"
-                                            data-copy-target="woo4etch-ex-<?php echo esc_attr($tag); ?>">
-                                        <?php esc_html_e('Copy', 'woo4etch'); ?>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <?php self::render_shortcode_table($shortcodes, false); ?>
             <?php endforeach; ?>
+
+        <?php if ($data) : ?>
+            <details class="woo4etch-fold">
+                <summary>
+                    <?php
+                    printf(
+                        /* translators: %d: number of shortcodes */
+                        esc_html__('Data shortcodes (%d) — inside Etch, a Dynamic Key already does this', 'woo4etch'),
+                        count($data)
+                    );
+                    ?>
+                </summary>
+                <p class="description">
+                    <?php esc_html_e('These came before the dynamic-data bridges and still work exactly as before — nothing is deprecated, and they remain the answer wherever Dynamic Keys do not reach (a widget, an email, a non-Etch template). Inside an Etch layout the key in the last column is the shorter route.', 'woo4etch'); ?>
+                </p>
+                <?php self::render_shortcode_table($data, true); ?>
+            </details>
+        <?php endif; ?>
+
+        <?php if ($native) : ?>
+            <details class="woo4etch-fold">
+                <summary>
+                    <?php
+                    printf(
+                        /* translators: %d: number of shortcodes */
+                        esc_html__('WooCommerce core shortcodes (%d) — reference only', 'woo4etch'),
+                        count($native)
+                    );
+                    ?>
+                </summary>
+                <p class="description">
+                    <?php esc_html_e('WooCommerce registers these itself; Woo4Etch only lists them so you do not have to look them up elsewhere.', 'woo4etch'); ?>
+                </p>
+                <?php self::render_shortcode_table($native, false); ?>
+            </details>
+        <?php endif; ?>
+        <?php
+    }
+
+    /**
+     * One shortcode table.
+     *
+     * @param array<string, array<string, mixed>> $shortcodes Catalog slice.
+     * @param bool                                $show_prefer Render the "Instead, in Etch" column.
+     * @return void
+     */
+    private static function render_shortcode_table(array $shortcodes, $show_prefer) {
+        ?>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col" style="width:14%"><?php esc_html_e('Shortcode', 'woo4etch'); ?></th>
+                    <th scope="col" style="width:20%"><?php esc_html_e('Attributes', 'woo4etch'); ?></th>
+                    <th scope="col"><?php esc_html_e('Description', 'woo4etch'); ?></th>
+                    <?php if ($show_prefer) : ?>
+                        <th scope="col" style="width:26%"><?php esc_html_e('Instead, in Etch', 'woo4etch'); ?></th>
+                    <?php else : ?>
+                        <th scope="col" style="width:32%"><?php esc_html_e('Example', 'woo4etch'); ?></th>
+                    <?php endif; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($shortcodes as $tag => $entry) : ?>
+                    <tr>
+                        <td><code>[<?php echo esc_html($tag); ?>]</code></td>
+                        <td><?php echo esc_html($entry['attributes']); ?></td>
+                        <td><?php echo esc_html($entry['description']); ?></td>
+                        <?php if ($show_prefer) : ?>
+                            <td><code class="woo4etch-prefer"><?php echo esc_html($entry['prefer']); ?></code></td>
+                        <?php else : ?>
+                            <td>
+                                <code class="woo4etch-example" id="woo4etch-ex-<?php echo esc_attr($tag); ?>">
+                                    <?php echo esc_html($entry['example']); ?>
+                                </code>
+                                <button type="button"
+                                        class="button button-small woo4etch-copy"
+                                        data-copy-target="woo4etch-ex-<?php echo esc_attr($tag); ?>">
+                                    <?php esc_html_e('Copy', 'woo4etch'); ?>
+                                </button>
+                            </td>
+                        <?php endif; ?>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
         <?php
     }
 

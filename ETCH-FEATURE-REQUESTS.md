@@ -1,6 +1,18 @@
 # Upstream feature requests to Etch
 
-What Woo4Etch (and any companion plugin) would need from Etch to integrate more deeply. All findings verified against the Etch plugin source, version 1.5.0. Written to be shared with the Etch team — each request includes the current state in the source, the gap, and a minimal proposal.
+What Woo4Etch (and any companion plugin) would need from Etch to integrate more deeply. Written to be shared with the Etch team — each request includes the current state in the source, the gap, and a minimal proposal.
+
+**Status — re-verified against Etch 1.6.7 (2026-09).** All five are still open, and none of them blocks anything: Woo4Etch ships every affected feature today through the workaround noted in each section, and the integration seams it depends on (`etch/dynamic_data/post` and `/option`, `{this.meta.*}`, shortcode processing, the component meta schema) were unchanged across the 361 commits from 1.4.20 to 1.6.7.
+
+These are requests, not blockers. WooCommerce is not a current focus for the Etch team, which is a reasonable place to put roadmap effort — Woo is one integration among many, and the generic dynamic-data seams they *did* build are what make Woo4Etch possible at all. The value in keeping this list is that the asks stay specific and source-accurate, so they are cheap to pick up whenever Woo does move up the list.
+
+| # | Ask | State in 1.6.7 | How Woo4Etch manages meanwhile |
+|---|---|---|---|
+| 1 | Register custom loop handlers | `LoopHandlerManager` resolves five built-in sources from a private array | Layouts use `main-query` / `wp-query` and the plugin re-applies Woo's filter + per-page params to those queries |
+| 2 | Public server-side builder detection | No public helper | Own heuristic, plus sample data so every loop previews in the canvas |
+| 3 | Public API for dynamic-data roots | `DynamicContentRegistry::enqueue()` exists but is not a documented API | Dropped — `{options.*}` is the documented spelling and always was |
+| 4 | Endpoint-aware conditions | Conditions cover `isTruthy`/`equal`/`isLoggedIn`/… , no commerce or endpoint tags | `[woo_if]` wraps WooCommerce's conditional tags |
+| 5 | Template hub lists plugin templates | No filter on the hub's catalog | `assets/etch-hub-templates.js` clones Etch's own hub DOM to add a WooCommerce group |
 
 ## Context: what already works well
 
@@ -9,7 +21,7 @@ Etch's dynamic-data filters are a great integration seam, and Woo4Etch builds en
 - `etch/dynamic_data/option` (`classes/Traits/DynamicData.php`) — Woo4Etch exposes the live cart, account menu, orders and the current order on the `options` root, loopable in the builder.
 - `etch/dynamic_data/post` (same file) — the seam Etch's own `WoocommerceIntegration` uses for `gallery_images`; Woo4Etch uses it to add formatted product fields (`{this.price}`, `{this.is_on_sale}`, …).
 
-The three requests below are the points where no public seam exists yet.
+The requests below are the points where no public seam exists yet.
 
 ## 1. Registration hook for custom loop handlers
 

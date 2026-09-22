@@ -29,7 +29,6 @@ require_once __DIR__ . '/includes/class-woo4etch-admin.php';
 require_once __DIR__ . '/includes/class-woo4etch-layouts.php';
 require_once __DIR__ . '/includes/class-woo4etch-components.php';
 require_once __DIR__ . '/includes/class-woo4etch-health.php';
-require_once __DIR__ . '/includes/class-woo4etch-woo-root.php';
 require_once __DIR__ . '/includes/class-woo4etch-updater.php';
 require_once __DIR__ . '/includes/customizations.php';
 
@@ -269,10 +268,6 @@ final class Woo4Etch {
         // Disable: woo4etch/expose_product_data.
         add_filter('etch/dynamic_data/post', [__CLASS__, 'expose_product_data'], 10, 2);
 
-        // Experimental {woo.*} root — same data as {options.*}, namespaced.
-        // Disable: woo4etch/enable_woo_root. See class-woo4etch-woo-root.php.
-        Woo4Etch_Woo_Root::init();
-
         self::register_frontend_features();
 
         if (is_admin()) {
@@ -304,6 +299,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, link (yes|no)',
                 'description' => __('Product name, optionally wrapped in a permalink.', 'woo4etch'),
                 'example'     => '[woo_title]',
+                'prefer'      => '{this.title}',
             ],
             'woo_price' => [
                 'method'      => 'shortcode_price',
@@ -311,6 +307,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Formatted price HTML (sales, variable “from” prices).', 'woo4etch'),
                 'example'     => '[woo_price]',
+                'prefer'      => '{this.price_html}',
             ],
             'woo_regular_price' => [
                 'method'      => 'shortcode_regular_price',
@@ -318,6 +315,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Formatted regular (non-sale) price.', 'woo4etch'),
                 'example'     => '[woo_regular_price]',
+                'prefer'      => '{this.regular_price}',
             ],
             'woo_sale_price' => [
                 'method'      => 'shortcode_sale_price',
@@ -325,6 +323,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Formatted sale price; empty when not on sale.', 'woo4etch'),
                 'example'     => '[woo_sale_price]',
+                'prefer'      => '{this.sale_price}',
             ],
             'woo_price_amount' => [
                 'method'      => 'shortcode_price_amount',
@@ -332,6 +331,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Raw numeric price (no currency markup) — for itemprop/schema.', 'woo4etch'),
                 'example'     => '<meta itemprop="price" content="[woo_price_amount]">',
+                'prefer'      => '{this.price_amount}',
             ],
             'woo_sale_badge' => [
                 'method'      => 'shortcode_sale_badge',
@@ -339,6 +339,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, text, percentage (yes|no)',
                 'description' => __('“Sale!” badge (or discount %) when the product is on sale; empty otherwise.', 'woo4etch'),
                 'example'     => '[woo_sale_badge percentage="yes"]',
+                'prefer'      => '{this.is_on_sale} + {this.sale_percentage}',
             ],
             'woo_sku' => [
                 'method'      => 'shortcode_sku',
@@ -346,6 +347,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, default',
                 'description' => __('Product SKU as plain text.', 'woo4etch'),
                 'example'     => '[woo_sku default="N/A"]',
+                'prefer'      => '{this.sku}',
             ],
             'woo_stock' => [
                 'method'      => 'shortcode_stock',
@@ -353,6 +355,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, format (label|status|quantity)',
                 'description' => __('Stock label HTML, status slug, or quantity.', 'woo4etch'),
                 'example'     => '[woo_stock format="label"]',
+                'prefer'      => '{this.stock_label} / {this.stock_status} / {this.stock_quantity}',
             ],
             'woo_weight' => [
                 'method'      => 'shortcode_weight',
@@ -360,6 +363,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, default',
                 'description' => __('Formatted product weight with the store unit.', 'woo4etch'),
                 'example'     => '[woo_weight default="—"]',
+                'prefer'      => '{this.weight}',
             ],
             'woo_dimensions' => [
                 'method'      => 'shortcode_dimensions',
@@ -367,6 +371,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, default',
                 'description' => __('Formatted product dimensions with the store unit.', 'woo4etch'),
                 'example'     => '[woo_dimensions default="—"]',
+                'prefer'      => '{this.dimensions}',
             ],
             'woo_meta' => [
                 'method'      => 'shortcode_meta',
@@ -374,6 +379,7 @@ final class Woo4Etch {
                 'attributes'  => 'id, key (required), default',
                 'description' => __('Single product meta value.', 'woo4etch'),
                 'example'     => '[woo_meta key="_sku"]',
+                'prefer'      => '{this.meta.<key>}',
             ],
             'woo_attribute' => [
                 'method'      => 'shortcode_attribute',
@@ -409,6 +415,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Product short description (filtered HTML).', 'woo4etch'),
                 'example'     => '[woo_short_description]',
+                'prefer'      => '{this.excerpt}',
             ],
             'woo_description' => [
                 'method'      => 'shortcode_description',
@@ -416,6 +423,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Full product description (filtered HTML).', 'woo4etch'),
                 'example'     => '[woo_description]',
+                'prefer'      => '{this.content}',
             ],
 
             /* ---- Product media ---- */
@@ -448,6 +456,7 @@ final class Woo4Etch {
                 'attributes'  => 'id',
                 'description' => __('Direct add-to-cart URL (for custom buttons / archive cards).', 'woo4etch'),
                 'example'     => '<a href="[woo_add_to_cart_url]">Buy</a>',
+                'prefer'      => '{this.add_to_cart_url}',
             ],
             'woo_quantity' => [
                 'method'      => 'shortcode_quantity',
@@ -499,6 +508,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('Cart item count in a span with data-count (fragment-friendly).', 'woo4etch'),
                 'example'     => '[woo_cart_count]',
+                'prefer'      => '{options.cart_count}',
             ],
             'woo_cart_total' => [
                 'method'      => 'shortcode_cart_total',
@@ -506,6 +516,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('Formatted cart total.', 'woo4etch'),
                 'example'     => '[woo_cart_total]',
+                'prefer'      => '{options.cart_total}',
             ],
             'woo_cart_url' => [
                 'method'      => 'shortcode_cart_url',
@@ -513,6 +524,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('Cart page URL.', 'woo4etch'),
                 'example'     => '[woo_cart_url]',
+                'prefer'      => '{options.cart_url}',
             ],
             'woo_checkout_url' => [
                 'method'      => 'shortcode_checkout_url',
@@ -520,6 +532,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('Checkout page URL.', 'woo4etch'),
                 'example'     => '[woo_checkout_url]',
+                'prefer'      => '{options.checkout_url}',
             ],
             'woo_mini_cart' => [
                 'method'      => 'shortcode_mini_cart',
@@ -559,6 +572,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('Shop page URL.', 'woo4etch'),
                 'example'     => '[woo_shop_url]',
+                'prefer'      => '{options.shop_url}',
             ],
             'woo_breadcrumb' => [
                 'method'      => 'shortcode_breadcrumb',
@@ -621,6 +635,7 @@ final class Woo4Etch {
                 'attributes'  => 'thumbnail_size',
                 'description' => __('Complete cart form with your own class-based markup: items, coupon, quantity update + remove, and every WooCommerce cart hook/filter (extension-compatible). The customisable alternative to [woocommerce_cart]. No AJAX required.', 'woo4etch'),
                 'example'     => '[woo_cart_items]',
+                'prefer'      => '{options.cart_items} (loop)',
             ],
             'woo_cart_totals' => [
                 'method'      => 'shortcode_cart_totals',
@@ -658,6 +673,7 @@ final class Woo4Etch {
                 'attributes'  => '—',
                 'description' => __('My Account navigation menu (dashboard, orders, addresses, logout …).', 'woo4etch'),
                 'example'     => '[woo_account_menu]',
+                'prefer'      => '{options.account_menu} (loop)',
             ],
             'woo_account_content' => [
                 'method'      => 'shortcode_account_content',
