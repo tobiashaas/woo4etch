@@ -1,18 +1,25 @@
 === Woo4Etch ===
 Contributors: tobiashaas
-Tags: woocommerce, etch, shortcodes, page-builder
+Tags: woocommerce, etch, shortcodes, page-builder, layouts
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 7.1
 Requires PHP: 8.1
 Stable tag: 1.9.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-WooCommerce shortcodes and customizations for Etch templates — for everything Etch can't do natively yet.
+Build WooCommerce shops in Etch: ready-made editable layouts, Woo data as Etch dynamic keys, a Store API cart/checkout, and 55 shortcodes.
 
 == Description ==
 
-Etch is a WordPress visual builder that doesn't (yet) have native WooCommerce blocks. Woo4Etch provides a small set of carefully scoped shortcodes you can drop into Etch templates to invoke WooCommerce PHP where you need it.
+Etch is a server-rendered WordPress visual builder that doesn't (yet) have native WooCommerce blocks. Woo4Etch closes that gap without taking the markup back: it supplies WooCommerce data, behavior and escape hatches, while the HTML stays yours — written and restyled in the Etch builder.
+
+What you get:
+
+* Nine ready-made, fully editable Etch layouts (shop archive, category, single product, cart, checkout, mini-cart, My Account, thank-you, notices), installed in one click straight onto the page or template that renders them. Each one also states where it stops.
+* WooCommerce as Etch dynamic keys — products, cart, checkout, shop/archive, account and orders render live in the builder canvas, no shortcode needed.
+* A Store API layer: cart writes and the A+ checkout go through WooCommerce's own endpoints (so Woo's native validation and rate limiting apply) and read back by swapping server-rendered regions of your own markup.
+* 55 shortcodes for everything dynamic keys can't express — real WooCommerce PHP where you place it.
 
 The foundation is a generic `[do_action]` shortcode that fires any WordPress action hook from inside content. On top of that, a comprehensive set of convenience shortcodes covers product data, media, UI, cart, account, store/archive, and conditional rendering — so you don't have to hunt for hook names or template paths yourself. The admin reference (Etch → Woo4Etch → Shortcodes) lists every shortcode, including the native WooCommerce ones, with copy buttons.
 
@@ -20,7 +27,7 @@ The foundation is a generic `[do_action]` shortcode that fires any WordPress act
 
 Hooks:
 
-* `[do_action hook="..." args="..."]` — fire any WP/Woo action hook
+* `[do_action hook="..." args="..." skip_defaults="yes|no"]` — fire any WP/Woo action hook (args positional, numerics as ints; skip_defaults suppresses WooCommerce core's own callbacks for that hook)
 
 Product data:
 
@@ -158,6 +165,8 @@ UPGRADE NOTE — three layouts changed (checkout, thank-you, cart) and updating 
 * New: every ready-made layout states where it stops. The Layouts tab prints a "Don't reach for this when" line under each entry, repeated at the top of the matching template doc: checkout — redirect/offline gateways only, billing-only, Germanized needed for legal checkboxes; thank-you — Woo's customer-details block suppressed; cart — no shipping calculator or tax breakdown; My Account — orders list capped with no pagination and no Pay/Cancel row actions, Etch dashboard replaces Woo's; archives — no sorting control or result count; single product — buy box only (no reviews, tabs, related); mini-cart — read-only, CSS-hover reveal; notices — printing clears the queue. Transactional emails have no layout by design, and the docs now say so.
 * New: {options.order.id} and {options.order.payment_method_id}. The previously documented args="{this.id}" is the checkout PAGE's id on the order-received endpoint, not the order's — it hands the callbacks the wrong order.
 * Fix: docblock drift — expose_checkout_data() never listed the countries key it has exposed since 1.9.0.
+
+* Docs: systematic pass over every README and this file against what the plugin actually does. The plugin descriptions understated it ("a small WordPress plugin", "a small set of shortcodes") and are rewritten around the nine layouts, the dynamic-data bridges and the Store API layer; [do_action] was documented at its pre-1.9 shape (no skip_defaults, args as string-only, and the thank-you example passing the checkout page's id instead of the order's); the checkout was still indexed as "classic shortcode" and missing from the layout lists; "no settings to configure" had been wrong for several releases. New: a complete filter reference covering all 53 filters, 11 of which had never been documented. Tested up to: 7.1.
 
 = 1.9.1 =
 * Fix: the shop and category layouts now ship pagination — neither archive layout contained [woo_pagination], so with more products than one page holds, everything past page 1 was unreachable from the ready-made layouts. Both now render pill-style page links under the product grid (Woo's native pagination markup, ACSS-tokenized, hidden when there is only one page). Existing installs: re-push the layout from the Layouts tab.

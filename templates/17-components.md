@@ -13,6 +13,24 @@ Etch **Components** with the critical WooCommerce attributes already wired in. B
 - Etch with Components (stored as `wp_block` CPT) — props + slots supported.
 - Woo4Etch plugin active (`[do_action]`, buy-now redirect, dynamic data).
 
+## The one component the plugin ships
+
+Everything below is a blueprint you build yourself. There is one exception:
+**Woo Notices** is installed for you.
+
+**Etch → Woo4Etch → Layouts → "Woo Notices as an Etch component" → Install as
+component** writes a real Etch component (`wp_block` with the
+`WooNotices` reference key) that wraps `[woo_notices format="plain"]` in the
+same `.w4e-notices` element the ready-made layouts inline. Place instances from
+the builder's component library; reinstalling updates the existing component in
+place, and its styles merge into Etch's style system like every other Woo4Etch
+install — existing selectors reused, never overwritten.
+
+Use it when you want **one globally editable notices region** instead of the
+copy inlined in each layout. Remember that printing notices also clears the
+queue, so exactly one notices region belongs on a page — if your layouts
+already inline theirs (cart, single product, account do), don't add a second.
+
 ## Blueprints
 
 Create each as an Etch component; expose the marked parts as **props** and the free areas as **slots**.

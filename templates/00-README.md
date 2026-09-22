@@ -38,7 +38,7 @@ All templates follow the same structure:
 | `03-product-archive.md` | Shop / category archive with product loop |
 | `04-cart.md` | Cart page |
 | `05-mini-cart.md` | Header mini-cart with live update |
-| `06-checkout.md` | Checkout (classic shortcode) |
+| `06-checkout.md` | Checkout (Store API layout + classic fallback) |
 | `07-account.md` | My Account (dashboard, orders, addresses) |
 | `08-thank-you.md` | Order received / thank-you page |
 | `09-emails.md` | Transactional email templates |

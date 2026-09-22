@@ -28,6 +28,20 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 - **`{options.order.id}` and `{options.order.payment_method_id}`** — the order id and the gateway id, filled only on `order-received` / `view-order` like the rest of `{options.order}`. The shipped thank-you layout uses them; a hand-built one needs them too, because the previously documented `args="{this.id}"` is the **checkout page's** ID on that endpoint, not the order's, and hands the callbacks the wrong order. Corrected in the docblock and `templates/15-woo4etch-plugin.md`.
 - **Docblock drift fixed**: `expose_checkout_data()` never listed the `countries` key it has exposed since 1.9.0, and `expose_account_order_data()` now lists the full `{options.order}` payload.
 
+### Documentation
+
+- **Systematic docs pass against the code.** Every `.md` and `readme.txt` was audited against what the plugin actually does; the drift that had accumulated:
+  - **The plugin descriptions understated it.** `plugin/woo4etch/README.md` still opened with "a small WordPress plugin … drop shortcodes", and `readme.txt` with "a small set of carefully scoped shortcodes" — for 7.5k lines of PHP that also ship nine editable layouts, the dynamic-data bridges and a Store API cart/checkout. Both rewritten around what it is and the rule it follows (WooCommerce supplies data and behavior; the markup stays yours), with a requirements section and accurate counts (**55 registered shortcodes + 10 native**, verified against the catalog).
+  - **`[do_action]` was documented at its pre-1.9 shape** in the plugin README: no `skip_defaults`, args described as string-only, and `args="{this.id}"` shown for `woocommerce_thankyou` — the very example that hands the callbacks the checkout page's id instead of the order's. The "Limitations" note in `15-woo4etch-plugin.md` repeated the string-only claim.
+  - **The checkout was still indexed as "classic shortcode"** in both template indexes, and the layout lists in `README.md` and the plugin README omitted **checkout** and **notices** entirely.
+  - **"No settings to configure. The only admin screen is a read-only shortcode reference"** — there have been four tabs including Settings for several releases.
+  - **New: a complete filter reference** in [`15-woo4etch-plugin.md`](templates/15-woo4etch-plugin.md#filter-reference) — all **53** filters with defaults and effect. 11 of them (`admin_capability`, `etch_menu_slugs`, `shop_data`, `expose_shop_data`, `expose_checkout_data`, `checkout_sample_data`, `cross_sells_sample`, `cart_coupon_payload`, `enqueue_store_api`, `shop_categories_exclude_slugs`, `admin_parent_slug`) had never been documented anywhere.
+  - **`.github/RELEASE.md` and `CONTRIBUTING.md` knew only the tag-push release**; releasing from `main` via `workflow_dispatch` has been supported since 1.9.1. `CONTRIBUTING.md` also gained the "before you open a PR" step (the fast checks and the artifact regenerator that CI gates on).
+  - **`tests/integration/README.md` still called the CI job "what remains of issue #12"** — that job has been running on every PR since; issue #12 is closed. It also never mentioned `--wp-env`, the way the suite is actually run locally. Added a note for check authors that wp-env installs the *current* WooCommerce, so pinning Woo-internal behaviour makes a check fail on a branch nothing changed.
+  - **`tests/php/README.md`'s coverage table predated the new checks** (layout `limits` notes, `layout_revisions` markers, the thank-you hooks, and the real action registry that replaced the no-op hook stubs).
+  - **`17-components.md` never mentioned the one component the plugin ships** ("Woo Notices").
+  - `readme.txt` **Tested up to: 6.7 → 7.1** — CI's wp-env job runs the integration suite against the current WordPress on every PR.
+
 ## [1.9.1] — 2026-08-24
 
 ### Fixed

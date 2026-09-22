@@ -716,11 +716,112 @@ Both roots are fed by the same builders — identical values, identical sample d
 
 Toggle/reshape: `woo4etch/enable_woo_root` (off switch), `woo4etch/woo_root_data`.
 
+## Filter reference
+
+Every filter the plugin exposes. All are optional — the defaults are what a
+stock install runs. Put them in `plugin/woo4etch/includes/customizations.php`.
+
+### Turning bridges off
+
+Each dynamic-data bridge has an off switch. Returning `false` removes the keys
+entirely (useful when you supply your own).
+
+| Filter | Default | Effect |
+|---|---|---|
+| `woo4etch/expose_product_data` | `true` | `{this.*}` / `{item.*}` product keys |
+| `woo4etch/expose_cart_data` | `true` | `{options.cart_*}` |
+| `woo4etch/expose_checkout_data` | `true` | `{options.checkout.*}` |
+| `woo4etch/expose_account_data` | `true` | `{options.account_*}`, `{options.order}` |
+| `woo4etch/expose_shop_data` | `true` | `{options.shop_*}`, filter params |
+| `woo4etch/expose_variations_json` | main product | Whether the variations JSON is printed for a variable product |
+| `woo4etch/enable_woo_root` | `true` | The experimental `{woo.*}` root |
+
+### Reshaping the payloads
+
+Receive the assembled array, return a modified one.
+
+| Filter | Args | Shapes |
+|---|---|---|
+| `woo4etch/product_data` | `$payload, $product` | Product keys |
+| `woo4etch/cart_data` | `$data` | The whole cart payload |
+| `woo4etch/cart_item_payload` | `$payload, $cart_item, $product` | One cart row |
+| `woo4etch/cart_coupon_payload` | `$payload` | One applied coupon |
+| `woo4etch/checkout_data` | `$data` | The whole checkout payload |
+| `woo4etch/account_order_data` | `$data` | `{options.order}` |
+| `woo4etch/shop_data` | `$data` | Shop/archive keys |
+| `woo4etch/woo_root_data` | `$data` | The `{woo.*}` tree |
+| `woo4etch/cart_image_size` | `'woocommerce_thumbnail'` | Image size for cart rows |
+| `woo4etch/cross_sells_limit` | `4` | Cross-sells returned |
+| `woo4etch/cross_sells_fallback` | `true` | Fall back to recent products when the cart yields none |
+| `woo4etch/account_orders_limit` | `10` | Orders in `{options.account_orders}` (there is no pagination) |
+| `woo4etch/shop_categories_exclude_slugs` | `uncategorized` + translations | Categories hidden from `{options.shop_categories}` |
+
+### Builder preview (sample data)
+
+What the Etch canvas shows when there's no real cart/order — so loops preview.
+Frontend output is unaffected.
+
+| Filter | Previews |
+|---|---|
+| `woo4etch/cart_sample_data` | Cart rows and totals |
+| `woo4etch/checkout_sample_data` | Payment methods, rates, countries, states |
+| `woo4etch/cross_sells_sample` | Cross-sell cards |
+| `woo4etch/order_sample` | Thank-you / view-order |
+| `woo4etch/account_orders_sample` | Orders list |
+| `woo4etch/account_endpoint_sample` | Which account endpoint previews (`'dashboard'`) |
+
+### Hooks and shortcodes
+
+| Filter | Default | Effect |
+|---|---|---|
+| `woo4etch/allow_do_action` | `true` | Gate which hooks `[do_action]` and the hook markers may fire (`$allowed, $hook`) |
+| `woo4etch/hook_core_defaults` | `CORE_HOOK_DEFAULTS` | Which WooCommerce core callbacks `skip_defaults` unhooks |
+| `woo4etch/shortcode_catalog` | built-in catalog | Add or remove shortcodes; drives registration **and** the admin reference |
+
+### Theme, assets and frontend behaviour
+
+| Filter | Default | Effect |
+|---|---|---|
+| `woo4etch/auto_theme_support` | `true` | Declare `add_theme_support('woocommerce')` on the theme's behalf |
+| `woo4etch/theme_support_args` | thumbnail sizes | Arguments for that declaration |
+| `woo4etch/gallery_features` | `[]` | Woo gallery features to enable (zoom / lightbox / slider) |
+| `woo4etch/disable_woo_styles` | Settings checkbox | Dequeue Woo's three stylesheets (the filter wins over the checkbox) |
+| `woo4etch/disable_block_hook_compatibility` | `true` | Turn off Woo's block/hook compatibility layer, which otherwise duplicates output into Etch layouts |
+| `woo4etch/enqueue_swatches` | product pages | `assets/swatches.js` |
+| `woo4etch/enqueue_pills` | `false` | `assets/pills.js` (variation pills + quantity stepper) |
+| `woo4etch/enqueue_price_slider` | archives | `assets/price-slider.js` |
+| `woo4etch/enqueue_variation_script` | variable products | Woo's variation script |
+| `woo4etch/enqueue_store_api` | Settings checkbox | `assets/store-api.js` (cart + checkout layer) |
+| `woo4etch/dequeue_classic_checkout_js` | `true` | Drop Woo's classic checkout JS where the Store API checkout owns the form |
+| `woo4etch/enable_buy_now` | `true` | `name="buy_now"` → redirect to checkout |
+| `woo4etch/buy_now_empty_cart` | `false` | Empty the cart first on buy-now |
+| `woo4etch/store_api_checkout_gateways` | redirect/offline | Gateway allowlist for the A+ checkout |
+| `woo4etch/checkout_rate_limit` | off | Classic-checkout limiter (`enabled`, `limit`, `window`) |
+
+### Archive queries
+
+| Filter | Default | Effect |
+|---|---|---|
+| `woo4etch/filter_secondary_product_queries` | `true` | Re-apply Woo's `?min_price` / `?filter_*` params to Etch's main-query loop |
+| `woo4etch/sync_secondary_per_page` | `true` | Copy the main query's per-page onto that loop, so the grid and `[woo_pagination]` agree |
+
+### Admin, layouts and updates
+
+| Filter | Default | Effect |
+|---|---|---|
+| `woo4etch/admin_capability` | `manage_woocommerce` | Capability required for the admin page |
+| `woo4etch/admin_parent_slug` | auto-detected | Force the admin menu parent |
+| `woo4etch/etch_menu_slugs` | Etch's slugs | Which menu the page attaches to |
+| `woo4etch/etch_hub_templates` | `true` | The **WooCommerce** group in Etch's template hub |
+| `woo4etch/wc_templates` | built-in list | Which WooCommerce template types that group offers |
+| `woo4etch/layout_revisions` | built-in map | Markers that flag an installed layout as predating a fix |
+| `woo4etch/enable_github_updates` | `true` | Self-update from GitHub Releases |
+
 ## Limitations
 
 - **Shortcodes can't return JS-reactive markup directly.** If you need live updates on cart/account state, combine the bridge shortcodes with Woo Cart Fragments (see [`05-mini-cart.md`](./05-mini-cart.md)) or your own AJAX layer (see [`12-store-api-and-rest.md`](./12-store-api-and-rest.md)).
 - **`[do_action]` runs synchronously during page render.** Avoid hooks that issue HTTP calls — they'll block the response.
-- **The `args` attribute of `[do_action]` only passes strings.** PHP's loose typing usually does the right thing, but hooks expecting objects (e.g. `$order` instances) need a custom shortcode or PHP wrapper.
+- **`[do_action]` args are scalars only.** Numeric values are passed as integers and everything else as a string, which covers ids and flags — but hooks expecting objects (e.g. an `$order` instance) still need a custom shortcode or PHP wrapper.
 
 ## Sources
 

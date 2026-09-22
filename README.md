@@ -2,18 +2,23 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A pragmatic guide and template library for building **WooCommerce** shops in **[Etch](https://etchwp.com/?aff=06de86e5)** — without relying on the WooCommerce blocks.
+A documentation + template library **and** a companion plugin for building **WooCommerce** shops in **[Etch](https://etchwp.com/?aff=06de86e5)** — without relying on the WooCommerce blocks.
 
 **Open source:** free to use, modify, and share — including in commercial projects. See [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's needed to bridge the gap: which markup, classes, attributes and hooks WooCommerce actually requires, plus copy-ready Etch HTML templates with Dynamic Keys and a PHP layer for hooks and form logic.
+Etch is a server-rendered WordPress visual builder without native WooCommerce blocks. This repo closes that gap from two sides:
+
+- **The docs** explain what WooCommerce actually requires — which markup, classes, attributes and hooks — and give copy-ready Etch HTML with Dynamic Keys plus the PHP layer for hooks and form logic.
+- **The [Woo4Etch plugin](./plugin/woo4etch/README.md)** supplies the runtime: WooCommerce as Etch Dynamic Keys, 55 shortcodes, a Store API cart/checkout layer, and 9 ready-made Etch layouts you can install in one click.
+
+The rule both sides follow: **WooCommerce supplies data and behavior; your markup stays yours**, written and restyled in the Etch builder. See [`docs/PRODUCT-PRINCIPLES.md`](./docs/PRODUCT-PRINCIPLES.md).
 
 ## Contents
 
 - [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md) — research notes covering the "do I have to use the WooCommerce blocks?" question, accessibility, hook strategy, JS globals, and the final Custom Layouts Guide.
 - [`docs/PRODUCT-PRINCIPLES.md`](./docs/PRODUCT-PRINCIPLES.md) — **Merchant and Builder Freedom**: shop UI stays editable in Etch; do not trade layout control for a short-term WooCommerce fix.
 - [`docs/ADR-001-no-template-overrides.md`](./docs/ADR-001-no-template-overrides.md) — why Woo4Etch never overrides WooCommerce PHP templates.
-- [`plugin/woo4etch/`](./plugin/woo4etch/README.md) — **Woo4Etch plugin**. Shortcodes plus `includes/customizations.php` for hook snippets from the templates.
+- [`plugin/woo4etch/`](./plugin/woo4etch/README.md) — **Woo4Etch plugin**. Ready-made layouts, WooCommerce-as-Dynamic-Keys bridges, 55 shortcodes, the Store API cart/checkout layer, and `includes/customizations.php` for the hook snippets from the templates.
 - [`templates/`](./templates/00-README.md) — ready-to-use templates per WooCommerce area:
 
 | File | Area |
@@ -24,7 +29,7 @@ Etch doesn't (yet) have native WooCommerce blocks. This repo documents what's ne
 | [`03-product-archive.md`](./templates/03-product-archive.md) | Shop / category archive |
 | [`04-cart.md`](./templates/04-cart.md) | Cart page |
 | [`05-mini-cart.md`](./templates/05-mini-cart.md) | Header mini-cart with live update |
-| [`06-checkout.md`](./templates/06-checkout.md) | Checkout (classic shortcode) |
+| [`06-checkout.md`](./templates/06-checkout.md) | Checkout (Store API layout + classic fallback) |
 | [`07-account.md`](./templates/07-account.md) | My Account |
 | [`08-thank-you.md`](./templates/08-thank-you.md) | Order received / thank-you |
 | [`09-emails.md`](./templates/09-emails.md) | Transactional email templates |
@@ -65,7 +70,7 @@ Admin page: **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** without Etch)
 
 ## Ready-made layouts — one-click shop
 
-The plugin ships complete, editable Etch layouts for every shop area: **shop archive** (with a working filter sidebar — category counts, dual-handle price slider — and a category slider), **category archive** (SEO intro copy + `{term.description}` + filtered grid), **single product** (gallery, type-aware add-to-cart, notices), **cart** (quantity steppers, coupon, cross-sells, empty state), **header mini-cart** (hover dropdown with a proper empty state), **My Account** (login gate, dashboard, orders) and **thank-you**.
+The plugin ships nine complete, editable Etch layouts: **shop archive** (with a working filter sidebar — category counts, dual-handle price slider — and a category slider), **category archive** (SEO intro copy + `{term.description}` + filtered grid), **single product** (gallery, type-aware add-to-cart, notices), **cart** (quantity steppers, coupon, shipping row, cross-sells, empty state), **checkout** (hand-written on the Store API: live shipping + payment selection, address locale, order summary), **header mini-cart** (hover dropdown with a proper empty state), **My Account** (login gate, dashboard, orders), **thank-you** (order overview + the payment-instruction hooks) and standalone **Woo notices**.
 
 On the **Layouts** tab (Etch → Woo4Etch), **Add to page/template** installs each layout straight where it renders — the plugin resolves WooCommerce's page assignments and the area's Etch template, appends without ever touching existing content, and refuses double-inserts. **Copy JSON** exports Etch's native paste format instead (also committed under [`templates/etch-copy/`](./templates/etch-copy/README.md)). Everything renders live in the builder via the plugin's dynamic-data bridges and is restyled through plain classes — existing styles with the same selectors are reused, never overwritten.
 
@@ -77,9 +82,19 @@ Optional frontend enhancements (Settings / automatic): variation pills + quantit
 
 **Updates:** regular plugin installs receive updates from [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases) via **Dashboard → Updates**. Version history: [`CHANGELOG.md`](./CHANGELOG.md). See [`.github/RELEASE.md`](.github/RELEASE.md) for the maintainer release flow.
 
+## Requirements
+
+- WordPress **6.0+** and PHP **8.1+** (Etch's own floor)
+- **WooCommerce** active
+- **Etch 1.4.20+** for the layouts and Dynamic Keys (`{this.gallery_images}` landed in 1.4.20)
+
 ## Status
 
-Work in progress. Sections cover the most common areas of a WooCommerce shop; specialized areas (subscriptions, bookings, memberships) are not yet covered.
+Actively maintained. The templates and layouts cover the standard shop surfaces end to end; specialized areas (subscriptions, bookings, memberships) are not covered.
+
+Every layout states **where it stops** rather than implying completeness — read that line before installing one.
+
+Quality gates: `php tests/php/run.php` runs ~740 service-free checks (catalog, layout invariants, copy/paste-artifact drift) and a PHP 8.1→8.5 lint matrix on every PR; [`tests/integration/`](./tests/integration/README.md) adds non-destructive checks against a real WordPress + WooCommerce via wp-env.
 
 ## License
 
