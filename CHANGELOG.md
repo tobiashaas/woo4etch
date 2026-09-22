@@ -5,11 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
-## [Unreleased]
+## [1.10.0] — 2026-09-23
 
-> **Upgrading: three layouts changed, and updating the plugin does not change blocks already on your pages.** The push route is append-only and refuses a target that already carries the layout — that is what keeps it from overwriting your builder work, and it also means these fixes reach new installs only. The **Layouts** tab now detects an installed copy that predates a fix and says what it is missing. To take the update: open the page/template in the Etch builder, delete the layout's top-level section (`.w4e-checkout`, `.w4e-thankyou`, `.w4e-cart`), then press **Add to page/template** again. Style records with the same selector are reused, never overwritten — your styling survives, and anything you added *around* the layout is untouched.
+> ### Upgrading to 1.10.0
 >
-> Affected: **checkout** (state/province field), **thank-you** (payment-instruction hooks), **cart** (shipping row).
+> **Breaking:** the experimental `{woo.*}` dynamic-data root is gone. If any layout used those keys, switch them to their `{options.*}` equivalents — the mapping is one-to-one and tabulated in [`templates/15-woo4etch-plugin.md`](templates/15-woo4etch-plugin.md). Layouts that only ever used `{options.*}` (which is what the docs have always shown, and what every shipped layout uses) need no change.
+>
+> **Three layouts changed** — **checkout** (state/province field), **thank-you** (payment-instruction hooks), **cart** (shipping row) — and a plugin update never rewrites blocks that are already on your pages.
+>
+> This release adds a one-click **Update layout** button for exactly that problem, but it can only work on layouts it installed *itself*, and the record it needs did not exist before now. **So for this upgrade the route is still manual:** open the page/template in the Etch builder, delete the layout's top-level section (`.w4e-checkout`, `.w4e-thankyou`, `.w4e-cart`), then press **Add to page/template** again. The Layouts tab flags which copies are affected. Style records with the same selector are reused, never overwritten — your styling survives, and anything you added *around* the layout is untouched.
+>
+> From 1.10.0 onward those re-added layouts are tracked, and the next such fix is a single click.
 
 ### Fixed
 
@@ -354,6 +360,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.10.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.10.0
 [1.9.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.9.1
 [1.9.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.9.0
 [1.8.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.8.0

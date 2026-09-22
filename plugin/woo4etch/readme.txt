@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder, layouts
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.1
+Stable tag: 1.10.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -153,9 +153,11 @@ In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when E
 
 == Changelog ==
 
-= Unreleased =
+= 1.10.0 =
 
-UPGRADE NOTE — three layouts changed (checkout, thank-you, cart) and updating the plugin does NOT change blocks already on your pages. The Layouts tab now flags an installed copy that predates a fix and names what it is missing. To take the update: open the page/template in the Etch builder, delete the layout's top-level section, then press "Add to page/template" again. Your style records are reused, never overwritten.
+UPGRADE NOTE — BREAKING: the experimental {woo.*} dynamic-data root is gone. If a layout used those keys, switch them to their {options.*} equivalents (one-to-one mapping in templates/15-woo4etch-plugin.md); layouts using only {options.*} — which is what the docs have always shown and what every shipped layout uses — need no change.
+
+Three layouts also changed (checkout, thank-you, cart), and a plugin update never rewrites blocks already on your pages. This release adds a one-click "Update layout" button for exactly that, but it only works on layouts it installed itself and that record did not exist before now — so for THIS upgrade the route is still manual: open the page/template in the Etch builder, delete the layout's top-level section, then press "Add to page/template" again. The Layouts tab flags which copies are affected. Style records are reused, never overwritten, and anything you added around the layout is untouched. From 1.10.0 onward those layouts are tracked and the next such fix is a single click.
 
 * Fix: the checkout layout had no state/province field, so orders failed validation in AU, US, CA, ES, IN, JP and more — on BOTH the classic and the Store API path, silently, for those countries only. WooCommerce's per-country locale overrides only rename `state` (AU: "State", NL: "Province"); they never set required => false. The layout now renders billing_state — a select where the country has a state list, a free-text input where it does not, hidden where Woo hides it (Germany) — plus billing_address_2. New bridge keys: {options.checkout.states}, state_label/state_required/state_hidden, address_2_label/address_2_hidden, all read from WooCommerce's own get_address_fields() rather than a reimplemented locale table. The field sits in its own checkout region, so changing the country re-renders it server-side with that country's list, and a state left over from the previous country is discarded instead of silently pre-selecting the new country's first option.
 * Fix: the thank-you layout fired no hooks, so offline gateways' payment instructions vanished silently. WooCommerce's own order-confirmation template fires woocommerce_before_thankyou, woocommerce_thankyou_{payment_method} and woocommerce_thankyou; the layout fired none, so BACS bank details, COD notes and any tracking/ERP callback rendered nothing, with no error to notice it by. All three now fire, through markers (so Etch's raw-HTML sanitizer never sees the form markup some gateways emit) with the order id passed. The generic hook suppresses woocommerce_order_details_table, which would otherwise print a second copy of the whole order below the layout's own — the side effect is that Woo's customer block is not shown; {options.order.billing_address} is exposed if you want it back.
