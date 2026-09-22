@@ -1,5 +1,9 @@
 # Upstream feature requests to Etch
 
+> The **evidence** behind these asks — what we hit, what it cost, and what ships
+> instead — is in [`docs/ETCH-FIELD-NOTES.md`](docs/ETCH-FIELD-NOTES.md). This
+> file is the distilled list of proposals.
+
 What Woo4Etch (and any companion plugin) would need from Etch to integrate more deeply. Written to be shared with the Etch team — each request includes the current state in the source, the gap, and a minimal proposal.
 
 **Status — re-verified against Etch 1.6.7 (2026-09).** All five are still open, and none of them blocks anything: Woo4Etch ships every affected feature today through the workaround noted in each section, and the integration seams it depends on (`etch/dynamic_data/post` and `/option`, `{this.meta.*}`, shortcode processing, the component meta schema) were unchanged across the 361 commits from 1.4.20 to 1.6.7.
