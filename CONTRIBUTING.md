@@ -47,6 +47,20 @@ reference: `plugin/woo4etch/readme.txt`, the root `CHANGELOG.md` (under
 `Unreleased`), `templates/15-woo4etch-plugin.md`, and the version constants.
 Don't bump versions or tag releases in a PR — that's the maintainer release step below.
 
+## Hit a wall in Etch? Write it down
+
+When something in the Etch integration costs more than about an hour to figure
+out — especially if it failed *silently* — add an entry to
+[`docs/ETCH-FIELD-NOTES.md`](docs/ETCH-FIELD-NOTES.md) while the detail is fresh.
+That file is kept as evidence to hand to the Etch team, so the value is in the
+specifics: versions, the mechanism in the source, what it cost, what ships
+instead. The file's last section has the five fields to fill and the rules
+(verify against an Etch *tag*, keep the tone neutral — these notes are meant to
+be read by people who did not choose this problem).
+
+If it distils into a concrete proposal, add that to
+[`ETCH-FEATURE-REQUESTS.md`](ETCH-FEATURE-REQUESTS.md) and link it from the note.
+
 ## Product principles (review lens)
 
 Before opening a PR — especially plugin or layout changes — check [`docs/PRODUCT-PRINCIPLES.md`](docs/PRODUCT-PRINCIPLES.md). The primary principle is **Merchant and Builder Freedom**: WooCommerce must stay correct *and* shop UI must remain meaningfully editable in Etch. Do not “fix” commerce bugs by hard-coding markup, forcing Woo blocks/PHP templates, or removing hooks, dynamic-data contracts, or portable layout artifacts.

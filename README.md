@@ -18,6 +18,8 @@ The rule both sides follow: **WooCommerce supplies data and behavior; your marku
 - [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md) — research notes covering the "do I have to use the WooCommerce blocks?" question, accessibility, hook strategy, JS globals, and the final Custom Layouts Guide.
 - [`docs/PRODUCT-PRINCIPLES.md`](./docs/PRODUCT-PRINCIPLES.md) — **Merchant and Builder Freedom**: shop UI stays editable in Etch; do not trade layout control for a short-term WooCommerce fix.
 - [`docs/ADR-001-no-template-overrides.md`](./docs/ADR-001-no-template-overrides.md) — why Woo4Etch never overrides WooCommerce PHP templates.
+- [`docs/ETCH-FIELD-NOTES.md`](./docs/ETCH-FIELD-NOTES.md) — field notes from building a WooCommerce layer on Etch: every hurdle we hit, why it was silent, and what ships instead. Kept as evidence for the Etch team.
+- [`ETCH-FEATURE-REQUESTS.md`](./ETCH-FEATURE-REQUESTS.md) — the distilled asks those notes lead to.
 - [`plugin/woo4etch/`](./plugin/woo4etch/README.md) — **Woo4Etch plugin**. Ready-made layouts, WooCommerce-as-Dynamic-Keys bridges, 55 shortcodes, the Store API cart/checkout layer, and `includes/customizations.php` for the hook snippets from the templates.
 - [`templates/`](./templates/00-README.md) — ready-to-use templates per WooCommerce area:
 

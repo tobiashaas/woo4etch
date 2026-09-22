@@ -19,6 +19,8 @@ Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (up
 | `README.md` | Entry point + template index |
 | `docs/PRODUCT-PRINCIPLES.md` | **Merchant and Builder Freedom** — primary review lens |
 | `docs/ADR-001-no-template-overrides.md` | Never override WooCommerce PHP templates |
+| `docs/ETCH-FIELD-NOTES.md` | **Evidence log of Etch integration hurdles** — see the rule below |
+| `ETCH-FEATURE-REQUESTS.md` | The distilled asks to the Etch team |
 | `WooCommerce-in-Etch-Knowledgebase.md` | Long-form research notes (the "why") |
 | `templates/00-README.md` | Conventions + **Shared foundations** (theme support, wrappers, quantity hooks) |
 | `templates/01..09-*.md` | One template per Woo area (single product, cart, checkout, etc.) |
@@ -44,6 +46,30 @@ Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (up
 ## Primary product principle (non-negotiable)
 
 **Merchant and Builder Freedom** — full text in [`docs/PRODUCT-PRINCIPLES.md`](docs/PRODUCT-PRINCIPLES.md). Woo4Etch's goal is not only that WooCommerce *works* in Etch; builders must keep creating, structuring, styling, extending, and maintaining shop layouts in Etch. A fix that restores a storefront by hard-coding output, forcing Woo blocks/PHP templates, bypassing Etch layouts, or stripping hooks / dynamic-data / portable copy-paste artifacts is a high-severity regression even if commerce still "works". Prefer explicit Etch placement, documented contracts, progressive enhancement, and standard Woo extension points. See also [`docs/ADR-001-no-template-overrides.md`](docs/ADR-001-no-template-overrides.md).
+
+## Always: record Etch friction in the field notes
+
+This repo collects evidence to hand to the Etch team, so that WooCommerce
+support, whenever it moves up their list, starts from a mapped problem space.
+That only works if the friction is written down **when it is found**, not
+reconstructed later.
+
+**The rule:** whenever work in this repo runs into Etch behaviour that is
+surprising, undocumented, or costs more than roughly an hour — and *especially*
+when it fails silently (the page still renders, something is just missing) —
+add an entry to [`docs/ETCH-FIELD-NOTES.md`](docs/ETCH-FIELD-NOTES.md) in the
+same change that works around it. This applies to a workaround shipped in code,
+a caveat added to a template doc, and a debugging session that ended in "ah,
+Etch does X" — all three are evidence.
+
+Use the five fields the file defines (Symptom / Cause / Cost / What ships
+instead / What would remove it) and follow its rules:
+
+- **Name versions** — Etch, WooCommerce, WordPress, Woo4Etch. A claim without a version rots.
+- **Verify against an Etch *tag*, never a working tree.** The checkout at `/Users/tobiashaas/Github/etch` sits on an older version than its tags, and `.wp-env-local/plugins/etch/` is another copy again: `git grep <pattern> 1.6.7 -- '*.php'`.
+- **Say whether it fails silently** — that field decides priority.
+- **Keep the tone neutral and factual.** These notes get handed to people who did not choose this problem. WooCommerce is simply not a current focus for the Etch team, and the generic dynamic-data seams they did build are what make this plugin possible. Describe the mechanism, never deliver a verdict.
+- If it distils into a concrete proposal, add it to `ETCH-FEATURE-REQUESTS.md` and cross-link.
 
 ## Conventions when editing
 
