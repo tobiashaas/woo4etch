@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
+## [Unreleased]
+
+### Added
+
+- **The seam a payment gateway needs — the fields, and the token.** The hand-built checkout could only ever offer gateways that collect nothing in the page (offline ones, and redirect ones like Mollie), because there was nowhere for a card form to render and no channel for its token. Both now exist, while the plugin still ships **no adapter** of its own:
+  - `{options.checkout.payment_methods}` gained **`has_fields`** (the gateway renders something in the page) and **`store_api`** (the order is placed through the Store API rather than a classic submit), so a layout can branch on either.
+  - A **`data-w4e-payment-fields="<gateway>"`** region renders that gateway's own `payment_fields()` output through the existing marker route — after Etch renders, so its raw-HTML sanitizer never strips the markup. This alone repairs the **classic** fallback for in-page gateways, which previously had nowhere to put their fields at all.
+  - The order POST now carries **`payment_data`**, WooCommerce's documented channel into `process_payment()`. It is filled from `data-w4e-payment-data` inputs and from the new **`woo4etch:checkout-payment-data`** event, whose `waitUntil()` holds the submit for work that needs a round trip first (creating a PaymentIntent, tokenizing a card). A rejected promise aborts the submit rather than placing an order on a payment step that did not complete.
+
+  Written up in [`templates/15-woo4etch-plugin.md`](templates/15-woo4etch-plugin.md#wiring-up-a-payment-gateway), including the part that is still hard and is why this is a seam and not an implementation: SCA / 3-D Secure is provider-specific.
+
 ## [1.10.0] — 2026-09-23
 
 > ### Upgrading to 1.10.0

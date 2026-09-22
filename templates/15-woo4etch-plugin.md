@@ -169,6 +169,96 @@ Note for **existing installs**: the installer never overwrites style records tha
 
 Mini-cart has no automatic target (it lives in your site header) — paste it there.
 
+## Wiring up a payment gateway
+
+Woo4Etch ships **no** payment-gateway adapter. It ships the two things an
+adapter needs, so writing one does not mean forking the plugin.
+
+First, the distinction that decides whether you need any of this:
+
+| Gateway kind | Example | Collects anything in your page? | Works out of the box |
+|---|---|---|---|
+| **Offline** | bank transfer, cash on delivery, invoice | no | **yes** |
+| **Redirect** | Mollie, PayPal Standard, most hosted pages | no — the customer pays on the provider's page | **yes** |
+| **In-page** | Stripe Elements, PayPal inline buttons | yes — card fields or an iframe, and a token | needs an adapter |
+
+The first two are why the ready-made checkout works today: `process_payment()`
+hands back a redirect URL and there is nothing to collect. Only the third kind
+needs what follows.
+
+### 1. A place for the fields
+
+`{options.checkout.payment_methods}` carries **`has_fields`** — true when the
+gateway renders something in the page. Give those a region:
+
+```html
+<div data-w4e-payment-fields="{pm.id}"></div>
+```
+
+The plugin fills it with that gateway's own `payment_fields()` output after
+Etch has rendered, so the raw-HTML sanitizer never sees the `<form>`/`<input>`
+markup it would otherwise strip. A gateway with nothing to render leaves the
+region empty, and an unknown id renders nothing rather than failing.
+
+This alone fixes the **classic** fallback for in-page gateways: the fields are
+now present and functional on the no-JS submit path, where before there was
+nowhere for them to go.
+
+### 2. A channel for the token
+
+Placing the order through the Store API additionally needs the gateway's token
+in `payment_data` — the array WooCommerce passes to `process_payment()`. Two
+ways in:
+
+**Markup**, for anything that is just a form value:
+
+```html
+<input type="hidden" data-w4e-payment-data="my_token" value="…">
+```
+
+Inputs inside *another* gateway's `data-w4e-payment-fields` region are skipped,
+so you may render every gateway's fields and still post only the selected one's.
+
+**Script**, for anything that needs a round trip before the order exists —
+creating a PaymentIntent, tokenizing a card:
+
+```js
+document.addEventListener('woo4etch:checkout-payment-data', function (e) {
+  if (e.detail.gateway !== 'my_gateway') return;
+  e.detail.waitUntil(
+    createTokenSomehow().then(function (token) {
+      e.detail.add('my_token', token);
+    })
+  );
+});
+```
+
+`waitUntil()` holds the submit until your promise settles. A rejection aborts
+it and surfaces as a checkout error — which is the right outcome: no order
+should be placed on a payment step that did not complete.
+
+### 3. Opt the gateway onto the Store API path
+
+Until you do, it keeps falling back to the classic submit:
+
+```php
+add_filter('woo4etch/store_api_checkout_gateways', function ($gateways) {
+    $gateways[] = 'my_gateway';
+    return $gateways;
+});
+```
+
+`{options.checkout.payment_methods}` exposes **`store_api`** per method, so a
+layout can tell the shopper which path a method takes if that matters to you.
+
+### What is still hard
+
+The plumbing above is the easy half. The work in a real adapter is the payment
+flow itself — above all **SCA / 3-D Secure**: when the bank demands a
+challenge, the gateway has to surface it, wait for the outcome and only then
+let the order proceed. That is provider-specific and is the reason this ships
+as a seam rather than an implementation.
+
 ## Third-party WooCommerce plugins
 
 Hand-written Etch layouts change *where markup comes from*, not Woo's server behaviour — most plugins keep working, but they integrate through four different seams with different outcomes (all verified against real plugins):

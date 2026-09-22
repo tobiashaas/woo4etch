@@ -13,9 +13,14 @@ Classic shortcode checkout. Billing/shipping form, order review, payment methods
 > 1. **Your gateway redirects or is offline.** Only redirect/offline gateways
 >    are offered (`woo4etch/store_api_checkout_gateways`). Stripe Elements,
 >    PayPal's inline buttons and every other gateway that tokenizes *in the
->    page* need their own `payment_fields()` markup and client JS, which a
->    hand-built form does not have — offering them would sell a broken option.
->    On those, use `[woo_checkout_block]` (option B) or Woo's own checkout.
+>    page* need their own `payment_fields()` markup and client JS. The plugin
+>    provides both hooks for that — a
+>    `data-w4e-payment-fields` region and `payment_data` on the order POST —
+>    but ships **no adapter**, so out of the box such gateways still fall back
+>    to the classic submit. Writing one is a real piece of work (the hard part
+>    is SCA/3DS, not the token). If you would rather not, use
+>    `[woo_checkout_block]` (option B) or Woo's own checkout. See
+>    [Wiring up a payment gateway](./15-woo4etch-plugin.md#wiring-up-a-payment-gateway).
 > 2. **Germanized is installed, or you don't need a terms checkbox.** The legal
 >    checkbox loop is fed by Germanized; without it
 >    `{options.checkout.checkboxes}` is empty, so a terms-and-conditions
