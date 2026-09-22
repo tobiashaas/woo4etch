@@ -121,27 +121,41 @@ here and at the top of the matching template doc.
 
 ### Updating a layout you already installed
 
-**This is the one that catches people.** Updating the plugin does **not** change
-blocks that are already on your page or template — the push route is
-append-only and refuses a target that already carries the layout, precisely so
-it can never overwrite work you did in the builder. So a fix shipped *inside* a
-layout reaches new installs only. Symptom: "it still doesn't work" — because the
-old blocks are still there.
+Updating the plugin does not silently rewrite blocks that are already on your
+page — that is the whole point of the append-only push route. But since 1.10.0
+it doesn't have to leave you stranded either: the plugin now **records what it
+installed**, so it can tell an untouched copy from one you've worked on.
 
-The Layouts tab detects this and says so under the ✓ marker, naming what the
-installed copy is missing. To take the update:
+**If you haven't edited the layout** the Layouts tab offers an **Update layout**
+button. One click replaces the layout's own blocks with the current version.
+Everything you added *around* it stays, and every style record is reused, never
+overwritten — so your CSS-panel edits survive.
+
+**If you have edited it**, the tab says so and offers nothing automatic. That is
+deliberate: replacing it would throw your work away. Take the new version by hand
+when you want it:
 
 1. Open the page/template in the Etch builder.
 2. Delete the layout's top-level section (`.w4e-cart`, `.w4e-checkout`, …).
 3. Back on **Etch → Woo4Etch → Layouts**, press **Add to page/template**.
 
-Your styling survives: the installer reuses existing style records with the same
-selector and never overwrites them, so edits you made in Etch's CSS panel stay.
-Anything you *added around* the layout is untouched — only the block you delete
-in step 2 goes.
+**How it decides.** At install time the plugin stores a hash of the blocks it
+appended (post meta `_woo4etch_layout_installs`). Later it looks for a run of
+blocks that still hashes to that record: a match is proof nothing has touched
+them. No match means edited, moved or removed — and then the automatic route
+steps aside. The comparison is deliberately strict, because the two mistakes are
+not equally bad: wrongly reporting "edited" costs you a button, wrongly
+reporting "untouched" would cost you your work.
 
-The check is a per-layout marker (`woo4etch/layout_revisions`), not a version
-stamp, so it only fires for changes that actually matter.
+Before writing, it also checks that re-serializing the whole post reproduces it
+byte for byte. The rest of that page is yours, and this route rewrites all of it
+— so if that cannot be proven for your exact content, the update is refused
+rather than risked.
+
+**Installed before 1.10.0?** There is no record for it, so it shows as
+*untracked* and falls back to the manual steps above, with the older
+marker-based hint (`woo4etch/layout_revisions`) naming what it's missing. Once
+you re-add it, it's tracked from then on.
 
 **WooCommerce templates in Etch** (in the builder, not in wp-admin): WooCommerce *registers* template types like `order-confirmation`, `product-search-results` and `coming-soon`, but Etch's template hub renders only slugs from its own catalog — so these never appeared there. The plugin injects a **"WooCommerce" group** into the hub (admins only, builder shell only), built by cloning Etch's own DOM so it looks and behaves native. Existing templates open in the builder; a type that has no `wp_template` post yet is created on click and opens right away. The page frames (`page-cart`, `page-checkout`) are deliberately left out — they exist for WooCommerce's sake and are rarely edited; to shape one anyway, flip `'hub' => true` via the `woo4etch/wc_templates` filter or create it in the WP Site Editor. Frames are created as a clone of your generic `page` template so your house frame applies; everything else starts from WooCommerce's default content. Heads-up: these templates can't be removed by deleting them — WooCommerce backfills its plugin default (generic header/footer template parts) instead; keep them as thin clones.
 

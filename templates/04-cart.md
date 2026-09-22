@@ -14,10 +14,13 @@ Classic cart page. Item list with quantity update, coupon code, cart totals, upd
 > needs to be visible and changeable before checkout, use `[woo_cart_totals]` —
 > Woo's full totals block, rate picker and calculator form included.
 >
-> **Installed it before this was fixed?** Updating the plugin does not touch
-> blocks already on your cart page. The Layouts tab flags the old copy; delete
-> it in the Etch builder and press **Add to page/template** again. Full list:
-> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+> **Installed it before this shipped?** A plugin update never silently
+> rewrites blocks already on your page. If you have not edited the layout,
+> the Layouts tab offers a one-click **Update layout**; if you have, it says
+> so and leaves it alone — delete the layout's section in the Etch builder
+> and press **Add to page/template** again when you want the new version.
+> Copies installed before 1.10.0 always use that manual route. See
+> [Updating a layout you already installed](./15-woo4etch-plugin.md#updating-a-layout-you-already-installed).
 
 ## When to use
 

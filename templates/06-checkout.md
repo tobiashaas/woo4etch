@@ -36,9 +36,13 @@ Classic shortcode checkout. Billing/shipping form, order review, payment methods
 > `data-w4e-checkout-region="billing-state"`, so changing the country
 > re-renders it server-side with that country's list.
 >
-> **Installed the checkout before that?** Updating the plugin does not touch
-> blocks already on your checkout page — the Layouts tab flags the old copy;
-> delete it in the Etch builder and press **Add to page/template** again.
+> **Installed it before this shipped?** A plugin update never silently
+> rewrites blocks already on your page. If you have not edited the layout,
+> the Layouts tab offers a one-click **Update layout**; if you have, it says
+> so and leaves it alone — delete the layout's section in the Etch builder
+> and press **Add to page/template** again when you want the new version.
+> Copies installed before 1.10.0 always use that manual route. See
+> [Updating a layout you already installed](./15-woo4etch-plugin.md#updating-a-layout-you-already-installed).
 >
 > Full list: [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
 

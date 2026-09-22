@@ -23,11 +23,13 @@ Order confirmation page shown after a successful checkout. Order summary, custom
 > `{options.order.number}`, so a bare `/checkout/order-received/` hit without a
 > valid key renders nothing.
 >
-> **Installed it before the hooks were added?** Updating the plugin does not
-> touch blocks already on your `order-confirmation` template — the Layouts tab
-> flags the old copy; delete it in the Etch builder and press **Add to
-> page/template** again. Full list:
-> [`15-woo4etch-plugin.md`](./15-woo4etch-plugin.md#where-each-layout-stops).
+> **Installed it before this shipped?** A plugin update never silently
+> rewrites blocks already on your page. If you have not edited the layout,
+> the Layouts tab offers a one-click **Update layout**; if you have, it says
+> so and leaves it alone — delete the layout's section in the Etch builder
+> and press **Add to page/template** again when you want the new version.
+> Copies installed before 1.10.0 always use that manual route. See
+> [Updating a layout you already installed](./15-woo4etch-plugin.md#updating-a-layout-you-already-installed).
 
 > **Firing these hooks in a hand-built layout of your own:** use
 > `{options.order.id}`, never `{this.id}` — on this endpoint `this` is the

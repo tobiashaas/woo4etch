@@ -245,11 +245,37 @@ This one produced two separate shipped bugs, months apart, from the same root.
   support ever lands.
 - **Reference** — [issue #1](https://github.com/tobiashaas/woo4etch/issues/1).
 
+## 10. No public API for registering a dynamic-data root
+
+- **Symptom** — Not a failure so much as a fork in the road. An integration that
+  wants its data under its own namespace (`{shop.cart.count}` rather than a
+  flat `{options.*}` key) has no supported way to register one.
+- **Cause** — `DynamicContentRegistry::enqueue()` does exactly this and is a
+  plain public static method, but it is an internal: undocumented, with no
+  stability promise.
+- **Cost** — Woo4Etch shipped a `{woo.*}` root on it for several releases,
+  guarded so it would degrade silently if the internal ever moved, with
+  `{options.*}` kept as the documented spelling throughout. It was removed in
+  1.10.0 — not because it broke (it still works in 1.6.7), but because
+  maintaining a second spelling of an identical payload cost more than it
+  returned. Worth noting for prioritisation: this seam is **not used only by
+  us** — at least one other WooCommerce-for-Etch plugin builds its entire
+  dynamic-data layer on the same internal. Two independent integrations
+  depending on an undocumented entry point is the usual signal that it wants to
+  become a documented one.
+- **What ships instead** — Everything under `{options.*}` via
+  `etch/dynamic_data/option`, which is a documented, stable filter and has
+  never given trouble.
+- **What would remove it** — Promoting the registry to a public API, which is
+  [feature request #3](../ETCH-FEATURE-REQUESTS.md). Low urgency: the
+  `{options.*}` route works. The value would be namespacing and collision
+  safety as more integrations arrive.
+
 ---
 
 ## Cross-cutting observation
 
-Eight of the nine entries above share one property: **they fail silently.** The
+Eight of the ten entries above share one property: **they fail silently.** The
 page renders, the builder looks right, and what is missing is a class, a form, a
 query parameter or a page of products. That is the single most expensive
 characteristic of this integration surface — far more than any individual gap —

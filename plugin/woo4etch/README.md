@@ -70,10 +70,14 @@ silent. Read it before installing — collected in
 [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4etch-plugin.md#where-each-layout-stops).
 Transactional emails have no layout by design (Woo renders those from PHP templates).
 
-**Updating the plugin does not update a layout already on your page** — the push
-route is append-only so it can never overwrite builder work. The Layouts tab
-flags an installed copy that predates a fix; delete the layout's section in Etch
-and press **Add to page/template** again. Style records are reused, never overwritten.
+**Updating an installed layout.** The push route is append-only, so a plugin
+update never silently rewrites blocks already on your page. Since 1.10.0 the
+plugin records what it installed, so the Layouts tab can tell the two cases
+apart: an **untouched** copy gets an **Update layout** button (one click, your
+surrounding content and style records untouched), while one you have **edited**
+is left alone and gets the manual steps instead — replacing it would throw that
+work away. Copies installed before 1.10.0 have no record and use the manual
+route. Details: [`templates/15-woo4etch-plugin.md`](../../templates/15-woo4etch-plugin.md#updating-a-layout-you-already-installed).
 
 ## Dynamic data bridges (no shortcode needed)
 
