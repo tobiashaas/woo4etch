@@ -20,11 +20,14 @@ are listed at the end). The same command runs in CI via
 | File | Layer | Checks |
 |---|---|---|
 | `test-consistency.php` | 2 | `woo4etch.php` header `Version:` == `Woo4Etch::VERSION` == `readme.txt` `Stable tag`; every non-native catalog entry points at an existing `shortcode_*` method; no orphan `shortcode_*` methods; every registered shortcode is documented in `readme.txt`; catalog entries are complete. |
-| `test-layouts.php` | 3 | Every layout block tree is well-formed; **every `etch/loop` binds to a data-path target or a `loopId`, never a bare query key like `mainQuery`** (the bug that emptied the shop archive for ~2 betas); the single-product layout keeps the Woo contract (`form.cart`, `name="add-to-cart"`, `.single_add_to_cart_button`, gallery `__image` + `data-large_image`, excerpt as `etch/raw-html`); the committed `templates/etch-copy/*.json` artifacts satisfy the same loop invariant, and any `loopId` they carry is a portable preset id (never an installer-minted `w4e_*` id, which doesn't exist on paste targets — issue #13). |
+| `test-layouts.php` | 3 | Every layout block tree is well-formed; **every `etch/loop` binds to a data-path target or a `loopId`, never a bare query key like `mainQuery`** (the bug that emptied the shop archive for ~2 betas); the single-product layout keeps the Woo contract (`form.cart`, `name="add-to-cart"`, `.single_add_to_cart_button`, gallery `__image` + `data-large_image`, excerpt as `etch/raw-html`); the checkout carries `billing_state` in both shapes plus its region wrapper, the cart's shipping row is gated on `cart_show_shipping`, and the thank-you layout fires the payment-instruction hooks; every catalog entry carries a non-trivial `limits` note, and **every `woo4etch/layout_revisions` marker exists in the layout as it ships** (a stale one would flag every fresh install as outdated); the committed `templates/etch-copy/*.json` artifacts satisfy the same loop invariant, and any `loopId` they carry is a portable preset id (never an installer-minted `w4e_*` id, which doesn't exist on paste targets — issue #13). |
 
 `bootstrap.php` is the WordPress shim (constants + stub functions) that lets the
-plugin source load standalone. `lib.php` is a tiny pass/fail harness — no PHPUnit
-or composer needed.
+plugin source load standalone. Its action functions are a real (if tiny) registry
+rather than no-op stubs, so hook firing, positional arguments and
+unhook/rehook are actually asserted instead of swallowed; filters stay
+pass-through so catalogs and flags resolve to their defaults. `lib.php` is a tiny
+pass/fail harness — no PHPUnit or composer needed.
 
 ## Artifact drift guard
 

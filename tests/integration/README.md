@@ -8,6 +8,14 @@ wp-phpunit harness they run as standalone `wp eval-file` scripts — strictly
 
 ## Running
 
+Inside the repo's own wp-env instance (what CI uses; needs Docker and a
+`.wp-env.json` mapping `wp-content/woo4etch-tests` to `./tests`, as the repo's
+config does):
+
+```bash
+tests/integration/run.sh --wp-env
+```
+
 Against a local install:
 
 ```bash
@@ -48,14 +56,20 @@ separate test DB — typical managed hosts (like the current staging server)
 grant exactly one database, so the harness can't run there. These eval-file
 checks deliberately avoid that requirement.
 
-## CI (wp-env) — the remaining piece of issue #12
+## CI
 
-The check files are environment-agnostic: inside a wp-env container the same
-suite runs as
+The check files are environment-agnostic, so the same suite runs in GitHub
+Actions as the **`Integration (wp-env)`** job on every PR — a separate,
+Docker-booting job off the fast `checks` path (issue #12, closed). It writes its
+own `.wp-env.json` (latest WordPress + WooCommerce) and runs
+`tests/integration/run.sh --wp-env`.
 
-```bash
-wp-env run cli -- wp eval-file tests/integration/checks/01-upgrader-preservation.php
-```
+**Etch is not installed there**, so Etch-dependent assertions skip rather than
+fail. A layout-rendering claim that only holds with Etch present needs a local
+or staging run to actually be exercised.
 
-Wiring that into a (slow, Docker-booting) GitHub Actions job — separate from
-the fast `checks` path — is what remains of issue #12.
+> Note for check authors: wp-env installs the **current** WooCommerce, so a
+> check that pins WooCommerce's own internal behaviour can start failing on a
+> branch nothing changed — upstream moved. Assert the bridge's output (stable
+> across versions) and treat Woo-internal quirks as version-conditional; see
+> the `hidden`-flag handling in `09-checkout-address-locale.php`.

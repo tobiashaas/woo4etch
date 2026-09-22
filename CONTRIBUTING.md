@@ -24,6 +24,29 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 Keep changes focused. Prefer small, reviewable PRs over large rewrites. Match the existing tone: practical, copy-ready templates, minimal PHP unless the bridge plugin is the right place.
 
+## Before you open a PR
+
+Run the fast checks — they gate every PR and need no WordPress, database or composer:
+
+```bash
+php tests/php/run.php
+```
+
+If you changed a **layout definition**, regenerate the copy/paste artifacts, or CI will fail on drift:
+
+```bash
+php tools/generate-etch-copy.php
+```
+
+CI additionally lints PHP 8.1→8.5 and runs the integration checks against a real
+WordPress + WooCommerce ([`tests/integration/`](tests/integration/README.md)).
+
+Changing the plugin? Keep these in sync in the same PR — the fast checks assert
+the version markers, and the catalog drives both registration and the admin
+reference: `plugin/woo4etch/readme.txt`, the root `CHANGELOG.md` (under
+`Unreleased`), `templates/15-woo4etch-plugin.md`, and the version constants.
+Don't bump versions or tag releases in a PR — that's the maintainer release step below.
+
 ## Product principles (review lens)
 
 Before opening a PR — especially plugin or layout changes — check [`docs/PRODUCT-PRINCIPLES.md`](docs/PRODUCT-PRINCIPLES.md). The primary principle is **Merchant and Builder Freedom**: WooCommerce must stay correct *and* shop UI must remain meaningfully editable in Etch. Do not “fix” commerce bugs by hard-coding markup, forcing Woo blocks/PHP templates, or removing hooks, dynamic-data contracts, or portable layout artifacts.
@@ -33,16 +56,17 @@ Before opening a PR — especially plugin or layout changes — check [`docs/PRO
 After your PR is merged to `main`:
 
 1. Bump `Version` in `plugin/woo4etch/woo4etch.php` and `Stable tag` in `plugin/woo4etch/readme.txt`.
-2. Add a changelog entry in `readme.txt`.
-3. Commit, push, then tag and push the tag:
+2. Move the `Unreleased` entries under the new version heading in **both** `readme.txt` and the root `CHANGELOG.md`.
+3. Commit and push to `main`.
+4. Release either from Actions → **Release** → *Run workflow* (the tag is derived from `Version:`), or by pushing the matching tag:
 
    ```bash
    git tag v1.2.2
    git push origin v1.2.2
    ```
 
-4. GitHub Actions builds `woo4etch.zip` and publishes the release.
-5. WordPress sites with Woo4Etch installed under **Plugins** will see the update (usually within 12 hours).
+5. GitHub Actions verifies the version markers agree, builds `woo4etch.zip` and publishes the release.
+6. WordPress sites with Woo4Etch installed under **Plugins** will see the update (usually within 12 hours).
 
 Details: [`.github/RELEASE.md`](.github/RELEASE.md).
 
