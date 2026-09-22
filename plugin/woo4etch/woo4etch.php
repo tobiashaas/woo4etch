@@ -3055,14 +3055,17 @@ final class Woo4Etch {
      *   countries       — allowed countries; each: code, name, selected
      *   needs_shipping  — bool
      *   nonce           — classic checkout nonce (for the no-JS fallback form)
+     *   states, has_states, state, state_label, state_required, state_hidden,
+     *   address_2_label, address_2_hidden
+     *                   — locale-aware billing state / address-line-2 config;
+     *                     each key documented on checkout_address_locale()
      *
-     * There is deliberately NO states key, and the ready-made checkout layout
-     * carries no billing_state (nor billing_address_2) field. WooCommerce's
-     * locale overrides only rename `state` for countries like AU — they never
-     * set required => false — so wherever Woo requires a state or province
-     * the order fails validation on both the classic and the Store API path.
-     * Serving those countries means adding the field AND the states payload:
-     * new PHP (WC()->countries->get_states($code)), not builder work.
+     * Those address keys are not optional polish. WooCommerce's per-country
+     * locale overrides only RENAME `state` for countries like AU — they never
+     * set required => false — so wherever Woo requires a state or province, a
+     * form without the field fails validation on both the classic and the
+     * Store API path, silently. The ready-made checkout layout renders
+     * billing_state and billing_address_2 from these keys.
      *
      * Disable: add_filter('woo4etch/expose_checkout_data','__return_false').
      * Reshape: add_filter('woo4etch/checkout_data', fn($d) => $d).
@@ -3277,6 +3280,19 @@ final class Woo4Etch {
                     'selected' => (string) $code === $current,
                 ];
             }
+        }
+
+        // A state left over from ANOTHER country is not a current value.
+        // Changing the country sends the old code along (the JS reads the
+        // field as it stands), so the customer can hold "NSW" while the
+        // country is already US. Carrying it through would mark nothing
+        // selected AND suppress the placeholder option — which the layout
+        // renders only while `state` is empty — so the browser would fall
+        // back to displaying the first entry, silently submitting Alabama
+        // as a state the customer never picked. Discard it instead: the
+        // placeholder returns and the field reads as unanswered, which it is.
+        if ($states && !in_array($current, array_column($states, 'code'), true)) {
+            $current = '';
         }
 
         return [
@@ -3524,13 +3540,15 @@ final class Woo4Etch {
      *                              email, payment_method, payment_method_id,
      *                              billing_address, items[]
      *
-     * The ready-made thank-you layout renders this data and fires no hooks.
-     * WooCommerce's own order-confirmation template fires
-     * woocommerce_thankyou_{payment_method} and then woocommerce_thankyou —
-     * where offline gateways print their bank details and payment
-     * instructions. To keep those, place both in the layout:
+     * The ready-made thank-you layout fires woocommerce_before_thankyou,
+     * woocommerce_thankyou_{payment_method} and woocommerce_thankyou through
+     * hook markers — where offline gateways print their bank details and
+     * payment instructions. id and payment_method_id are exposed so a
+     * hand-built layout can fire the same pair itself:
      *   [do_action hook="woocommerce_thankyou_{options.order.payment_method_id}" args="{options.order.id}"]
      *   [do_action hook="woocommerce_thankyou" args="{options.order.id}"]
+     * Pass {options.order.id}: {this.id} is the checkout PAGE's id on that
+     * endpoint, not the order's.
      *
      * Real data on the frontend; sample data in the Etch builder so the loops
      * preview. Disable: add_filter('woo4etch/expose_account_data','__return_false').
