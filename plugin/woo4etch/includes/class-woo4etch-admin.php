@@ -33,6 +33,7 @@ final class Woo4Etch_Admin {
         add_action('admin_post_woo4etch_request_component', [__CLASS__, 'handle_request_component']);
         add_action('admin_post_woo4etch_insert_into_page', [__CLASS__, 'handle_insert_into_page']);
         add_action('admin_post_woo4etch_push_layout', [__CLASS__, 'handle_push_layout']);
+        add_action('admin_post_woo4etch_update_layout', [__CLASS__, 'handle_update_layout']);
         add_action('admin_post_woo4etch_materialize_template', [__CLASS__, 'handle_materialize_template']);
         add_action('admin_post_woo4etch_save_settings', [__CLASS__, 'handle_save_settings']);
         add_action('admin_init', [__CLASS__, 'cleanup_legacy_patterns']);
@@ -231,6 +232,32 @@ final class Woo4Etch_Admin {
     }
 
     /**
+     * admin-post handler: replace an untouched installed layout with the
+     * version that ships now. Refuses anything it cannot prove is untouched.
+     */
+    public static function handle_update_layout() {
+        if (!current_user_can(apply_filters('woo4etch/admin_capability', 'manage_woocommerce'))) {
+            wp_die(esc_html__('You do not have permission to do this.', 'woo4etch'));
+        }
+
+        $slug = isset($_POST['layout']) ? sanitize_key(wp_unslash($_POST['layout'])) : '';
+        check_admin_referer('woo4etch_update_layout_' . $slug);
+
+        $result   = Woo4Etch_Health::update_layout($slug);
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $redirect = remove_query_arg(['w4e_pushed', 'w4e_push_error'], $redirect);
+
+        if (is_wp_error($result)) {
+            $redirect = add_query_arg('w4e_push_error', rawurlencode($result->get_error_message()), $redirect);
+        } else {
+            $redirect = add_query_arg('w4e_pushed', rawurlencode($result['note']), $redirect);
+        }
+
+        wp_safe_redirect($redirect);
+        exit;
+    }
+
+    /**
      * Create a WooCommerce-registered template as a wp_template post and send
      * the user straight into the Etch builder for it.
      *
@@ -377,6 +404,9 @@ final class Woo4Etch_Admin {
             . '.woo4etch-shortcodes .woo4etch-layout-limits strong{color:#1d2327;}'
             . '.woo4etch-shortcodes .woo4etch-layout-outdated{margin:.6em 0 0;padding:8px 10px;border-left:3px solid #d63638;background:#fcf0f1;color:#50575e;}'
             . '.woo4etch-shortcodes .woo4etch-layout-outdated strong{color:#d63638;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-update{margin:.6em 0 0;padding:8px 10px;border-left:3px solid #2271b1;background:#f0f6fc;color:#50575e;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-update strong{color:#1d2327;display:block;}'
+            . '.woo4etch-shortcodes .woo4etch-layout-update form{margin-top:.5em;}'
         );
     }
 
@@ -542,13 +572,34 @@ final class Woo4Etch_Admin {
                                     <?php else : ?>
                                         <span class="woo4etch-installed"><?php echo esc_html($present_label); ?></span>
                                     <?php endif; ?>
+                                    <?php if ('updatable' === ($push['state'] ?? '')) : ?>
+                                        <p class="woo4etch-layout-update">
+                                            <strong><?php esc_html_e('A newer version of this layout ships with the plugin.', 'woo4etch'); ?></strong>
+                                            <?php esc_html_e('The installed copy still matches what Woo4Etch put there, so it can be replaced safely — anything you added around it, and every style record, stays as it is.', 'woo4etch'); ?>
+                                            <form method="post"
+                                                  action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+                                                  style="display:inline">
+                                                <input type="hidden" name="action" value="woo4etch_update_layout">
+                                                <input type="hidden" name="layout" value="<?php echo esc_attr($slug); ?>">
+                                                <?php wp_nonce_field('woo4etch_update_layout_' . $slug); ?>
+                                                <button type="submit" class="button button-small button-primary">
+                                                    <?php esc_html_e('Update layout', 'woo4etch'); ?>
+                                                </button>
+                                            </form>
+                                        </p>
+                                    <?php elseif ('customized' === ($push['state'] ?? '')) : ?>
+                                        <p class="woo4etch-layout-limits">
+                                            <strong><?php esc_html_e('Edited since install.', 'woo4etch'); ?></strong>
+                                            <?php esc_html_e('Woo4Etch will not touch this layout automatically, because replacing it would throw that work away. If you want a newer version, delete the layout’s section in the Etch builder and use “Add to page/template” again — style records are reused, never overwritten.', 'woo4etch'); ?>
+                                        </p>
+                                    <?php endif; ?>
                                     <?php if (!empty($push['outdated'])) : ?>
                                         <p class="woo4etch-layout-outdated">
                                             <strong><?php esc_html_e('Older version installed.', 'woo4etch'); ?></strong>
                                             <?php
                                             printf(
                                                 /* translators: %s: what the installed revision is missing */
-                                                esc_html__('It was %s. Updating the plugin does not change blocks already on the page: delete this layout in the Etch builder, then use “Add to page/template” again. Your styles are kept — existing style records are reused, never overwritten.', 'woo4etch'),
+                                                esc_html__('It was %s. This copy predates Woo4Etch recording what it installs, so there is no way to tell your edits from the original: delete this layout in the Etch builder, then use “Add to page/template” again. Your styles are kept — existing style records are reused, never overwritten.', 'woo4etch'),
                                                 esc_html($push['outdated'])
                                             );
                                             ?>

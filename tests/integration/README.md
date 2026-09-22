@@ -48,6 +48,7 @@ The runner copies `checks/*.php` to a remote temp dir, runs each through
 | `07-store-api-checkout.php` | 5 | The A+ checkout bridge: the routes the frontend module writes to, the Germanized guard pieces, and the gateway allowlist wiring. |
 | `08-secondary-per-page.php` | 4 | Etch's main-query loop re-runs the request as a secondary `WP_Query` that `loop_shop_per_page` never reaches; asserts the plugin's sync so the grid and `[woo_pagination]` agree. Simulated in memory, read-only. |
 | `09-checkout-address-locale.php` | 4 | **The state/province premise itself**, asked of WooCommerce rather than restated: AU's locale override renames `state` and leaves it *required*, DE hides it, AT has no state list. Then the `{options.checkout}` payload the layout loops over (states with `code`/`name`/`selected`, the label/required/hidden flags, `address_2_*`) plus the cart's shipping keys. Billing country, base country and cart restored in `finally`. |
+| `10-layout-ownership.php` | 4 | Layout ownership tracking: an untouched install is recognised, a block added *around* the layout is not mistaken for editing it, editing the layout itself reports `customized`, an unrecorded install never reports `current`, and the round-trip gate refuses content it cannot re-serialize byte for byte. Asserts what the feature **refuses**, since a false refusal costs a button and a false acceptance costs someone's builder work. Non-destructive: throwaway drafts only. |
 
 ## Why not wp-phpunit on the staging server
 
