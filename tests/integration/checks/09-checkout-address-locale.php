@@ -189,6 +189,40 @@ try {
             'countries is a non-empty array (the key the docblock used to omit)'
         );
 
+        /* ---- A state left over from another country ----
+
+           The customer above holds AU/VIC. Changing the country at checkout
+           sends the old state code along (the JS reads the field as it
+           stands), so this pairing is reachable, not hypothetical. Asking
+           for the US payload in that state must NOT carry VIC through: the
+           layout renders its placeholder option only while `state` is empty,
+           so a value no option matches would leave the select with nothing
+           marked selected and no placeholder — and the browser would show
+           the first entry, submitting a state the customer never picked.
+
+           checkout_address_locale() is public and unmemoized, so this asks
+           for a second country in the same process; expose_checkout_data()
+           could not. */
+        $stale = Woo4Etch::checkout_address_locale('US');
+        w4e_it_equals(true, (bool) $stale['has_states'], 'US: has a state list');
+        w4e_it_equals(
+            '',
+            (string) $stale['state'],
+            'US: a state left over from AU is discarded, so the placeholder option renders'
+        );
+        w4e_it_equals(
+            0,
+            count(array_filter($stale['states'], static function ($s) {
+                return !empty($s['selected']);
+            })),
+            'US: no option is marked selected while the customer has no US state'
+        );
+
+        // Control: the same call for the customer's OWN country still keeps
+        // the value — the guard must not blank a state that does match.
+        $own = Woo4Etch::checkout_address_locale('AU');
+        w4e_it_equals('VIC', (string) $own['state'], 'AU: a state that matches the country is kept');
+
         /* ---- Cart bridge: the shipping keys the summary renders ---- */
         $cart_data = Woo4Etch::expose_cart_data([]);
         foreach (['cart_needs_shipping', 'cart_show_shipping', 'cart_shipping_total', 'cart_shipping_notice'] as $key) {
