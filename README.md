@@ -86,7 +86,7 @@ Optional frontend enhancements (Settings / automatic): variation pills + quantit
 
 - WordPress **6.0+** and PHP **8.1+** (Etch's own floor)
 - **WooCommerce** active
-- **Etch 1.4.20+** for the layouts and Dynamic Keys (`{this.gallery_images}` landed in 1.4.20)
+- **Etch 1.4.20+** for the layouts and Dynamic Keys (`{this.gallery_images}` landed in 1.4.20). Verified against **Etch 1.6.7**; the integration seams Woo4Etch builds on are unchanged from 1.4.20 through 1.6.7.
 
 ## Status
 

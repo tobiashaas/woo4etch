@@ -694,27 +694,32 @@ Toggle/reshape: `woo4etch/expose_account_data` (off switch), `woo4etch/account_o
 
 **Notes:** `{options.account_orders}` is queried only on the My Account area (or in the builder). `{options.order}` populates on the checkout **order-received / view-order** endpoint (or in the builder) — a standalone page won't have an order in context. **Checkout** itself keeps the native `[woocommerce_checkout]` shortcode for the form (payment + validation are real PHP); build the page chrome and an order-summary sidebar (loop `{options.cart_items}`) around it in Etch.
 
-### Experimental: the namespaced `{woo.*}` root
+### A note on `{woo.*}`
 
-The shop data above lives on Etch's shared `options` root because that's the only root Etch currently lets third parties extend (filter `etch/dynamic_data/option`). Don't confuse it with ACF/Metabox-style "options pages" — `options` is simply Etch's global dynamic-data namespace, and *every* plugin/theme that extends it competes for the same key names.
+Earlier releases also exposed the same data under a namespaced `{woo.*}` root
+(`{woo.cart.count}` alongside `{options.cart_count}`). It was always marked
+experimental, because Etch has no public API for registering dynamic-data roots
+and `{options.*}` was the guaranteed spelling throughout.
 
-Woo4Etch therefore also registers the same data under its own **`woo`** root — instantly recognisable, collision-free, and structured:
+**Removed.** It carried no data of its own — it re-mapped the same
+three builders under different names, so every key had a documented
+`{options.*}` equivalent from day one. Keeping a second spelling of the same
+payload cost more in explanation than it saved in typing.
 
-| `{woo.*}` (experimental) | Same data as |
+Migration is mechanical:
+
+| Was | Now |
 |---|---|
 | `{woo.cart.items}` | `{options.cart_items}` |
-| `{woo.cart.count}` / `{woo.cart.subtotal}` / `{woo.cart.total}` / `{woo.cart.is_empty}` | `{options.cart_count}` / `…cart_subtotal` / `…cart_total` / `…cart_is_empty` |
-| `{woo.cart.url}` / `{woo.cart.nonce}` / `{woo.cart.cross_sells}` | `{options.cart_url}` / `…cart_nonce` / `…cross_sells` |
+| `{woo.cart.count}` / `.total` / `.subtotal` | `{options.cart_count}` / `{options.cart_total}` / `{options.cart_subtotal}` |
+| `{woo.cart.is_empty}` / `.url` / `.nonce` | `{options.cart_is_empty}` / `{options.cart_url}` / `{options.cart_nonce}` |
 | `{woo.checkout.url}` | `{options.checkout_url}` |
-| `{woo.shop.url}` | `{options.shop_url}` |
-| `{woo.account.menu}` / `{woo.account.endpoint}` / `{woo.account.orders}` | `{options.account_menu}` / `…account_endpoint` / `…account_orders` |
+| `{woo.shop.url}` / `.categories` / `.max_price` | `{options.shop_url}` / `{options.shop_categories}` / `{options.shop_max_price}` |
+| `{woo.account.menu}` / `.orders` / `.endpoint` | `{options.account_menu}` / `{options.account_orders}` / `{options.account_endpoint}` |
 | `{woo.order}` | `{options.order}` |
 
-Both roots are fed by the same builders — identical values, identical sample data in the builder canvas. The root is registered lazily: only pages whose blocks actually reference `woo.` pay for the data assembly.
-
-**Why "experimental":** Etch has no public API for registering dynamic-data roots yet, so this rides on an Etch internal (`DynamicContentRegistry::enqueue()` — see `ETCH-FEATURE-REQUESTS.md` #3, where we ask for exactly this as a public API). The access is fully guarded: if an Etch update renames that internal, the `woo` root silently disappears while **`{options.*}` keeps working** — which is why `options.*` remains the documented, guaranteed spelling. If/when Etch ships the public API, Woo4Etch swaps the registration mechanism internally and the `{woo.*}` keys stay exactly the same — layouts built on them keep running.
-
-Toggle/reshape: `woo4etch/enable_woo_root` (off switch), `woo4etch/woo_root_data`.
+The `woo4etch/enable_woo_root` and `woo4etch/woo_root_data` filters are gone
+with it; the `{options.*}` bridges keep their own filters.
 
 ## Filter reference
 
@@ -734,7 +739,6 @@ entirely (useful when you supply your own).
 | `woo4etch/expose_account_data` | `true` | `{options.account_*}`, `{options.order}` |
 | `woo4etch/expose_shop_data` | `true` | `{options.shop_*}`, filter params |
 | `woo4etch/expose_variations_json` | main product | Whether the variations JSON is printed for a variable product |
-| `woo4etch/enable_woo_root` | `true` | The experimental `{woo.*}` root |
 
 ### Reshaping the payloads
 
@@ -749,7 +753,6 @@ Receive the assembled array, return a modified one.
 | `woo4etch/checkout_data` | `$data` | The whole checkout payload |
 | `woo4etch/account_order_data` | `$data` | `{options.order}` |
 | `woo4etch/shop_data` | `$data` | Shop/archive keys |
-| `woo4etch/woo_root_data` | `$data` | The `{woo.*}` tree |
 | `woo4etch/cart_image_size` | `'woocommerce_thumbnail'` | Image size for cart rows |
 | `woo4etch/cross_sells_limit` | `4` | Cross-sells returned |
 | `woo4etch/cross_sells_fallback` | `true` | Fall back to recent products when the cart yields none |

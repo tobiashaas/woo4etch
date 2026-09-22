@@ -33,7 +33,10 @@ the builder and the features keep working. See
 - PHP **8.1+** (Etch's own floor)
 - **WooCommerce** active (`Requires Plugins: woocommerce`)
 - **Etch 1.4.20+** for the layouts and Dynamic Keys — the plugin's shortcodes
-  work without Etch, the Etch-facing parts don't.
+  work without Etch, the Etch-facing parts don't. Verified against **Etch
+  1.6.7**; the seams it uses (`etch/dynamic_data/post` and `/option`,
+  `{this.meta.*}`, shortcode processing, the component meta schema) are
+  unchanged across that range.
 
 ## Install
 

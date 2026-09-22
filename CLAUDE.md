@@ -55,7 +55,9 @@ Layers 4–5 are `tests/integration/`: non-destructive `wp eval-file` checks (up
 
 ## Verified Etch capabilities (verified against the Etch plugin source)
 
-Etch is server-rendered FSE blocks. Ground truth confirmed against source — use these, not assumptions:
+Etch is server-rendered FSE blocks. Ground truth confirmed against source (re-verified against **Etch 1.6.7**, 2026-09) — use these, not assumptions.
+
+Check claims against a *tag* in the private Etch repo (`git grep <pattern> 1.6.7 -- '*.php'`): the local checkout at `/Users/tobiashaas/Github/etch` sits on an older version, and `.wp-env-local/plugins/etch/` is another copy again. Nothing relevant to Woo4Etch changed between 1.4.20 and 1.6.7, and none of the asks in `ETCH-FEATURE-REQUESTS.md` shipped — WooCommerce is simply not a current focus for the Etch team.
 
 - **`{this.meta._price}` works.** `get_post_meta()` is exposed under a generic `meta` object and single-value meta is flattened to a string. So all `{this.meta._*}` keys in the docs are correct.
 - **`{this.gallery_images}`** is a ready-to-loop array of image objects (`id, url, alt, title, caption, description, filename, sizes, srcset, width, height, filesize, mime_type`), added by Etch's WooCommerce integration (commit ETC-800) for `product` posts. **Available in Etch 1.4.20+ (released); not in 1.4.19.** Loop it in Etch with a loop whose target is `this.gallery_images`. Verified live on 1.4.20. It **excludes the featured image by design** — render the featured image separately, then loop the gallery. The raw `_product_image_gallery` meta is just a CSV of IDs and is not usable directly.
@@ -69,7 +71,7 @@ Etch is server-rendered FSE blocks. Ground truth confirmed against source — us
 `plugin/woo4etch/woo4etch.php` is one `Woo4Etch` class. A single **`get_shortcode_catalog()`** array drives BOTH registration and the admin reference table.
 
 The plugin also **auto-declares `add_theme_support('woocommerce')`** on `after_setup_theme` (priority 99, only if no theme already did — the Etch theme doesn't). This disables WooCommerce's unsupported-theme content shim that otherwise fights Etch layouts. Filterable: `woo4etch/auto_theme_support`, `woo4etch/theme_support_args`, `woo4etch/gallery_features`.
- To add a shortcode: add a catalog entry (`method, category, attributes, description, example`) + a `shortcode_*` method. Entries flagged `'native' => true` (with empty `method`) are listed in the admin reference but NOT registered (they're WooCommerce core tags). The catalog is filterable via `woo4etch/shortcode_catalog`. Keep `readme.txt` (shortcode list + changelog + Stable tag), the root `CHANGELOG.md`, `templates/15-woo4etch-plugin.md`, and the version constants (`const VERSION`, plugin header `Version:`) in sync on any change.
+ To add a shortcode: add a catalog entry (`method, category, attributes, description, example`) + a `shortcode_*` method. Optional `prefer` names the Etch Dynamic Key that does the same thing — entries carrying it are folded into a collapsed "data shortcodes" block in the admin instead of the main tables, so the reference leads with what only PHP can render. Entries flagged `'native' => true` (with empty `method`) are listed in the admin reference but NOT registered (they're WooCommerce core tags). The catalog is filterable via `woo4etch/shortcode_catalog`. Keep `readme.txt` (shortcode list + changelog + Stable tag), the root `CHANGELOG.md`, `templates/15-woo4etch-plugin.md`, and the version constants (`const VERSION`, plugin header `Version:`) in sync on any change.
 
 ## Plugin release flow
 

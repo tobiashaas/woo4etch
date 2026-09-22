@@ -40,7 +40,7 @@ The runner copies `checks/*.php` to a remote temp dir, runs each through
 | File | Layer | What it proves |
 |---|---|---|
 | `01-upgrader-preservation.php` | 4 | A user-edited `includes/customizations.php` survives a simulated plugin update; an **untouched skeleton is NOT resurrected** (shipped skeleton improvements arrive). Runs the real `upgrader_pre_install` / `upgrader_post_install` filters against temp destination dirs. |
-| `02-woo-root-shape.php` | 4 | `Woo4Etch_Woo_Root::build_data()` with WooCommerce active: all documented keys (`cart.items`, `checkout.url`, `account.menu`, …) exist and are shaped as the templates rely on. Read-only. |
+| `02-options-bridge-shape.php` | 4 | The `{options.*}` bridge payloads with WooCommerce active: every documented cart / account / shop key exists and is shaped as the ready-made layouts loop over it (`cart_items` rows carry `key`/`name`/`quantity`, `account_menu` entries carry `label`/`url`, the cart shipping keys are present). The fast checks cannot see any of this — they run without a cart, session or order. Read-only. |
 | `03-external-customizations.php` | 4 | `wp-content/woo4etch-customizations.php` is loaded when present (verified in a freshly booted WP process), and no longer after removal. |
 | `04-frontend-smoke.php` | 5 | WooCommerce's assigned pages respond 200; installed layouts render their markers; a single product page renders the Woo add-to-cart contract (`form.cart`, add-to-cart control). Layouts not installed on the target are skipped, not failed. |
 | `05-checkout-rate-limit.php` | 4 | The classic-checkout sliding-window counter and its validation hook, exercised with a synthetic client fingerprint. Settings restored, transients removed. |
