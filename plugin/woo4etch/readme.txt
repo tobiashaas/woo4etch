@@ -153,6 +153,10 @@ In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when E
 
 == Changelog ==
 
+= Unreleased =
+
+* New: the seam a payment gateway needs. The hand-built checkout could only offer gateways that collect nothing in the page (offline, and redirect ones like Mollie) — there was nowhere for a card form to render and no channel for its token. Now {options.checkout.payment_methods} carries has_fields and store_api; a data-w4e-payment-fields="<gateway>" region renders that gateway's own payment_fields() output through the sanitizer-proof marker route (which also repairs the classic fallback, where those fields previously had nowhere to go); and the order POST carries payment_data, filled from data-w4e-payment-data inputs and from the new woo4etch:checkout-payment-data event whose waitUntil() holds the submit for work that needs a round trip. Woo4Etch still ships no gateway adapter — the hard part of one is SCA/3-D Secure, which is provider-specific. Details in templates/15-woo4etch-plugin.md.
+
 = 1.10.0 =
 
 UPGRADE NOTE — BREAKING: the experimental {woo.*} dynamic-data root is gone. If a layout used those keys, switch them to their {options.*} equivalents (one-to-one mapping in templates/15-woo4etch-plugin.md); layouts using only {options.*} — which is what the docs have always shown and what every shipped layout uses — need no change.

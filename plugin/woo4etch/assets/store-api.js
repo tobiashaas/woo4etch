@@ -290,6 +290,67 @@
      * COD/invoice → order-received).
      */
 
+
+    /**
+     * Assemble `payment_data` for POST /checkout — the array WooCommerce
+     * hands to the gateway's process_payment(). Two sources:
+     *
+     * 1. Markup. Any input inside the form carrying
+     *    data-w4e-payment-data="<key>" contributes its value. Inputs that sit
+     *    inside ANOTHER gateway's [data-w4e-payment-fields] region are
+     *    skipped, so a layout may render every gateway's fields and still
+     *    post only the selected one's.
+     *
+     * 2. Script. A gateway that has to talk to its provider before the order
+     *    exists — create a PaymentIntent, tokenize a card — cannot answer
+     *    synchronously. The `woo4etch:checkout-payment-data` event carries
+     *    add() and waitUntil() for exactly that:
+     *
+     *      document.addEventListener('woo4etch:checkout-payment-data', function (e) {
+     *        if (e.detail.gateway !== 'my_gateway') return;
+     *        e.detail.waitUntil(
+     *          createToken().then(function (t) { e.detail.add('my_token', t); })
+     *        );
+     *      });
+     *
+     *    A rejected promise aborts the submit and surfaces as a checkout
+     *    error, which is the right outcome: no order should be placed with a
+     *    payment step that did not complete.
+     *
+     * Woo4Etch ships no gateway adapter itself. This is the seam one needs,
+     * together with the woo4etch/store_api_checkout_gateways filter to put
+     * the gateway on the Store API path in the first place.
+     */
+    function collectPaymentData(form, gateway) {
+        var data    = [];
+        var add     = function (key, value) {
+            if (!key) return;
+            data.push({ key: String(key), value: typeof value === 'boolean' ? value : String(value) });
+        };
+        var waiting = [];
+
+        form.querySelectorAll('[data-w4e-payment-data]').forEach(function (el) {
+            if (el.disabled) return;
+            var region = el.closest ? el.closest('[data-w4e-payment-fields]') : null;
+            if (region && region.getAttribute('data-w4e-payment-fields') !== gateway) return;
+            if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+            add(el.getAttribute('data-w4e-payment-data'), el.type === 'checkbox' ? true : el.value);
+        });
+
+        document.dispatchEvent(new CustomEvent('woo4etch:checkout-payment-data', {
+            detail: {
+                gateway: gateway,
+                form: form,
+                add: add,
+                waitUntil: function (p) { if (p && typeof p.then === 'function') waiting.push(p); }
+            }
+        }));
+
+        return (waiting.length ? Promise.all(waiting) : Promise.resolve()).then(function () {
+            return data;
+        });
+    }
+
     var ADDRESS_FIELDS = ['first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'phone'];
 
     function gatewayAllowed(id) {
@@ -390,7 +451,11 @@
             payload.extensions = { 'woocommerce-germanized': { checkboxes: boxes } };
         }
 
-        api('/checkout', 'POST', payload)
+        collectPaymentData(form, gateway)
+            .then(function (data) {
+                if (data.length) payload.payment_data = data;
+                return api('/checkout', 'POST', payload);
+            })
             .then(function (res) {
                 var redirect = res && res.payment_result && res.payment_result.redirect_url;
                 if (redirect) {

@@ -1345,6 +1345,9 @@ final class Woo4Etch {
      *     do_action() output: the kses-proof equivalent of [do_action].
      *     Restricted by the same woo4etch/allow_do_action filter; the
      *     optional product id sets the global $product for the hook.
+     *   data-w4e-payment-fields="<gateway>" — that gateway's own
+     *     payment_fields() output (empty for gateways that collect nothing
+     *     in the page).
      *
      * @param string $content Rendered block HTML.
      * @return string
@@ -1352,6 +1355,41 @@ final class Woo4Etch {
     public static function render_etch_placeholders($content) {
         if (!is_string($content) || strpos($content, 'data-w4e-') === false) {
             return $content;
+        }
+
+        // data-w4e-payment-fields="<gateway id>" — the gateway's own
+        // payment_fields() output, rendered where the layout asks for it.
+        //
+        // This is a PLACE, not an integration. Gateways that collect nothing
+        // in the page (offline, and redirect ones like Mollie) render
+        // nothing here and never needed it. Gateways that do — a card form,
+        // an iframe, a saved-token picker — have had nowhere to put it in a
+        // hand-built checkout, which is why the layout could only offer the
+        // first kind. Their markup is exactly what Etch's raw-html sanitizer
+        // strips, so it goes through the marker route like everything else.
+        //
+        // Rendering the fields is not the same as being able to PLACE an
+        // order through the Store API: a gateway that tokenizes in the page
+        // also needs its token carried in payment_data (see the checkout
+        // module's woo4etch:checkout-payment-data event). Without that it
+        // still belongs on the classic submit path — where these fields are
+        // now, at least, present and functional.
+        if (strpos($content, 'data-w4e-payment-fields') !== false && function_exists('WC') && WC()) {
+            $content = preg_replace_callback(
+                '/<(div|span)([^>]*)\sdata-w4e-payment-fields="([a-zA-Z0-9_\-]+)"([^>]*)>\s*<\/\1>/',
+                static function ($m) {
+                    $id       = $m[3];
+                    $gateways = WC()->payment_gateways() ? WC()->payment_gateways()->get_available_payment_gateways() : [];
+                    $out      = '';
+                    if (isset($gateways[$id]) && $gateways[$id]->has_fields()) {
+                        ob_start();
+                        $gateways[$id]->payment_fields();
+                        $out = (string) ob_get_clean();
+                    }
+                    return '<' . $m[1] . $m[2] . ' data-w4e-payment-fields="' . esc_attr($id) . '"' . $m[4] . '>' . $out . '</' . $m[1] . '>';
+                },
+                $content
+            );
         }
 
         if (strpos($content, 'data-w4e-add-to-cart') !== false && function_exists('wc_get_product')) {
@@ -3064,7 +3102,10 @@ final class Woo4Etch {
      * `etch/dynamic_data/option`.
      *
      * Exposes {options.checkout}:
-     *   payment_methods — array; each: id, title, description, icon (HTML)
+     *   payment_methods — array; each: id, title, description, icon (HTML),
+     *                     has_fields (bool; gateway collects something in the
+     *                     page), store_api (bool; order placed via the Store
+     *                     API rather than a classic submit)
      *   shipping_rates  — array; each: id, package, label, price, selected
      *   checkboxes      — array (Germanized legal checkboxes when active);
      *                     each: id, label (HTML), error
@@ -3142,6 +3183,13 @@ final class Woo4Etch {
                     'description' => wp_kses_post(wpautop(wptexturize((string) $gateway->get_description()))),
                     'icon'        => wp_kses_post((string) $gateway->get_icon()),
                     'selected'    => $gateway->id === $chosen,
+                    // Does this gateway collect anything in the page? Card
+                    // forms, iframes, saved-token pickers all answer yes, and
+                    // a layout that offers such a gateway has to give it
+                    // somewhere to render — see the data-w4e-payment-fields
+                    // marker. Offline and redirect gateways answer no.
+                    'has_fields'  => (bool) $gateway->has_fields(),
+                    'store_api'   => self::gateway_allowlisted($gateway->id),
                 ];
             }
             // No session choice yet → preselect the first gateway, so the
@@ -3366,8 +3414,8 @@ final class Woo4Etch {
     private static function sample_checkout_data() {
         return apply_filters('woo4etch/checkout_sample_data', [
             'payment_methods' => [
-                ['id' => 'sample_card', 'title' => __('Card', 'woo4etch'), 'description' => __('Pay securely by card.', 'woo4etch'), 'icon' => '', 'selected' => true],
-                ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => '', 'selected' => false],
+                ['id' => 'sample_card', 'title' => __('Card', 'woo4etch'), 'description' => __('Pay securely by card.', 'woo4etch'), 'icon' => '', 'selected' => true, 'has_fields' => true, 'store_api' => false],
+                ['id' => 'sample_transfer', 'title' => __('Bank transfer', 'woo4etch'), 'description' => __('Pay by direct bank transfer.', 'woo4etch'), 'icon' => '', 'selected' => false, 'has_fields' => false, 'store_api' => true],
             ],
             'countries'       => [
                 ['code' => 'AU', 'name' => 'Australia', 'selected' => true],
