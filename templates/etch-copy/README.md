@@ -6,7 +6,8 @@ seconds: copy a file's contents, then paste it straight into the Etch builder.
 > **Easier route:** the Woo4Etch plugin can install all of these for you. Open
 > **Etch → Woo4Etch → Layouts** and click **Add to page/template** —
 > the layout is inserted straight where it renders (WooCommerce's assigned page
-> or the area's Etch template; append-only, never double-inserts) and its
+> or the area's Etch template; replaces stock Woo defaults on a fresh block
+> shop, otherwise append-only and never double-inserts) and its
 > classes land in Etch's style system. The **Copy JSON** button there does the
 > same as copying a file from this folder. These files are generated from the
 > plugin's layout definitions via `tools/generate-etch-copy.php` — edit there,

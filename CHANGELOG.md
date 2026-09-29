@@ -7,6 +7,10 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 ## [Unreleased]
 
+### Fixed
+
+- **“Add to page/template” on a fresh WooCommerce block shop either stacked two UIs or refused to install.** Stock `single-product` / `archive-product` templates are header + Woo blocks + footer with no `w4e-*` marker, so push appended the layout after the footer and both UIs rendered. Cart / checkout / account pages carry Woo's own Cart/Checkout block or `[woocommerce_my_account]`, and those strings were in the “already present” markers, so push refused even though no Woo4Etch layout was there — a one-click install needed the default block deleted first ([#36](https://github.com/tobiashaas/woo4etch/issues/36)). Push now treats only *our* layout markers as already-present. When the target is still Woo's untouched default (sole stock page block/shortcode, or a blockified template whose middle is only Woo-shaped blocks), it **replaces that stock UI** and keeps template header/footer parts. Builder content that is not stock still follows the append-only path; mixed stock+custom page content is refused with a clear ask to remove the Woo block first. Fast-checks cover the stock detectors.
+
 ### Added
 
 - **The seam a payment gateway needs — the fields, and the token.** The hand-built checkout could only ever offer gateways that collect nothing in the page (offline ones, and redirect ones like Mollie), because there was nowhere for a card form to render and no channel for its token. Both now exist, while the plugin still ships **no adapter** of its own:

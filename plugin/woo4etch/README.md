@@ -60,9 +60,12 @@ intro + term description), single product, cart, **checkout (Store API)**,
 header mini-cart (hover dropdown), My Account, thank-you, Woo notices.
 
 **Add to page/template** installs each one straight where it renders
-(WooCommerce's assigned page or the area's Etch template; append-only, never
-double-inserts), or copy them as Etch paste-JSON. Built on the dynamic-data
-bridges below, so they preview live in the builder.
+(WooCommerce's assigned page or the area's Etch template). On a fresh
+WooCommerce block shop it replaces the stock Cart/Checkout/Account block or
+the Woo blocks between a template's header and footer; otherwise it is
+append-only and never double-inserts the same layout. Or copy them as Etch
+paste-JSON. Built on the dynamic-data bridges below, so they preview live in
+the builder.
 
 Each entry also carries a **"Don't reach for this when"** line: every layout
 leaves out something WooCommerce's own template renders, and the omission is

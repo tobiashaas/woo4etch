@@ -521,7 +521,7 @@ final class Woo4Etch_Admin {
         <h2 class="category-heading"><?php esc_html_e('Ready-made layouts', 'woo4etch'); ?></h2>
 
         <p class="woo4etch-intro">
-            <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Add to page/template” puts the layout straight where it renders: WooCommerce’s assigned page (cart, account — from WooCommerce → Settings → Advanced) or the Etch template for the area (shop archive, single product, order confirmation). It only ever appends — existing content is preserved, and a target that already contains the layout is left untouched. “Copy JSON” puts the layout on your clipboard for pasting onto the Etch canvas instead. In every route, existing styles with the same selectors are reused, never overwritten.', 'woo4etch'); ?>
+            <?php esc_html_e('Complete, editable Etch layouts for every shop area — built on the dynamic-data bridges, so they preview live in the builder. “Add to page/template” puts the layout straight where it renders: WooCommerce’s assigned page (cart, account, checkout — from WooCommerce → Settings → Advanced) or the Etch template for the area (shop archive, single product, order confirmation). On a fresh WooCommerce block shop it replaces the stock Cart/Checkout/Account block or the Woo blocks between the template’s header and footer; otherwise it only ever appends, and a target that already contains this layout is left untouched. “Copy JSON” puts the layout on your clipboard for pasting onto the Etch canvas instead. In every route, existing styles with the same selectors are reused, never overwritten.', 'woo4etch'); ?>
         </p>
 
         <p class="woo4etch-intro">
