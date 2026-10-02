@@ -5,7 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); ver
 
 Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4etch/releases); regular plugin installs self-update from there. The same changelog ships inside the plugin in `plugin/woo4etch/readme.txt` — keep both in sync.
 
-## [Unreleased]
+## [1.11.0] — 2026-10-02
+
+> ### Upgrading to 1.11.0 — security release, please update
+>
+> **Order data was readable without the order key** ([#38](https://github.com/tobiashaas/woo4etch/issues/38), [#39](https://github.com/tobiashaas/woo4etch/issues/39)). `[woo_order_details]`, `{options.order.*}` and order-bound `[do_action]` / `data-w4e-hook` hooks (such as `woocommerce_thankyou`) now show an order only to a visitor holding its `?key=`, to its logged-in owner, or to a shop manager. Details under **Security** below.
+>
+> **Customers are unaffected** when they use the shipped thank-you layout: the thank-you URL carries the key. A **hand-built layout** that fires an order hook through `[do_action]` must pass `{options.order.id}` (as the docs have always said). A site that fires its own order hook can add it to the gate with the `woo4etch/order_bound_hook` filter.
+>
+> The shipped layouts' blocks are unchanged in this release, so there is nothing to re-add on your pages.
 
 ### Security
 
@@ -381,6 +389,7 @@ Pre-release — published on GitHub as a pre-release, so it is **not** offered t
 [1.5.0-beta.3]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.3
 [1.5.0-beta.2]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.2
 [1.5.0-beta.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.5.0-beta.1
+[1.11.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.11.0
 [1.10.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.10.0
 [1.9.1]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.9.1
 [1.9.0]: https://github.com/tobiashaas/woo4etch/releases/tag/v1.9.0

@@ -4,7 +4,7 @@ Tags: woocommerce, etch, shortcodes, page-builder, layouts
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.10.0
+Stable tag: 1.11.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -155,9 +155,13 @@ In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when E
 
 == Changelog ==
 
-= Unreleased =
+= 1.11.0 =
 
-SECURITY: order data was readable without the order key. On the order-received / view-order endpoints, [woo_order_details] and {options.order.*} resolved the order from the id in the URL alone; and [do_action] / data-w4e-hook would fire order-bound hooks such as woocommerce_thankyou for any author-chosen order id, printing a stranger's order into public content. Both now require the matching ?key=, the logged-in owner or a shop manager. If your thank-you layout is the shipped one nothing changes for customers (the thank-you URL carries the key). Hand-built layouts that fire order hooks through [do_action] keep working as long as they pass {options.order.id}. Third-party hooks that take an order id can join the gate with the woo4etch/order_bound_hook filter.
+UPGRADE NOTE — SECURITY, please update: order data was readable without the order key. On the order-received / view-order endpoints, [woo_order_details] and {options.order.*} resolved the order from the id in the URL alone; and [do_action] / data-w4e-hook would fire order-bound hooks such as woocommerce_thankyou for any author-chosen order id, printing a stranger's order into public content. Both now require the matching ?key=, the logged-in owner or a shop manager.
+
+If your thank-you layout is the shipped one nothing changes for customers (the thank-you URL carries the key). Hand-built layouts that fire order hooks through [do_action] keep working as long as they pass {options.order.id}. Third-party hooks that take an order id can join the gate with the woo4etch/order_bound_hook filter.
+
+SECURITY (details): order data was readable without the order key. On the order-received / view-order endpoints, [woo_order_details] and {options.order.*} resolved the order from the id in the URL alone; and [do_action] / data-w4e-hook would fire order-bound hooks such as woocommerce_thankyou for any author-chosen order id, printing a stranger's order into public content. Both now require the matching ?key=, the logged-in owner or a shop manager. If your thank-you layout is the shipped one nothing changes for customers (the thank-you URL carries the key). Hand-built layouts that fire order hooks through [do_action] keep working as long as they pass {options.order.id}. Third-party hooks that take an order id can join the gate with the woo4etch/order_bound_hook filter.
 
 * New: the seam a payment gateway needs. The hand-built checkout could only offer gateways that collect nothing in the page (offline, and redirect ones like Mollie) — there was nowhere for a card form to render and no channel for its token. Now {options.checkout.payment_methods} carries has_fields and store_api; a data-w4e-payment-fields="<gateway>" region renders that gateway's own payment_fields() output through the sanitizer-proof marker route (which also repairs the classic fallback, where those fields previously had nowhere to go); and the order POST carries payment_data, filled from data-w4e-payment-data inputs and from the new woo4etch:checkout-payment-data event whose waitUntil() holds the submit for work that needs a round trip. Woo4Etch still ships no gateway adapter — the hard part of one is SCA/3-D Secure, which is provider-specific. Details in templates/15-woo4etch-plugin.md.
 
