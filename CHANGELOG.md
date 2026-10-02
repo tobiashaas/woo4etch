@@ -7,6 +7,16 @@ Releases are published as [GitHub Releases](https://github.com/tobiashaas/woo4et
 
 ## [Unreleased]
 
+### Security
+
+- **Order data was readable without the order key.** Two paths trusted a sequential order id instead of checking who was asking:
+  - **`[woo_order_details]` / `{options.order.*}`** — on the `order-received` and `view-order` endpoints `resolve_order()` returned the order for the id in the URL alone. Anyone could walk `/checkout/order-received/<id>/` and read the order a layout renders (items, totals, and — through `{options.order.email}` / `billing_address` — the customer's contact data); on `view-order` a logged-in customer could read other customers' orders. Only the explicit `order_id` branch checked the key and owner.
+  - **`[do_action]` / `data-w4e-hook`** — any order-bound hook could be fired with an author-chosen id from post content, so an Author could print `woocommerce_thankyou` for someone else's order into a public post.
+
+  Both now share one rule (`can_view_order()`): the matching `?key=` (what the guest holds on the real thank-you URL), the logged-in owner, or a shop manager. Order-bound hooks (`thankyou`, `view-order`, `order_details`, `order_item`, `order_meta`, `order_received`, …) fire only when the first argument names an order the visitor may see; hooks fired without arguments and all other hooks are unchanged. Third-party order hooks join the gate with the new `woo4etch/order_bound_hook` filter. The shipped thank-you layout needs no change.
+
+  **Upgrade note:** a hand-built layout that fires an order hook through `[do_action]` must pass `{options.order.id}` (as the docs always said) — an id typed into the content no longer renders for visitors who do not hold the order. The default of `woo4etch/allow_do_action` stays `true`; it is not a deny-by-default, because that would silently remove third-party hook output (Germanized, gateways) that layouts depend on. Regression test: `tests/integration/checks/11-order-access.php`.
+
 ### Added
 
 - **The seam a payment gateway needs — the fields, and the token.** The hand-built checkout could only ever offer gateways that collect nothing in the page (offline ones, and redirect ones like Mollie), because there was nowhere for a card form to render and no channel for its token. Both now exist, while the plugin still ships **no adapter** of its own:

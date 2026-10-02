@@ -400,7 +400,19 @@ Which callbacks count as "core defaults" per hook is filterable via `woo4etch/ho
 
 ### Restricting which hooks can be fired
 
-By default any hook is allowed (it's a content-editor capability, and shortcodes can't be added by users without that capability). To harden further:
+By default any hook may fire — with one exception: **order-bound hooks**. Shortcodes in post content are available to anyone who can publish (the Author role included), so a hook that prints a specific order from an id the author typed would put that order into public content. Hooks whose name marks them as order-bound (`woocommerce_thankyou`, `woocommerce_thankyou_{gateway}`, `woocommerce_view_order`, `…order_details…`, `…order_item…`, `…order_meta…`, `…order_received…`) therefore fire **only when the visitor may see the order named by their first argument**: the matching `?key=` order key (what the guest holds on the real thank-you URL), the logged-in owner, or a shop manager. Otherwise they render nothing. Hooks fired without arguments, and every other hook, are unaffected.
+
+The thank-you layout needs no change: its markers pass `{options.order.id}`, and the visitor on `/checkout/order-received/<id>/?key=…` holds the key.
+
+Third-party hooks that take an order id can join the gate:
+
+```php
+add_filter('woo4etch/order_bound_hook', function ($is_bound, $hook) {
+    return $is_bound || 'my_plugin_render_invoice' === $hook;
+}, 10, 2);
+```
+
+To harden further:
 
 ```php
 // Only allow woo_* hooks
@@ -501,7 +513,7 @@ The gallery shortcode mirrors the `gallery_images` Dynamic Key (see [`00-README.
 
 Allowed `[woo_user]` fields: `display_name`, `user_login`, `user_email`, `first_name`, `last_name`, `ID`.
 
-`[woo_account_content]` renders whatever the current My Account endpoint is (dashboard, orders, downloads, edit-account, view-order, payment-methods …), so a single account layout — `[woo_account_menu]` + `[woo_account_content]` — covers every sub-page. `[woo_order_details]` uses the current order on the thank-you/view-order endpoints; an explicit `order_id` is only honoured with ownership, the order `key`, or shop-manager rights.
+`[woo_account_content]` renders whatever the current My Account endpoint is (dashboard, orders, downloads, edit-account, view-order, payment-methods …), so a single account layout — `[woo_account_menu]` + `[woo_account_content]` — covers every sub-page. `[woo_order_details]` and `{options.order}` use the current order on the thank-you/view-order endpoints — and only for a visitor who may see it: the matching `?key=` (thank-you), the logged-in owner, or a shop manager. An id in the URL alone is not enough. An explicit `order_id` follows the same rule.
 
 ### Store & archive
 
@@ -882,6 +894,7 @@ Frontend output is unaffected.
 | Filter | Default | Effect |
 |---|---|---|
 | `woo4etch/allow_do_action` | `true` | Gate which hooks `[do_action]` and the hook markers may fire (`$allowed, $hook`) |
+| `woo4etch/order_bound_hook` | name pattern | Treat a hook as order-bound: with arguments it fires only for the order's key holder, owner or a shop manager (`$is_bound, $hook`) |
 | `woo4etch/hook_core_defaults` | `CORE_HOOK_DEFAULTS` | Which WooCommerce core callbacks `skip_defaults` unhooks |
 | `woo4etch/shortcode_catalog` | built-in catalog | Add or remove shortcodes; drives registration **and** the admin reference |
 

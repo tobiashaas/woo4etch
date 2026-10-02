@@ -476,7 +476,10 @@ function w4e_test_layouts() {
             echo '<h2>Our bank details</h2>';
         }, 10);
 
+        // The thank-you page visitor holds the order key (?key= in the URL).
+        $_GET['key'] = 'wc_order_testkey';
         $out = Woo4Etch::render_etch_placeholders($html);
+        unset($_GET['key']);
 
         w4e_check(strpos($out, '<p class="bank-details">IBAN</p>') !== false, 'woocommerce_thankyou output lands inside the marker');
         w4e_check(strpos($out, '<h2>Our bank details</h2>') !== false, 'gateway-specific output lands inside its marker');
@@ -486,6 +489,40 @@ function w4e_test_layouts() {
             has_action('woocommerce_thankyou', 'woocommerce_order_details_table') !== false,
             'core defaults are rehooked after the marker rendered'
         );
+
+        // Order-bound hooks need a visitor who may see that order. Without
+        // one, an author-chosen id in a public page must print nothing.
+        $seen = [];
+        $deny = [
+            'anonymous, no key'  => [['user_id' => 0, 'can_manage' => false], []],
+            'wrong key'          => [['user_id' => 0, 'can_manage' => false], ['key' => 'wc_order_other']],
+            'other customer'     => [['user_id' => 9, 'can_manage' => false], []],
+        ];
+        foreach ($deny as $label => [$visitor, $get]) {
+            $GLOBALS['w4e_test_visitor'] = $visitor;
+            $_GET = $get;
+            $seen = [];
+            $out  = Woo4Etch::render_etch_placeholders($html);
+            w4e_check(strpos($out, 'IBAN') === false && strpos($out, 'bank details') === false && !$seen, "order-bound hook prints nothing for: {$label}");
+        }
+        $allow = [
+            'owner'        => [['user_id' => 7, 'can_manage' => false], []],
+            'shop manager' => [['user_id' => 9, 'can_manage' => true], []],
+            'key holder'   => [['user_id' => 0, 'can_manage' => false], ['key' => 'wc_order_testkey']],
+        ];
+        foreach ($allow as $label => [$visitor, $get]) {
+            $GLOBALS['w4e_test_visitor'] = $visitor;
+            $_GET = $get;
+            $out = Woo4Etch::render_etch_placeholders($html);
+            w4e_check(strpos($out, 'IBAN') !== false, "order-bound hook renders for: {$label}");
+        }
+        $GLOBALS['w4e_test_visitor'] = ['user_id' => 0, 'can_manage' => false];
+        $_GET = [];
+
+        // A hook that is not order-bound keeps firing for anyone, id argument or not.
+        add_action('w4e_unit_plain_hook', static function () { echo 'PLAIN'; });
+        $plain = Woo4Etch::render_etch_placeholders('<div data-w4e-hook="w4e_unit_plain_hook" data-w4e-args="1042"></div>');
+        w4e_check(strpos($plain, 'PLAIN') !== false, 'a non-order hook still fires for an anonymous visitor');
     }
 
     /* ---- Shipped copy/paste artifacts: same loop invariant ---- */

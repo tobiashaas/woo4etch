@@ -1429,6 +1429,9 @@ final class Woo4Etch {
                     if (preg_match('/data-w4e-args="([^"]*)"/', $extra_attrs, $am)) {
                         $args = self::parse_hook_args($am[1]);
                     }
+                    if (!self::hook_args_authorised($hook, $args)) {
+                        return '<' . $m[1] . $m[2] . ' data-w4e-hook="' . esc_attr($hook) . '"' . $m[4] . '></' . $m[1] . '>';
+                    }
 
                     // data-w4e-skip-defaults: temporarily unhook WooCommerce
                     // core's own template callbacks so the hook renders ONLY
@@ -1676,6 +1679,10 @@ final class Woo4Etch {
      * it is the product on a Single template — but the checkout PAGE on the
      * order-received endpoint. Thank-you hooks want {options.order.id}.
      *
+     * Order-bound hooks (woocommerce_thankyou, …) with an order id argument fire
+     * only for the order's key holder, owner or a shop manager — see
+     * hook_args_authorised(). Extend with `woo4etch/order_bound_hook`.
+     *
      * Restrict allowed hooks via the `woo4etch/allow_do_action` filter:
      *   add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
      *       return strpos($hook, 'woocommerce_') === 0;
@@ -1698,6 +1705,10 @@ final class Woo4Etch {
         }
 
         $args = self::parse_hook_args($atts['args']);
+
+        if (!self::hook_args_authorised($hook, $args)) {
+            return '';
+        }
 
         // Same escape hatch as data-w4e-skip-defaults: fire the hook for
         // third-party callbacks without WooCommerce core's own template
@@ -2747,11 +2758,39 @@ final class Woo4Etch {
        ============================================================ */
 
     /**
+     * Whether the current visitor may see this order's data.
+     *
+     * The one rule every order-bound path shares (resolve_order() and the
+     * order-bound [do_action] / data-w4e-hook gate): the order key from the
+     * URL or shortcode matches (WooCommerce's own guest access after
+     * checkout), the logged-in owner, or a shop manager. Order ids are
+     * sequential, so an id alone must never be enough.
+     *
+     * @param WC_Order $order
+     * @param string   $key   Explicit key; falls back to ?key= on the request.
+     * @return bool
+     */
+    private static function can_view_order($order, $key = '') {
+        if (!$order instanceof WC_Order) {
+            return false;
+        }
+        if ('' === (string) $key && isset($_GET['key'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only access token, same as WooCommerce's order-received check.
+            $key = wc_clean(wp_unslash($_GET['key'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+        $key_ok  = is_string($key) && '' !== $key && hash_equals((string) $order->get_order_key(), $key);
+        $owns_it = is_user_logged_in() && (int) $order->get_customer_id() === get_current_user_id();
+
+        return $key_ok || $owns_it || current_user_can('manage_woocommerce');
+    }
+
+    /**
      * Resolve the order for order-bound shortcodes.
      *
-     * Priority: explicit & authorised order_id → global $order → the order on
-     * the order-received / view-order endpoint. Returns null when nothing is
-     * safely resolvable.
+     * Priority: explicit order_id → global $order → the order on the
+     * order-received / view-order endpoint. Every URL- or author-supplied id
+     * goes through can_view_order(); returns null when nothing is safely
+     * resolvable. A global $order is set by server code (WooCommerce's own
+     * templates), not by the request, so it is trusted as-is.
      *
      * @param array $atts
      * @return WC_Order|null
@@ -2759,15 +2798,8 @@ final class Woo4Etch {
     private static function resolve_order($atts) {
         if (!empty($atts['order_id'])) {
             $order = wc_get_order(absint($atts['order_id']));
-            if (!$order instanceof WC_Order) {
-                return null;
-            }
-
-            $key_ok   = !empty($atts['key']) && hash_equals((string) $order->get_order_key(), wc_clean(wp_unslash($atts['key'])));
-            $owns_it  = is_user_logged_in() && (int) $order->get_customer_id() === get_current_user_id();
-            $is_admin = current_user_can('manage_woocommerce');
-
-            return ($key_ok || $owns_it || $is_admin) ? $order : null;
+            $key   = !empty($atts['key']) ? wc_clean(wp_unslash($atts['key'])) : '';
+            return self::can_view_order($order, $key) ? $order : null;
         }
 
         global $order;
@@ -2781,10 +2813,46 @@ final class Woo4Etch {
         }
         if ($endpoint_id) {
             $maybe = wc_get_order($endpoint_id);
-            return $maybe instanceof WC_Order ? $maybe : null;
+            return self::can_view_order($maybe) ? $maybe : null;
         }
 
         return null;
+    }
+
+    /**
+     * Hook names that render a specific order's data from an id argument.
+     * Filterable (woo4etch/order_bound_hook) so third-party hooks that take
+     * an order id can join the gate.
+     */
+    const ORDER_BOUND_HOOK_PATTERN = '/thankyou|view[-_]order|order[-_]details|order[-_]item|order[-_]meta|order[-_]received|order[-_]downloads|order[-_]again/';
+
+    /**
+     * May this hook fire with these arguments for the current visitor?
+     *
+     * Order-bound hooks (woocommerce_thankyou, woocommerce_thankyou_{gateway},
+     * woocommerce_view_order, …) with an argument list must name an order the
+     * visitor may see — otherwise any author-written [do_action] could print
+     * another customer's order into public content. Hooks fired without
+     * arguments (checkout/cart context hooks) read the current context and are
+     * not affected.
+     *
+     * @param string           $hook
+     * @param array<int,mixed> $args
+     * @return bool
+     */
+    private static function hook_args_authorised($hook, $args) {
+        $bound = (bool) preg_match(self::ORDER_BOUND_HOOK_PATTERN, $hook);
+        if (!apply_filters('woo4etch/order_bound_hook', $bound, $hook)) {
+            return true;
+        }
+        if (empty($args)) {
+            return true;
+        }
+        if (!function_exists('wc_get_order')) {
+            return false;
+        }
+        $order = wc_get_order(absint($args[0]));
+        return self::can_view_order($order);
     }
 
     /* ============================================================
