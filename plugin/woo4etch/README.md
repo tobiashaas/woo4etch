@@ -135,6 +135,9 @@ touched. Filter: `woo4etch/hook_core_defaults`.
 **Hardening:** restrict which hooks are allowed via filter:
 
 ```php
+> Order-bound hooks (`woocommerce_thankyou`, `woocommerce_view_order`, …) fire only for a visitor who may see the order they name: its `?key=`, the logged-in owner, or a shop manager. Extend the gate to your own order hooks with the `woo4etch/order_bound_hook` filter.
+
+```php
 add_filter('woo4etch/allow_do_action', function ($allowed, $hook) {
     return strpos($hook, 'woocommerce_') === 0;
 }, 10, 2);

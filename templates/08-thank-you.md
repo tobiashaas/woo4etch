@@ -21,7 +21,9 @@ Order confirmation page shown after a successful checkout. Order summary, custom
 > **Don't reach for it when** you need Woo's customer-details block as-is, or
 > when the order isn't in context: the whole layout is gated on
 > `{options.order.number}`, so a bare `/checkout/order-received/` hit without a
-> valid key renders nothing.
+> valid key renders nothing. The order comes into context only for a visitor
+> who may see it — the `?key=` on the thank-you URL, the logged-in owner, or a
+> shop manager; a sequential order id on its own shows nothing.
 >
 > **Installed it before this shipped?** A plugin update never silently
 > rewrites blocks already on your page. If you have not edited the layout,

@@ -209,6 +209,38 @@ if (!function_exists('add_theme_support')) {
 }
 
 /**
+ * Order-access stubs. The hook renderer gates order-bound hooks (e.g.
+ * woocommerce_thankyou) on "may this visitor see that order" — key, owner or
+ * shop manager. Tests drive that rule through $GLOBALS['w4e_test_visitor']
+ * (user_id, can_manage) and $_GET['key']; order 1042 is the only order.
+ */
+$GLOBALS['w4e_test_visitor'] = ['user_id' => 0, 'can_manage' => false];
+if (!class_exists('WC_Order')) {
+    class WC_Order {
+        public function get_order_key() { return 'wc_order_testkey'; }
+        public function get_customer_id() { return 7; }
+    }
+}
+if (!function_exists('wc_get_order')) {
+    function wc_get_order($id) { return 1042 === (int) $id ? new WC_Order() : false; }
+}
+if (!function_exists('wc_clean')) {
+    function wc_clean($v) { return is_string($v) ? trim($v) : $v; }
+}
+if (!function_exists('wp_unslash')) {
+    function wp_unslash($v) { return $v; }
+}
+if (!function_exists('is_user_logged_in')) {
+    function is_user_logged_in() { return $GLOBALS['w4e_test_visitor']['user_id'] > 0; }
+}
+if (!function_exists('get_current_user_id')) {
+    function get_current_user_id() { return $GLOBALS['w4e_test_visitor']['user_id']; }
+}
+if (!function_exists('current_user_can')) {
+    function current_user_can($cap) { return !empty($GLOBALS['w4e_test_visitor']['can_manage']); }
+}
+
+/**
  * Load the plugin's source so its classes are available to the test files.
  * woo4etch.php pulls in the includes/ classes and registers (stubbed) hooks.
  */
