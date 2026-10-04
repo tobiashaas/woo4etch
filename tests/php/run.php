@@ -14,8 +14,10 @@ require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib.php';
 require __DIR__ . '/test-consistency.php';
 require __DIR__ . '/test-layouts.php';
+require __DIR__ . '/test-push-stock.php';
 
 w4e_test_consistency();
 w4e_test_layouts();
+w4e_test_push_stock();
 
 exit(w4e_summary());

@@ -127,23 +127,27 @@ final class Woo4Etch_Health {
                     'kind'    => 'page',
                     'page_id' => function_exists('wc_get_page_id') ? (int) wc_get_page_id('cart') : 0,
                     'label'   => __('Cart page', 'woo4etch'),
-                    'markers' => ['w4e-cart', 'woocommerce-cart-form', '[woocommerce_cart', 'wp:woocommerce/cart'],
+                    // Only OUR layout — stock Woo cart block/shortcode is
+                    // replaceable (issue #36), not "already present".
+                    'markers' => ['w4e-cart'],
                 ];
             case 'account':
                 return [
                     'kind'    => 'page',
                     'page_id' => function_exists('wc_get_page_id') ? (int) wc_get_page_id('myaccount') : 0,
                     'label'   => __('My Account page', 'woo4etch'),
-                    'markers' => ['w4e-account', '[woocommerce_my_account', '[woo_account_content'],
+                    'markers' => ['w4e-account'],
                 ];
             case 'checkout':
                 return [
                     'kind'    => 'page',
                     'page_id' => function_exists('wc_get_page_id') ? (int) wc_get_page_id('checkout') : 0,
                     'label'   => __('Checkout page', 'woo4etch'),
-                    // Refuse when ANY checkout already renders there — a
-                    // second checkout on the same page would double-submit.
-                    'markers' => ['w4e-checkout-form', '[woocommerce_checkout', 'wp:woocommerce/checkout', '[woo_checkout_block'],
+                    // Refuse when OUR checkout (or the documented block
+                    // fallback) already renders — a second checkout would
+                    // double-submit. Stock `wp:woocommerce/checkout` alone
+                    // is replaceable via is_replaceable_stock_page().
+                    'markers' => ['w4e-checkout-form', '[woo_checkout_block'],
                 ];
             case 'product-grid':
                 return [
@@ -331,12 +335,17 @@ final class Woo4Etch_Health {
      * Public so an integration check can set up a realistic install on a
      * throwaway post instead of mutating a real one.
      *
-     * @param int    $post_id Target post.
-     * @param string $slug    Layout catalog key.
-     * @param int    $count   How many top-level blocks were appended.
+     * @param int         $post_id Target post.
+     * @param string      $slug    Layout catalog key.
+     * @param int         $count   How many top-level blocks belong to the layout.
+     * @param int|null    $offset  Named-block index where the layout starts.
+     *                             Null means "appended at the end" (the common
+     *                             case). Set when push() replaced the middle of
+     *                             a stock Woo template and the layout sits
+     *                             between header and footer template parts.
      * @return void
      */
-    public static function record_install($post_id, $slug, $count) {
+    public static function record_install($post_id, $slug, $count, $offset = null) {
         $post = get_post((int) $post_id);
         if (!$post) {
             return;
@@ -347,7 +356,11 @@ final class Woo4Etch_Health {
                 return !empty($b['blockName']);
             }
         ));
-        $ours = $count > 0 ? array_slice($blocks, -$count) : [];
+        if ($offset !== null) {
+            $ours = $count > 0 ? array_slice($blocks, (int) $offset, $count) : [];
+        } else {
+            $ours = $count > 0 ? array_slice($blocks, -$count) : [];
+        }
         if (!$ours) {
             return;
         }
@@ -541,12 +554,23 @@ final class Woo4Etch_Health {
 
     /**
      * Push a layout straight onto its target — the WooCommerce-assigned page
-     * or the Etch template that renders the area. Append-only: existing
-     * content is always preserved (issue #21 — never replace user layout).
-     * A target that already contains the layout's markers is left untouched;
-     * a missing template is created (bare — the user adds header/footer in
-     * the builder). Styles merge like the pattern installer: existing
-     * selectors are reused, never overwritten.
+     * or the Etch template that renders the area.
+     *
+     * Default is append-only: existing builder content is preserved (issue
+     * #21 — never replace user layout). Two stock-Woo exceptions (issue #36)
+     * replace WooCommerce's own defaults so a one-click install on a fresh
+     * block shop lands the Etch layout instead of stacking UIs or refusing:
+     *
+     * - **Pages** whose sole content is the stock Cart/Checkout block or the
+     *   My Account shortcode → replace that content with the layout.
+     * - **Templates** that are still the untouched Woo blockified shape
+     *   (header template-part + Woo blocks + footer template-part, no
+     *   `w4e-*` marker) → keep the template parts, replace the middle.
+     *
+     * A target that already contains *our* layout markers is left untouched.
+     * A missing template is created bare (the user adds header/footer in the
+     * builder). Styles merge like the pattern installer: existing selectors
+     * are reused, never overwritten.
      *
      * @param string $slug Layout catalog key.
      * @return array{post_id: int, note: string}|WP_Error
@@ -568,14 +592,47 @@ final class Woo4Etch_Health {
             if (!$page) {
                 return new WP_Error('woo4etch_page_missing', __('WooCommerce has no page assigned for this area (WooCommerce → Settings → Advanced).', 'woo4etch'));
             }
-            if (self::content_has((string) $page->post_content, $target['markers'])) {
+            $content = (string) $page->post_content;
+            if (self::content_has($content, $target['markers'])) {
                 return new WP_Error('woo4etch_already_present', sprintf(
                     /* translators: %s: page title */
                     __('“%s” already contains this layout — edit it in the Etch builder instead of inserting a second copy.', 'woo4etch'),
                     get_the_title($page)
                 ));
             }
-            $result = self::append_to_post($page->ID, rtrim($page->post_content) . "\n\n" . $append);
+
+            // Fresh Woo install: page holds only the stock Cart/Checkout block
+            // or My Account shortcode. Replace it so one click lands the Etch
+            // layout (issue #36) instead of refusing as "already present".
+            // No can_rewrite_safely gate: the whole page content is discarded
+            // on purpose, so a round-trip of Woo's markup is irrelevant.
+            if (self::is_replaceable_stock_page($content, $slug)) {
+                $result = self::append_to_post($page->ID, $append);
+                if (is_wp_error($result)) {
+                    return $result;
+                }
+                self::record_install($page->ID, $slug, count($blocks));
+                return [
+                    'post_id' => (int) $result,
+                    'note'    => sprintf(
+                        /* translators: %s: page title */
+                        __('Replaced WooCommerce’s default block on “%s” with this layout. Open the page in the Etch builder to arrange it.', 'woo4etch'),
+                        get_the_title($page)
+                    ),
+                ];
+            }
+
+            // Stock Woo commerce UI still present alongside other content —
+            // appending would stack two carts/checkouts. Refuse with a clear ask.
+            if (self::content_has($content, self::stock_page_needles($slug))) {
+                return new WP_Error('woo4etch_stock_commerce', sprintf(
+                    /* translators: %s: page title */
+                    __('“%s” still carries WooCommerce’s default cart/checkout/account block or shortcode alongside other content. Remove that block in the Etch builder first, then add the layout — otherwise both UIs would render.', 'woo4etch'),
+                    get_the_title($page)
+                ));
+            }
+
+            $result = self::append_to_post($page->ID, rtrim($content) . "\n\n" . $append);
             if (is_wp_error($result)) {
                 return $result;
             }
@@ -592,14 +649,41 @@ final class Woo4Etch_Health {
 
         $template = self::find_template($target['template_slug']);
         if ($template) {
-            if (self::content_has((string) $template->post_content, $target['markers'])) {
+            $content = (string) $template->post_content;
+            if (self::content_has($content, $target['markers'])) {
                 return new WP_Error('woo4etch_already_present', sprintf(
                     /* translators: %s: template slug */
                     __('The “%s” template already contains this layout — edit it in the Etch builder instead of inserting a second copy.', 'woo4etch'),
                     $target['template_slug']
                 ));
             }
-            $result = self::append_to_post($template->ID, rtrim($template->post_content) . "\n\n" . $append);
+
+            // Untouched Woo blockified template: header + Woo blocks + footer.
+            // Keep the site frame, swap the middle for the Etch layout (#36).
+            // No can_rewrite_safely gate: the Woo middle is discarded on
+            // purpose; header/footer template-parts are re-emitted from the
+            // parsed tree rather than byte-preserved.
+            if (self::is_stock_woo_block_template($content)) {
+                $replaced = self::replace_stock_template_middle($content, $blocks);
+                if (is_wp_error($replaced)) {
+                    return $replaced;
+                }
+                $result = self::append_to_post($template->ID, $replaced['content']);
+                if (is_wp_error($result)) {
+                    return $result;
+                }
+                self::record_install($template->ID, $slug, count($blocks), $replaced['offset']);
+                return [
+                    'post_id' => (int) $result,
+                    'note'    => sprintf(
+                        /* translators: %s: template slug */
+                        __('Replaced WooCommerce’s default blocks in the “%s” template with this layout (header and footer kept). Open it in the Etch builder to arrange it.', 'woo4etch'),
+                        $target['template_slug']
+                    ),
+                ];
+            }
+
+            $result = self::append_to_post($template->ID, rtrim($content) . "\n\n" . $append);
             if (is_wp_error($result)) {
                 return $result;
             }
@@ -831,13 +915,294 @@ final class Woo4Etch_Health {
     }
 
     /**
+     * Substrings that identify WooCommerce's own cart/checkout/account UI on
+     * a page (block or shortcode). Used to refuse a push that would stack two
+     * UIs when stock content sits alongside other builder work.
+     *
+     * @param string $slug Layout catalog key.
+     * @return array<int,string>
+     */
+    public static function stock_page_needles($slug) {
+        switch ($slug) {
+            case 'cart':
+                return ['wp:woocommerce/cart', '[woocommerce_cart'];
+            case 'checkout':
+                return ['wp:woocommerce/checkout', '[woocommerce_checkout'];
+            case 'account':
+                return ['[woocommerce_my_account'];
+            default:
+                return [];
+        }
+    }
+
+    /**
+     * True when page content is ONLY WooCommerce's stock cart/checkout block
+     * or My Account shortcode — safe to replace with a Woo4Etch layout
+     * (issue #36). False when our layout is already there, when the page is
+     * empty, or when anything else sits alongside the stock UI.
+     *
+     * Public so the fast PHP suite can assert the shapes without WordPress.
+     *
+     * @param string $content Page post_content.
+     * @param string $slug    Layout catalog key (cart|checkout|account).
+     * @return bool
+     */
+    public static function is_replaceable_stock_page($content, $slug) {
+        $content = (string) $content;
+        if ('' === trim($content) || false !== strpos($content, 'w4e-')) {
+            return false;
+        }
+        $needles = self::stock_page_needles($slug);
+        if (!$needles || !self::content_has($content, $needles)) {
+            return false;
+        }
+
+        if (!function_exists('parse_blocks')) {
+            return self::content_is_sole_stock_shortcode($content, $slug)
+                || self::content_is_sole_stock_block($content, $slug);
+        }
+
+        $named = array_values(array_filter(
+            parse_blocks($content),
+            static function ($b) {
+                return !empty($b['blockName']);
+            }
+        ));
+
+        if (!$named) {
+            return self::content_is_sole_stock_shortcode($content, $slug);
+        }
+        if (count($named) !== 1) {
+            return false;
+        }
+
+        $block = $named[0];
+        $name  = (string) ($block['blockName'] ?? '');
+        if ('cart' === $slug && 'woocommerce/cart' === $name) {
+            return true;
+        }
+        if ('checkout' === $slug && 'woocommerce/checkout' === $name) {
+            return true;
+        }
+        if ('core/shortcode' === $name) {
+            return self::content_has($content, $needles);
+        }
+        return false;
+    }
+
+    /**
+     * @param string $content Trimmed-capable page content.
+     * @param string $slug    cart|checkout|account.
+     * @return bool
+     */
+    private static function content_is_sole_stock_shortcode($content, $slug) {
+        $trimmed = trim($content);
+        switch ($slug) {
+            case 'cart':
+                return (bool) preg_match('/^\[woocommerce_cart[^\]]*\]$/', $trimmed);
+            case 'checkout':
+                return (bool) preg_match('/^\[woocommerce_checkout[^\]]*\]$/', $trimmed);
+            case 'account':
+                return (bool) preg_match('/^\[woocommerce_my_account[^\]]*\]$/', $trimmed);
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * String-level "this page is only the stock Woo cart/checkout block"
+     * check for environments without parse_blocks (fast PHP suite).
+     *
+     * @param string $content Page content.
+     * @param string $slug    cart|checkout.
+     * @return bool
+     */
+    private static function content_is_sole_stock_block($content, $slug) {
+        $trimmed = trim($content);
+        if ('cart' === $slug) {
+            return (bool) preg_match(
+                '/^<!--\s*wp:woocommerce\/cart\b.*<!--\s*\/wp:woocommerce\/cart\s*-->$/s',
+                $trimmed
+            );
+        }
+        if ('checkout' === $slug) {
+            return (bool) preg_match(
+                '/^<!--\s*wp:woocommerce\/checkout\b.*<!--\s*\/wp:woocommerce\/checkout\s*-->$/s',
+                $trimmed
+            );
+        }
+        if ('account' === $slug) {
+            // Default Woo Account page: a single core/shortcode block.
+            return (bool) preg_match(
+                '/^<!--\s*wp:shortcode\s*-->\s*\[woocommerce_my_account[^\]]*\]\s*<!--\s*\/wp:shortcode\s*-->$/s',
+                $trimmed
+            );
+        }
+        return false;
+    }
+
+    /**
+     * True when content is still WooCommerce's untouched blockified template
+     * shape: header template-part, Woo-only middle, footer template-part, and
+     * no `w4e-*` marker (issue #36). Public for the fast PHP suite.
+     *
+     * @param string $content Template post_content.
+     * @return bool
+     */
+    public static function is_stock_woo_block_template($content) {
+        $content = (string) $content;
+        if ('' === $content || false !== strpos($content, 'w4e-')) {
+            return false;
+        }
+        // Stock blockified templates always carry at least one Woo block.
+        if (false === strpos($content, 'wp:woocommerce/')
+            && false === strpos($content, '__woocommerceNamespace')) {
+            return false;
+        }
+        if (!function_exists('parse_blocks')) {
+            // Fast-suite fallback: header + footer template-parts framing
+            // Woo blocks, with no builder customization cues beyond Woo.
+            return (bool) preg_match(
+                '/^\s*<!--\s*wp:template-part\b.*-->\s*.*wp:woocommerce\/.*<!--\s*wp:template-part\b.*-->\s*$/s',
+                $content
+            ) && false === strpos($content, 'wp:paragraph')
+              && false === strpos($content, 'wp:heading')
+              && false === strpos($content, 'wp:html')
+              && false === strpos($content, 'wp:etch');
+        }
+        $named = array_values(array_filter(
+            parse_blocks($content),
+            static function ($b) {
+                return !empty($b['blockName']);
+            }
+        ));
+        return self::named_blocks_are_stock_woo_template($named);
+    }
+
+    /**
+     * Structural check on already-parsed named top-level blocks.
+     * Separated so tests can feed hand-built trees without parse_blocks.
+     *
+     * @param array<int,array<string,mixed>> $named Top-level blocks with blockName set.
+     * @return bool
+     */
+    public static function named_blocks_are_stock_woo_template(array $named) {
+        $n = count($named);
+        if ($n < 3) {
+            return false;
+        }
+        if (($named[0]['blockName'] ?? '') !== 'core/template-part') {
+            return false;
+        }
+        if (($named[$n - 1]['blockName'] ?? '') !== 'core/template-part') {
+            return false;
+        }
+        $middle = array_slice($named, 1, -1);
+        foreach ($middle as $block) {
+            if (!self::block_is_woo_stock_shaped($block)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A block that appears in WooCommerce's blockified templates (or nests
+     * only such blocks). Anything else means the builder has customized the
+     * middle — push stays append-only for that case.
+     *
+     * @param array<string,mixed> $block
+     * @return bool
+     */
+    public static function block_is_woo_stock_shaped(array $block) {
+        $name = (string) ($block['blockName'] ?? '');
+        if ('' === $name) {
+            return true;
+        }
+        if (0 === strpos($name, 'woocommerce/')) {
+            return true;
+        }
+        if ('core/pattern' === $name) {
+            $slug = (string) ($block['attrs']['slug'] ?? '');
+            return false !== strpos($slug, 'woocommerce');
+        }
+
+        static $woo_core = [
+            'core/post-title'                 => true,
+            'core/post-excerpt'               => true,
+            'core/post-terms'                 => true,
+            'core/query-title'                => true,
+            'core/term-description'           => true,
+            'core/query-pagination'           => true,
+            'core/query-pagination-previous'  => true,
+            'core/query-pagination-numbers'   => true,
+            'core/query-pagination-next'      => true,
+        ];
+        if (isset($woo_core[$name])) {
+            return true;
+        }
+
+        if (in_array($name, ['core/group', 'core/columns', 'core/column'], true)) {
+            foreach ($block['innerBlocks'] ?? [] as $inner) {
+                if (!empty($inner['blockName']) && !self::block_is_woo_stock_shaped($inner)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Keep header + footer template parts; put the layout blocks in between.
+     *
+     * @param string               $content        Full template content.
+     * @param array<int,array>     $layout_blocks  Blocks from blocks_for_install().
+     * @return array{content:string,offset:int}|WP_Error offset = named-block index of the layout run.
+     */
+    public static function replace_stock_template_middle($content, array $layout_blocks) {
+        if (!function_exists('parse_blocks') || !function_exists('serialize_blocks')) {
+            return new WP_Error('woo4etch_no_blocks_api', __('Block parsing is unavailable.', 'woo4etch'));
+        }
+        $parsed = parse_blocks((string) $content);
+        $named_indices = [];
+        foreach ($parsed as $i => $block) {
+            if (!empty($block['blockName'])) {
+                $named_indices[] = $i;
+            }
+        }
+        if (count($named_indices) < 3) {
+            return new WP_Error('woo4etch_not_stock_template', __('This template is not in the expected header / content / footer shape.', 'woo4etch'));
+        }
+        $first = $named_indices[0];
+        $last  = $named_indices[count($named_indices) - 1];
+        if (($parsed[$first]['blockName'] ?? '') !== 'core/template-part'
+            || ($parsed[$last]['blockName'] ?? '') !== 'core/template-part') {
+            return new WP_Error('woo4etch_not_stock_template', __('This template is not in the expected header / content / footer shape.', 'woo4etch'));
+        }
+
+        $merged = array_merge(
+            array_slice($parsed, 0, $first + 1),
+            $layout_blocks,
+            array_slice($parsed, $last)
+        );
+
+        return [
+            'content' => serialize_blocks($merged),
+            // After save, named blocks are: header, ...layout..., footer.
+            'offset'  => 1,
+        ];
+    }
+
+    /**
      * True when the content contains any of the markers.
      *
      * @param string             $content Post content.
      * @param array<int,string>  $markers Substrings.
      * @return bool
      */
-    private static function content_has($content, array $markers) {
+    public static function content_has($content, array $markers) {
         if ('' === $content) {
             return false;
         }
