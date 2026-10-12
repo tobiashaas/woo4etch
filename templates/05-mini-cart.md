@@ -33,8 +33,9 @@ The mini-cart stays current through two mechanisms that coexist:
    `[data-w4e-cart-region]` element — mark your mini-cart wrapper with
    `data-w4e-cart-region="mini-cart"` and the whole dropdown re-renders as
    fresh server-side Etch HTML. Plain `.mini-cart-count` counters anywhere on
-   the page are synced too. Your scripts can listen for the
-   `woo4etch:cart-updated` event on `document`.
+   the page are synced too. Your scripts can listen for
+   `woo4etch:cart-written` (right after the Store API answer, before the
+   re-fetch) or `woo4etch:cart-updated` (after the swap) on `document`.
 
 2. **Classic WooCommerce fragments.** Woo's own AJAX add-to-cart buttons in
    archive loops (`?wc-ajax=add_to_cart`) update the DOM by replacing

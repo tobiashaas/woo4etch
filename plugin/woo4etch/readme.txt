@@ -155,6 +155,12 @@ In the admin, open **Etch → Woo4Etch** (or **WooCommerce → Woo4Etch** when E
 
 == Changelog ==
 
+= Unreleased =
+
+* Fixed: a cart interaction during a write in flight fell through to the classic full-page POST (#41, reported by @branislavbudzak). The submit listener returned early while busy, before preventDefault(), so a second add-to-cart inside the busy window — the next product card, or a double click — ran as the browser's own form POST: the visitor landed on the product page and the item could be added twice. Remove links, the coupon button, quantity changes and the checkout's address/shipping edits were silently dropped in the same window. Writes are now queued one at a time and never fall through; a form, link or button whose own write is still pending carries aria-busy and drops repeat submits, so a double click adds once.
+* New: woo4etch:cart-written fires as soon as the Store API has answered, before the page re-fetch (#42, proposed by @branislavbudzak) — detail.cart, detail.action, detail.request, detail.origin. It is cancelable: preventDefault() skips the region refresh for that write, as does data-w4e-refresh="none" on the form or any ancestor. woo4etch:cart-updated keeps firing after the swap, unchanged.
+* New: a jsdom test layer for the Store API script (tests/js/, runs in CI).
+
 = 1.11.0 =
 
 UPGRADE NOTE — SECURITY, please update: order data was readable without the order key. On the order-received / view-order endpoints, [woo_order_details] and {options.order.*} resolved the order from the id in the URL alone; and [do_action] / data-w4e-hook would fire order-bound hooks such as woocommerce_thankyou for any author-chosen order id, printing a stranger's order into public content. Both now require the matching ?key=, the logged-in owner or a shop manager.

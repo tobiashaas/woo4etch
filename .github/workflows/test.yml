@@ -73,6 +73,31 @@ jobs:
             exit 1
           fi
 
+  # Layer 2b — the Store API cart script under jsdom: the write queue, the
+  # event order and the refresh opt-outs, driven with real DOM events against
+  # a stubbed fetch (tests/js/README.md). No WordPress, no browser.
+  js:
+    name: Store API script (jsdom)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/js/package-lock.json
+
+      - name: Install jsdom
+        run: npm ci
+        working-directory: tests/js
+
+      - name: Run Store API script checks
+        run: npm test
+        working-directory: tests/js
+
   # Layers 4–5 — integration checks against a real WordPress + WooCommerce
   # (wp-env / Docker; slower, so a separate job off the fast path). Etch is a
   # paid plugin and not available here — the Etch-dependent assertions in the

@@ -1,0 +1,12 @@
+{
+  "name": "woo4etch-js-tests",
+  "private": true,
+  "description": "Behaviour checks for plugin/woo4etch/assets/store-api.js under jsdom — no WordPress, no browser.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node store-api.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

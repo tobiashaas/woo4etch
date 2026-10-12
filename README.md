@@ -108,6 +108,11 @@ The [`woo4etch`](plugin/woo4etch/) plugin is covered by the same license.
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Credits
+
+- [Zack Pyle](https://github.com/zackpyle) — the `[do_action]` snippet in the [Etch community](https://community.etchwp.com/c/general-discussion/woo-status) that the plugin grew out of, and `{this.is_sold_individually}` in the product bridge ([#15](https://github.com/tobiashaas/woo4etch/pull/15)).
+- [@branislavbudzak](https://github.com/branislavbudzak) — found and measured the mid-write fallthrough to the classic POST ([#41](https://github.com/tobiashaas/woo4etch/issues/41)) and proposed the early `woo4etch:cart-written` event and the refresh opt-out ([#42](https://github.com/tobiashaas/woo4etch/issues/42)).
+
 ## References
 
 Sources and references are listed at the end of [`WooCommerce-in-Etch-Knowledgebase.md`](./WooCommerce-in-Etch-Knowledgebase.md#sources).

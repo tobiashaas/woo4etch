@@ -48,6 +48,8 @@ if (file_exists($asset)) {
     $js = file_get_contents($asset);
     w4e_it(strpos($js, 'data-w4e-cart-region') !== false, 'script swaps [data-w4e-cart-region]');
     w4e_it(strpos($js, 'woo4etch:cart-updated') !== false, 'script dispatches woo4etch:cart-updated');
+    w4e_it(strpos($js, 'woo4etch:cart-written') !== false, 'script dispatches woo4etch:cart-written before the refresh (#42)');
+    w4e_it(strpos($js, 'data-w4e-refresh') !== false, 'script honours data-w4e-refresh="none" (#42)');
     w4e_it(strpos($js, 'wc_fragment_refresh') !== false, 'script triggers wc_fragment_refresh glue');
 }
 

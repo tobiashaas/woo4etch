@@ -63,8 +63,10 @@ foreach (['cart/update-customer', 'cart/select-shipping-rate', 'checkout'] as $r
 
 $js = file_get_contents(WP_PLUGIN_DIR . '/woo4etch/assets/store-api.js');
 w4e_it(strpos($js, 'data-w4e-checkout') !== false, 'module binds the data-w4e-checkout opt-in marker');
-w4e_it(strpos($js, '/cart/update-customer') !== false, 'module writes update-customer');
-w4e_it(strpos($js, '/cart/select-shipping-rate') !== false, 'module writes select-shipping-rate');
+// Writes go through cartWrite(origin, action, body): the endpoint is the
+// action name, joined to '/cart/' inside cartWrite (issue #41).
+w4e_it(strpos($js, "'update-customer'") !== false, 'module writes update-customer');
+w4e_it(strpos($js, "'select-shipping-rate'") !== false, 'module writes select-shipping-rate');
 w4e_it(strpos($js, "'/checkout'") !== false, 'module places the order via /checkout');
 w4e_it(strpos($js, 'woocommerce-germanized') !== false, 'module always sends the Germanized extensions key');
 w4e_it(strpos($js, 'data-w4e-checkout-region') !== false, 'module swaps checkout regions');
