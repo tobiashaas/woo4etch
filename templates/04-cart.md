@@ -281,13 +281,34 @@ default), the same markup is upgraded in place:
   already requires: `cart[<key>][qty]` inputs, `?remove_item=` /
   `?remove_coupon=` links, `apply_coupon` buttons, `form.cart` submits. Turn
   the plugin (or JS) off and everything falls back to the classic POST flow.
-- **Events for your own scripts:** every successful write dispatches
-  `woo4etch:cart-updated` on `document` (with `detail.cart` = the Store API
-  cart JSON), and triggers Woo's `wc_fragment_refresh` when a fragment-based
-  third-party mini-cart is present.
+- **Events for your own scripts:** every successful write dispatches two
+  events on `document`. `woo4etch:cart-written` fires as soon as the Store
+  API has answered, before the page is re-fetched — `detail.cart` = the Store
+  API cart JSON, `detail.action` = `add-item` / `update-item` / `remove-item` /
+  `apply-coupon` / `remove-coupon` (plus `select-shipping-rate` /
+  `update-customer` on the Store API checkout), `detail.request` = the body sent,
+  `detail.origin` = the element that triggered it. `woo4etch:cart-updated`
+  fires after the regions were swapped, with `detail.cart`. Woo's
+  `wc_fragment_refresh` is triggered when a fragment-based third-party
+  mini-cart is present.
+- **Skipping the re-fetch.** The re-fetch is a full WordPress render of the
+  current page. A layout that updates its own parts from the cart JSON can
+  skip it for a write: call `preventDefault()` on `woo4etch:cart-written`, or
+  put `data-w4e-refresh="none"` on the form (or any ancestor of the control).
+  `woo4etch:cart-updated` then fires right away.
+- **One write at a time.** A second interaction during a write — the next
+  product card, a double click — is queued behind the one in flight; it never
+  falls through to the classic POST. A repeat from a form, link or button
+  whose own write is still pending (it carries `aria-busy`) is dropped, so a
+  double click adds once.
 
 ```js
-// React to live cart changes anywhere (analytics, badges, custom UI):
+// Instant feedback (badge, toast, stepper) — before the regions re-render:
+document.addEventListener('woo4etch:cart-written', function (e) {
+  console.log(e.detail.action, 'items now:', e.detail.cart ? e.detail.cart.items_count : '?');
+  // e.preventDefault(); // skip the page re-fetch for this write
+});
+// After the server-rendered regions were swapped:
 document.addEventListener('woo4etch:cart-updated', function (e) {
   console.log('items now:', e.detail.cart ? e.detail.cart.items_count : '?');
 });

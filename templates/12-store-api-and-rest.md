@@ -136,9 +136,15 @@ classically so that data reaches the cart. Grouped-product forms
 **Events:**
 
 ```js
-// After every successful write (detail.cart = Store API cart JSON):
+// Right after the Store API answered, before the page re-fetch — cancelable:
+document.addEventListener('woo4etch:cart-written', (e) => { /* e.detail.cart, .action, .request, .origin */ });
+// After the regions were swapped (detail.cart = Store API cart JSON):
 document.addEventListener('woo4etch:cart-updated', (e) => { /* … */ });
 ```
+
+`preventDefault()` on `woo4etch:cart-written`, or `data-w4e-refresh="none"`
+on the form, skips the page re-fetch for that write. Writes run one at a
+time: a second interaction mid-write is queued, never a classic POST.
 
 The layer also triggers jQuery `wc_fragment_refresh` when `wc-cart-fragments`
 is present, so fragment-based third-party mini-carts resync.
@@ -343,7 +349,7 @@ Never embed REST API keys in frontend code — they grant admin-level access.
 |---|---|
 | Cart markup in Etch that live-updates | Nothing — the Woo4Etch layer does it (see above) |
 | Show cart contents in Etch layouts | Cart bridge Dynamic Keys (`{options.cart_items}` …) |
-| Cart JSON in your own scripts | Store API `GET /cart` (or `detail.cart` from `woo4etch:cart-updated`) |
+| Cart JSON in your own scripts | Store API `GET /cart` (or `detail.cart` from `woo4etch:cart-written` / `woo4etch:cart-updated`) |
 | Add to cart from custom JS | Store API `POST /cart/add-item` |
 | Custom product field readable by JS | Extend Store API product endpoint |
 | Backend script that creates orders | REST v3 `POST /orders` |

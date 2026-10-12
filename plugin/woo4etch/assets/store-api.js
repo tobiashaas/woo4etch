@@ -20,10 +20,25 @@
  * writes; without markers the shipped containers (.w4e-cart, .w4e-minicart)
  * are used. Custom builds: add the attribute to whatever should live-update.
  *
- * Events: every successful write dispatches `woo4etch:cart-updated`
- * (detail.cart = Store API cart JSON) on document, and — when jQuery +
- * wc-cart-fragments are present — triggers `wc_fragment_refresh` so
- * fragment-based third-party mini-carts stay in sync.
+ * Writes are serialized (issue #41). An interaction that arrives while a
+ * write is in flight — the next product card, a double click — is queued
+ * behind it and runs against the cart that write left behind; it never
+ * falls through to the classic full-page POST. A form, link or button whose
+ * own write is still pending carries aria-busy and drops repeat submits
+ * until that write settled.
+ *
+ * Events (issue #42): every successful write dispatches two events on
+ * document. `woo4etch:cart-written` fires as soon as the Store API has
+ * answered, before the page is re-fetched — detail.cart = the Store API cart
+ * JSON, detail.action = the endpoint (add-item, update-item, remove-item,
+ * apply-coupon, remove-coupon, select-shipping-rate, update-customer),
+ * detail.request = the body sent, detail.origin = the element that triggered
+ * it. It is cancelable: preventDefault() skips the region refresh for that
+ * one write, as does data-w4e-refresh="none" on the form (or any ancestor
+ * of the control). `woo4etch:cart-updated` fires after the regions were
+ * swapped (or right away when the refresh was skipped), with detail.cart.
+ * When jQuery + wc-cart-fragments are present, `wc_fragment_refresh` is
+ * triggered too, so fragment-based third-party mini-carts stay in sync.
  *
  * Add-to-cart interception is deliberately conservative: a form.cart is only
  * intercepted when it contains exclusively the known Woo fields (quantity,
@@ -151,24 +166,94 @@
         }
     }
 
-    function afterWrite(cart) {
-        return refreshRegions().then(function () {
-            announce(cart);
-            setBusy(false);
+    /* ---------------- write queue (issue #41) ---------------- */
+
+    // One write at a time. Before, a second interaction during a write
+    // passed the `busy` guard BEFORE preventDefault() and ran as the classic
+    // full-page POST — the visitor landed on the product page, sometimes
+    // with the item added twice. Now the interaction waits for the write in
+    // flight. `busy` holds from the first enqueue until the last job settled,
+    // so aria-busy on the regions covers the whole run.
+    var queue = Promise.resolve();
+    var pending = 0;
+
+    function noop() {}
+
+    function enqueue(run) {
+        pending++;
+        busy = true;
+        var job = queue.then(function () {
+            setBusy(true);
+            return run();
         });
+        queue = job.then(null, noop).then(function () {
+            pending--;
+            if (!pending) setBusy(false);
+        });
+        return job;
+    }
+
+    // The element whose own write is still pending (form, link, button)
+    // carries aria-busy; a repeat from it — a double click — is dropped
+    // rather than queued, so one click never means two items.
+    function isPending(el) {
+        return !!el && 'true' === el.getAttribute('aria-busy');
+    }
+
+    // data-w4e-refresh="none" on the form, or on any ancestor of the control,
+    // keeps the server-rendered regions as they are for writes from there —
+    // for a layout that updates its own parts from the cart JSON (issue #42).
+    // Each refresh is a full WordPress render of the current page.
+    function wantsRefresh(origin) {
+        var scope = origin && origin.closest ? origin.closest('[data-w4e-refresh]') : null;
+        return !(scope && 'none' === scope.getAttribute('data-w4e-refresh'));
+    }
+
+    /**
+     * One cart write, queued: POST the Store API, report the answer right
+     * away (`woo4etch:cart-written`, cancelable), re-render the regions
+     * unless that write opted out, then `woo4etch:cart-updated`. Resolves
+     * with the Store API cart; rejects with the API error, after which the
+     * queue moves on to the next job.
+     *
+     * @param {Element|null} origin  The control that triggered the write.
+     * @param {string}       action  Endpoint under /cart/ (add-item, …).
+     * @param {Object}       body    Request body.
+     * @param {Element=}     guard   Element to mark aria-busy while pending.
+     * @param {boolean=}     restore On failure, re-render the regions to the
+     *                               server truth before rejecting: the DOM
+     *                               may hold optimistic state (a stepper
+     *                               already bumped the input Woo rejected,
+     *                               e.g. sold-individually items). Done
+     *                               inside the job, so the next queued
+     *                               write never overlaps the restore.
+     */
+    function cartWrite(origin, action, body, guard, restore) {
+        if (guard) guard.setAttribute('aria-busy', 'true');
+        var job = enqueue(function () {
+            return api('/cart/' + action, 'POST', body).then(function (cart) {
+                var early = new CustomEvent('woo4etch:cart-written', {
+                    cancelable: true,
+                    detail: { cart: cart || null, action: action, request: body || null, origin: origin || null }
+                });
+                var refresh = document.dispatchEvent(early) && wantsRefresh(origin);
+                return (refresh ? refreshRegions() : Promise.resolve()).then(function () {
+                    announce(cart);
+                    return cart;
+                });
+            }, function (err) {
+                if (!restore) throw err;
+                return refreshRegions().then(function () { throw err; });
+            });
+        });
+        if (guard) {
+            job.then(null, noop).then(function () { guard.removeAttribute('aria-busy'); });
+        }
+        return job;
     }
 
     function fail(err) {
-        setBusy(false);
         notice(err && err.message ? err.message : (i18n.error || 'Something went wrong.'), 'error');
-    }
-
-    // Failed write: the DOM may hold optimistic state (a stepper already
-    // bumped the input Woo just rejected, e.g. sold-individually items) —
-    // re-render the regions to the server truth, THEN show the error (the
-    // notices region can live inside a swapped region).
-    function failAndRestore(err) {
-        return refreshRegions().then(function () { fail(err); });
     }
 
     /* ---------------- cart page bindings ---------------- */
@@ -177,52 +262,52 @@
 
     document.addEventListener('change', function (e) {
         var input = e.target;
-        if (!input.name || !/^cart\[(.+)\]\[qty\]$/.test(input.name) || busy) return;
+        if (!input.name || !/^cart\[(.+)\]\[qty\]$/.test(input.name)) return;
         var key = input.name.match(/^cart\[(.+)\]\[qty\]$/)[1];
         var quantity = parseInt(input.value, 10);
         if (isNaN(quantity) || quantity < 0) return;
         window.clearTimeout(qtyTimer);
         qtyTimer = window.setTimeout(function () {
-            setBusy(true);
-            var call = quantity === 0
-                ? api('/cart/remove-item', 'POST', { key: key })
-                : api('/cart/update-item', 'POST', { key: key, quantity: quantity });
-            call.then(afterWrite).catch(failAndRestore);
+            // restore=true: the regions are re-rendered to the server truth
+            // before the error shows (the notices region usually lives
+            // inside the swapped cart region).
+            (quantity === 0
+                ? cartWrite(input, 'remove-item', { key: key }, null, true)
+                : cartWrite(input, 'update-item', { key: key, quantity: quantity }, null, true)
+            ).catch(fail);
         }, 350);
     });
 
     document.addEventListener('click', function (e) {
         var link = e.target.closest ? e.target.closest('a[href*="remove_item="], a[href*="remove_coupon="]') : null;
-        if (link && !busy) {
+        if (link) {
             var url;
             try { url = new URL(link.href, window.location.origin); } catch (err) { return; }
             var itemKey = url.searchParams.get('remove_item');
             var coupon = url.searchParams.get('remove_coupon');
             if (!itemKey && !coupon) return;
             e.preventDefault();
-            setBusy(true);
+            if (isPending(link)) return;
             (itemKey
-                ? api('/cart/remove-item', 'POST', { key: itemKey })
-                : api('/cart/remove-coupon', 'POST', { code: coupon })
-            ).then(afterWrite).catch(failAndRestore);
+                ? cartWrite(link, 'remove-item', { key: itemKey }, link, true)
+                : cartWrite(link, 'remove-coupon', { code: coupon }, link, true)
+            ).catch(fail);
             return;
         }
 
         var couponBtn = e.target.closest ? e.target.closest('[name="apply_coupon"]') : null;
-        if (couponBtn && !busy) {
+        if (couponBtn) {
             var form = couponBtn.closest('form');
             var field = form ? form.querySelector('input[name="coupon_code"]') : document.querySelector('input[name="coupon_code"]');
             var code = field ? field.value.trim() : '';
             if (!code) return; // let the classic submit handle empties
             e.preventDefault();
-            setBusy(true);
-            api('/cart/apply-coupon', 'POST', { code: code })
-                .then(function (cart) {
+            if (isPending(couponBtn)) return;
+            cartWrite(couponBtn, 'apply-coupon', { code: code }, couponBtn)
+                .then(function () {
                     // Notices render AFTER the region swap — the notices
                     // region usually lives inside the swapped cart region.
-                    return afterWrite(cart).then(function () {
-                        notice(i18n.couponApplied || 'Coupon code applied successfully.', 'success');
-                    });
+                    notice(i18n.couponApplied || 'Coupon code applied successfully.', 'success');
                 })
                 .catch(fail);
         }
@@ -243,7 +328,7 @@
 
     document.addEventListener('submit', function (e) {
         var form = e.target;
-        if (!form.classList || !form.classList.contains('cart') || busy) return;
+        if (!form.classList || !form.classList.contains('cart')) return;
         if (!interceptable(form)) return;
 
         var submitter = e.submitter || form.querySelector('[name="add-to-cart"], [name="buy_now"]');
@@ -252,6 +337,12 @@
         var idField = form.querySelector('[name="add-to-cart"]') || form.querySelector('[name="product_id"]');
         var id = idField ? parseInt(idField.value, 10) : 0;
         if (!id) return;
+
+        // From here on the submit is ours — never the classic POST, not
+        // even while another write runs (issue #41). A repeat from the
+        // same form is dropped; a different form's submit is queued.
+        e.preventDefault();
+        if (isPending(form)) return;
 
         var variationField = form.querySelector('[name="variation_id"]');
         var variationId = variationField ? parseInt(variationField.value, 10) : 0;
@@ -263,16 +354,12 @@
             if (el.value) variation.push({ attribute: el.name, value: el.value });
         });
 
-        e.preventDefault();
-        setBusy(true);
-        api('/cart/add-item', 'POST', {
+        cartWrite(form, 'add-item', {
             id: variationId || id,
             quantity: quantity,
             variation: variation
-        }).then(function (cart) {
-            return afterWrite(cart).then(function () {
-                notice(i18n.added || 'Added to your cart.', 'success');
-            });
+        }, form).then(function () {
+            notice(i18n.added || 'Added to your cart.', 'success');
         }).catch(fail);
     });
 
@@ -386,13 +473,13 @@
 
     document.addEventListener('change', function (e) {
         var form = e.target.closest ? e.target.closest('form[data-w4e-checkout]') : null;
-        if (!form || busy) return;
+        if (!form) return;
 
         // Shipping rate picked → select-shipping-rate, totals re-render.
+        // Queued like every write: an edit during a write used to be
+        // dropped, leaving the totals behind the form (issue #41).
         if (/^shipping_method/.test(e.target.name || '')) {
-            setBusy(true);
-            api('/cart/select-shipping-rate', 'POST', { package_id: 0, rate_id: e.target.value })
-                .then(afterWrite).catch(fail);
+            cartWrite(e.target, 'select-shipping-rate', { package_id: 0, rate_id: e.target.value }).catch(fail);
             return;
         }
 
@@ -401,8 +488,7 @@
         if (/^(billing|shipping)_(country|state|postcode|city|address_1)$|^ship_to_different_address$/.test(e.target.name || '')) {
             window.clearTimeout(customerTimer);
             customerTimer = window.setTimeout(function () {
-                setBusy(true);
-                api('/cart/update-customer', 'POST', readAddresses(form)).then(afterWrite).catch(fail);
+                cartWrite(form, 'update-customer', readAddresses(form)).catch(fail);
             }, 600);
         }
     });
@@ -430,7 +516,6 @@
 
         e.preventDefault();
         e.stopPropagation();
-        setBusy(true);
 
         var payload = readAddresses(form);
         payload.payment_method = gateway;
@@ -451,27 +536,29 @@
             payload.extensions = { 'woocommerce-germanized': { checkboxes: boxes } };
         }
 
-        collectPaymentData(form, gateway)
-            .then(function (data) {
-                if (data.length) payload.payment_data = data;
-                return api('/checkout', 'POST', payload);
-            })
-            .then(function (res) {
-                var redirect = res && res.payment_result && res.payment_result.redirect_url;
-                if (redirect) {
-                    window.location.assign(redirect);
-                    return;
-                }
-                // No redirect target — should not happen for allowlisted
-                // gateways; fall back to a visible error, order state is
-                // recoverable via the account/order pages.
-                setBusy(false);
-                notice(i18n.error || 'Something went wrong.', 'error');
-            })
-            .catch(function (err) {
-                // Swap first (totals/validation state may have moved), THEN
-                // show the error — the notices region can live inside a region.
-                refreshRegions().then(function () { fail(err); });
-            });
+        // Placed through the same queue, so it runs after any address or
+        // shipping write that is still pending — never alongside one.
+        enqueue(function () {
+            return collectPaymentData(form, gateway)
+                .then(function (data) {
+                    if (data.length) payload.payment_data = data;
+                    return api('/checkout', 'POST', payload);
+                })
+                .then(function (res) {
+                    var redirect = res && res.payment_result && res.payment_result.redirect_url;
+                    if (redirect) {
+                        window.location.assign(redirect);
+                        return;
+                    }
+                    // No redirect target — should not happen for allowlisted
+                    // gateways; fall back to a visible error, order state is
+                    // recoverable via the account/order pages.
+                    notice(i18n.error || 'Something went wrong.', 'error');
+                });
+        }).catch(function (err) {
+            // Swap first (totals/validation state may have moved), THEN
+            // show the error — the notices region can live inside a region.
+            return refreshRegions().then(function () { fail(err); });
+        });
     }, true);
 })();

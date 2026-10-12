@@ -38,7 +38,13 @@ If you changed a **layout definition**, regenerate the copy/paste artifacts, or 
 php tools/generate-etch-copy.php
 ```
 
-CI additionally lints PHP 8.1→8.5 and runs the integration checks against a real
+If you changed **`assets/store-api.js`**, run its jsdom checks too (one devDependency, no browser):
+
+```bash
+cd tests/js && npm ci && npm test
+```
+
+CI additionally lints PHP 8.1→8.5, runs those jsdom checks, and runs the integration checks against a real
 WordPress + WooCommerce ([`tests/integration/`](tests/integration/README.md)).
 
 Changing the plugin? Keep these in sync in the same PR — the fast checks assert
